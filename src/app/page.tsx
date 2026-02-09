@@ -1,65 +1,161 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function Home() {
+  const router = useRouter();
+  const [creating, setCreating] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const [showJoinInput, setShowJoinInput] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Создать игру
+  const handleCreateGame = async () => {
+    setCreating(true);
+    setError(null);
+
+    try {
+      // Создаём гостевого хоста (позже заменим на аутентификацию)
+      const userRes = await fetch("/api/users/guest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Хост" }),
+      });
+
+      if (!userRes.ok) {
+        setError("Ошибка создания пользователя");
+        setCreating(false);
+        return;
+      }
+
+      const { user } = await userRes.json();
+
+      // Создаём игру
+      const gameRes = await fetch("/api/games", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          hostId: user.id,
+          totalRounds: 10,
+          maxPlayers: 99,
+        }),
+      });
+
+      if (!gameRes.ok) {
+        const data = await gameRes.json();
+        setError(data.error || "Ошибка создания игры");
+        setCreating(false);
+        return;
+      }
+
+      const { game } = await gameRes.json();
+      router.push(`/lobby/${game.id}`);
+    } catch {
+      setError("Ошибка подключения к серверу");
+      setCreating(false);
+    }
+  };
+
+  // Присоединиться по коду
+  const handleJoinByCode = () => {
+    const code = joinCode.trim().toUpperCase();
+    if (!code) {
+      setError("Введите код комнаты");
+      return;
+    }
+    // Добавляем префикс если его нет
+    const fullCode = code.startsWith("WN-") ? code : `WN-${code}`;
+    router.push(`/join/${fullCode}`);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen flex flex-col items-center justify-center p-4">
+      {/* Кнопка смены темы */}
+      <div className="fixed top-4 right-4">
+        <ThemeToggle />
+      </div>
+
+      {/* Логотип / Заголовок */}
+      <div className="text-center space-y-6">
+        <div className="text-7xl mb-4">🍷</div>
+        <h1 className="text-4xl md:text-6xl font-bold text-[var(--primary)]">
+          Винная Викторина
+        </h1>
+        <p className="text-lg md:text-xl text-[var(--muted-foreground)] max-w-md mx-auto">
+          Проверь свои знания о вине в увлекательной мультиплеерной викторине!
+        </p>
+      </div>
+
+      {/* Ошибка */}
+      {error && (
+        <div className="mt-6 bg-[var(--card)] border border-[var(--error)] text-[var(--error)] px-6 py-3 rounded-xl text-sm max-w-md text-center">
+          {error}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+      )}
+
+      {/* Кнопки */}
+      <div className="mt-12 flex flex-col sm:flex-row gap-4">
+        <button
+          onClick={handleCreateGame}
+          disabled={creating}
+          className="px-8 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {creating ? (
+            <span className="flex items-center gap-2">
+              <span className="animate-spin">⏳</span> Создание...
+            </span>
+          ) : (
+            "🚀 Создать игру"
+          )}
+        </button>
+        <button
+          onClick={() => setShowJoinInput(!showJoinInput)}
+          className="px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-colors shadow-lg"
+        >
+          📱 Присоединиться
+        </button>
+      </div>
+
+      {/* Поле ввода кода */}
+      {showJoinInput && (
+        <div className="mt-6 flex flex-col sm:flex-row gap-3 items-center max-w-md w-full">
+          <div className="flex-1 w-full">
+            <input
+              type="text"
+              value={joinCode}
+              onChange={(e) => {
+                setJoinCode(e.target.value.toUpperCase());
+                setError(null);
+              }}
+              onKeyDown={(e) => e.key === "Enter" && handleJoinByCode()}
+              placeholder="WN-000000"
+              maxLength={9}
+              className="w-full px-4 py-3 bg-[var(--card)] border-2 border-[var(--border)] rounded-xl text-center text-lg font-mono focus:outline-none focus:ring-2 focus:ring-[var(--primary)] placeholder:text-[var(--muted-foreground)]"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+          <button
+            onClick={handleJoinByCode}
+            className="px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl font-semibold hover:opacity-90 transition-opacity whitespace-nowrap"
           >
-            Documentation
-          </a>
+            Войти
+          </button>
         </div>
-      </main>
-    </div>
+      )}
+
+      {/* Нижние ссылки */}
+      <div className="mt-16 flex gap-6 text-sm text-[var(--muted-foreground)]">
+        <a href="/leaderboard" className="hover:text-[var(--primary)] transition-colors">
+          🏆 Рейтинг
+        </a>
+        <a href="/profile" className="hover:text-[var(--primary)] transition-colors">
+          👤 Профиль
+        </a>
+        <a href="/achievements" className="hover:text-[var(--primary)] transition-colors">
+          ⭐ Достижения
+        </a>
+      </div>
+    </main>
   );
 }

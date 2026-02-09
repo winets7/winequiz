@@ -1,0 +1,192 @@
+// =============================================
+// 🍷 Винная Викторина — Схема базы данных
+// =============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================
+// Перечисления (Enums)
+// =============================================
+
+enum Role {
+  ADMIN
+  PLAYER
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum GameStatus {
+  WAITING
+  PLAYING
+  FINISHED
+}
+
+// =============================================
+// Модели (Таблицы)
+// =============================================
+
+/// Пользователь (игрок или администратор)
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  avatar       String?
+  role         Role     @default(PLAYER)
+  level        Int      @default(1)
+  xp           Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Связи
+  hostedGames      GameSession[]    @relation("HostedGames")
+  gamePlayers       GamePlayer[]
+  userAchievements  UserAchievement[]
+
+  @@map("users")
+}
+
+/// Категория вопросов (Красное, Белое, Регионы, Сорта, История...)
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  icon      String?
+  createdAt DateTime @default(now())
+
+  // Связи
+  questions Question[]
+
+  @@map("categories")
+}
+
+/// Вопрос викторины
+model Question {
+  id         String     @id @default(uuid())
+  text       String
+  imageUrl   String?
+  difficulty Difficulty @default(MEDIUM)
+  timeLimit  Int        @default(15) // секунды
+  categoryId String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  // Связи
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  answers       Answer[]
+  playerAnswers PlayerAnswer[]
+
+  @@map("questions")
+}
+
+/// Вариант ответа на вопрос
+model Answer {
+  id         String  @id @default(uuid())
+  text       String
+  isCorrect  Boolean @default(false)
+  questionId String
+
+  // Связи
+  question      Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  playerAnswers PlayerAnswer[]
+
+  @@map("answers")
+}
+
+/// Игровая сессия (комната)
+model GameSession {
+  id           String     @id @default(uuid())
+  hostId       String
+  status       GameStatus @default(WAITING)
+  code         String     @unique // Код комнаты, напр. "WN-482917"
+  maxPlayers   Int        @default(99)
+  currentRound Int        @default(0)
+  totalRounds  Int        @default(10)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  finishedAt   DateTime?
+
+  // Связи
+  host    User         @relation("HostedGames", fields: [hostId], references: [id], onDelete: Cascade)
+  players GamePlayer[]
+
+  @@map("game_sessions")
+}
+
+/// Участник игровой сессии
+model GamePlayer {
+  id       String   @id @default(uuid())
+  gameId   String
+  userId   String
+  score    Int      @default(0)
+  position Int?
+  joinedAt DateTime @default(now())
+
+  // Связи
+  game          GameSession    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playerAnswers PlayerAnswer[]
+
+  @@unique([gameId, userId]) // Один пользователь — одна запись в игре
+  @@map("game_players")
+}
+
+/// Ответ игрока на вопрос в рамках игры
+model PlayerAnswer {
+  id           String   @id @default(uuid())
+  gamePlayerId String
+  questionId   String
+  answerId     String?  // null если не ответил
+  timeTaken    Int      @default(0) // миллисекунды
+  points       Int      @default(0)
+  isCorrect    Boolean  @default(false)
+  answeredAt   DateTime @default(now())
+
+  // Связи
+  gamePlayer GamePlayer @relation(fields: [gamePlayerId], references: [id], onDelete: Cascade)
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answer     Answer?    @relation(fields: [answerId], references: [id], onDelete: SetNull)
+
+  @@unique([gamePlayerId, questionId]) // Один ответ на вопрос за игру
+  @@map("player_answers")
+}
+
+/// Достижение (шаблон)
+model Achievement {
+  id          String @id @default(uuid())
+  name        String @unique
+  description String
+  icon        String
+  condition   String // JSON с условием: { "type": "total_correct", "value": 100 }
+  xpReward    Int    @default(50)
+
+  // Связи
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+/// Полученное пользователем достижение
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  // Связи
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId]) // Одно достижение — один раз
+  @@map("user_achievements")
+}

@@ -160,23 +160,14 @@ export function createSocketServer(httpServer?: HttpServer) {
     });
 
     // =============================================
-    // Хост настраивает раунд (вводит параметры вина)
+    // Хост активирует раунд (раунд уже создан через REST API)
     // =============================================
-    socket.on("setup_round", async (data: {
+    socket.on("activate_round", async (data: {
       code: string;
+      roundId: string;
       roundNumber: number;
-      wine: {
-        grapeVarieties: string[];
-        sweetness: string;
-        vintageYear: number;
-        country: string;
-        alcoholContent: number;
-        isOakAged: boolean;
-        color: string;
-        composition: string;
-      };
     }) => {
-      const { code, roundNumber, wine } = data;
+      const { code, roundId, roundNumber } = data;
       const room = activeRooms.get(code);
 
       if (!room) {
@@ -185,49 +176,21 @@ export function createSocketServer(httpServer?: HttpServer) {
       }
 
       if (socket.id !== room.hostSocketId) {
-        socket.emit("error", { message: "Только хост может настраивать раунд" });
+        socket.emit("error", { message: "Только хост может активировать раунд" });
         return;
       }
 
-      try {
-        // Создаём раунд в БД
-        const round = await prisma.round.create({
-          data: {
-            gameId: room.gameId,
-            roundNumber,
-            status: "ACTIVE",
-            grapeVarieties: wine.grapeVarieties,
-            sweetness: wine.sweetness as "DRY" | "SEMI_DRY" | "SEMI_SWEET" | "SWEET",
-            vintageYear: wine.vintageYear,
-            country: wine.country,
-            alcoholContent: wine.alcoholContent,
-            isOakAged: wine.isOakAged,
-            color: wine.color as "RED" | "WHITE" | "ROSE" | "ORANGE",
-            composition: wine.composition as "MONO" | "BLEND",
-          },
-        });
+      room.currentRound = roundNumber;
+      room.currentRoundId = roundId;
 
-        room.currentRound = roundNumber;
-        room.currentRoundId = round.id;
+      console.log(`🍷 Раунд ${roundNumber} активирован в игре ${code}`);
 
-        // Обновляем текущий раунд в БД
-        await prisma.gameSession.update({
-          where: { id: room.gameId },
-          data: { currentRound: roundNumber },
-        });
-
-        console.log(`🍷 Раунд ${roundNumber} настроен в игре ${code}`);
-
-        // Уведомляем участников (БЕЗ правильных ответов и фото!)
-        io.to(code).emit("round_started", {
-          roundNumber,
-          roundId: round.id,
-          totalRounds: room.totalRounds,
-        });
-      } catch (error) {
-        console.error("Ошибка настройки раунда:", error);
-        socket.emit("error", { message: "Ошибка при создании раунда" });
-      }
+      // Уведомляем всех участников (БЕЗ правильных ответов и фото!)
+      io.to(code).emit("round_started", {
+        roundNumber,
+        roundId,
+        totalRounds: room.totalRounds,
+      });
     });
 
     // =============================================

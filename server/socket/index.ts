@@ -185,6 +185,36 @@ export function createSocketServer(httpServer?: HttpServer) {
           totalRounds: room.totalRounds,
           playersCount: room.players.size,
         });
+
+        // Если раунд уже активен — отправляем round_started
+        if (room.currentRoundId) {
+          socket.emit("round_started", {
+            roundNumber: room.currentRound,
+            roundId: room.currentRoundId,
+            totalRounds: room.totalRounds,
+          });
+          console.log(`📢 Игроку ${name} отправлен активный раунд ${room.currentRound}`);
+        } else {
+          // Пробуем найти активный раунд из БД
+          try {
+            const activeRound = await prisma.round.findFirst({
+              where: { gameId: room.gameId, status: "ACTIVE" },
+              select: { id: true, roundNumber: true },
+            });
+            if (activeRound) {
+              room.currentRoundId = activeRound.id;
+              room.currentRound = activeRound.roundNumber;
+              socket.emit("round_started", {
+                roundNumber: activeRound.roundNumber,
+                roundId: activeRound.id,
+                totalRounds: room.totalRounds,
+              });
+              console.log(`📢 Игроку ${name} отправлен активный раунд ${activeRound.roundNumber} (из БД)`);
+            }
+          } catch (err) {
+            console.error("Ошибка поиска активного раунда:", err);
+          }
+        }
       }
     });
 
@@ -255,6 +285,20 @@ export function createSocketServer(httpServer?: HttpServer) {
 
       room.currentRound = roundNumber;
       room.currentRoundId = roundId;
+
+      // Обновляем статус раунда и текущий раунд в БД
+      try {
+        await prisma.round.update({
+          where: { id: roundId },
+          data: { status: "ACTIVE" },
+        });
+        await prisma.gameSession.update({
+          where: { id: room.gameId },
+          data: { currentRound: roundNumber },
+        });
+      } catch (err) {
+        console.error("Ошибка обновления статуса раунда:", err);
+      }
 
       console.log(`🍷 Раунд ${roundNumber} активирован в игре ${code}`);
 

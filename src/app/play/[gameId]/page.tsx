@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSocket } from "@/hooks/useSocket";
@@ -14,11 +14,11 @@ import { RoundResults } from "@/components/game/round-results";
 
 type GamePhase =
   | "LOADING"
-  | "ROUND_SETUP"     // Хост настраивает раунд
-  | "ROUND_ACTIVE"    // Участники угадывают
-  | "GUESS_SUBMITTED" // Участник отправил догадку
-  | "ROUND_RESULTS"   // Результаты раунда
-  | "GAME_FINISHED";  // Игра завершена
+  | "ROUND_READY"      // Хост видит кнопку «Запустить раунд»
+  | "ROUND_ACTIVE"     // Участники угадывают
+  | "GUESS_SUBMITTED"  // Участник отправил догадку
+  | "ROUND_RESULTS"    // Результаты раунда
+  | "GAME_FINISHED";   // Игра завершена
 
 interface GameData {
   id: string;
@@ -29,6 +29,15 @@ interface GameData {
   totalRounds: number;
   currentRound: number;
   host: { id: string; name: string; avatar: string | null };
+}
+
+interface RoundInfo {
+  id: string;
+  roundNumber: number;
+  status: string;
+  color: string | null;
+  country: string | null;
+  grapeVarieties: string[];
 }
 
 interface RoundResultData {
@@ -87,17 +96,13 @@ export default function PlayPage() {
   const [phase, setPhase] = useState<GamePhase>("LOADING");
   const [currentRound, setCurrentRound] = useState(1);
   const [currentRoundId, setCurrentRoundId] = useState<string | null>(null);
+  const [rounds, setRounds] = useState<RoundInfo[]>([]);
   const [guessCount, setGuessCount] = useState(0);
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResultData | null>(null);
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  // Фото для загрузки (только хост)
-  const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
-  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userId = session?.user?.id;
   const isHost = game?.host?.id === userId;
@@ -128,13 +133,27 @@ export default function PlayPage() {
         setCurrentRound(g.currentRound || 1);
         setTotalPlayers(g.players?.length || 0);
 
+        // Загружаем раунды
+        const roundsRes = await fetch(`/api/rounds?gameId=${gameId}`);
+        if (roundsRes.ok) {
+          const roundsData = await roundsRes.json();
+          setRounds(
+            (roundsData.rounds || []).map((r: RoundInfo) => ({
+              id: r.id,
+              roundNumber: r.roundNumber,
+              status: r.status,
+              color: r.color,
+              country: r.country,
+              grapeVarieties: r.grapeVarieties,
+            }))
+          );
+        }
+
         // Определяем начальную фазу
         if (g.status === "FINISHED") {
           setPhase("GAME_FINISHED");
-        } else if (g.status === "PLAYING") {
-          setPhase("ROUND_SETUP");
         } else {
-          setPhase("ROUND_SETUP");
+          setPhase("ROUND_READY");
         }
       } catch {
         setError("Ошибка загрузки игры");
@@ -144,12 +163,11 @@ export default function PlayPage() {
   }, [gameId]);
 
   // =============================================
-  // Присоединение к комнате при подключении сокета
+  // Присоединение к комнате
   // =============================================
   useEffect(() => {
     if (!isConnected || !game || !userId || !session?.user?.name) return;
 
-    // Пере-присоединяемся к комнате
     emit("join_game", {
       code: game.code,
       userId,
@@ -229,70 +247,29 @@ export default function PlayPage() {
   // Обработчики действий
   // =============================================
 
-  // Хост: Создать раунд и начать
-  const handleStartRound = useCallback(
-    async (wineParams: WineParams) => {
-      if (!game) return;
-      setSubmitting(true);
-      setError(null);
+  // Хост: Запустить раунд (раунд уже заполнен в лобби)
+  const handleActivateRound = useCallback(() => {
+    if (!game) return;
 
-      try {
-        // 1. Создаём раунд через REST API
-        const roundRes = await fetch("/api/rounds", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            gameId: game.id,
-            roundNumber: currentRound,
-            ...wineParams,
-            vintageYear: wineParams.vintageYear ? parseInt(wineParams.vintageYear) : null,
-            alcoholContent: wineParams.alcoholContent ? parseFloat(wineParams.alcoholContent) : null,
-          }),
-        });
+    // Находим раунд по номеру
+    const round = rounds.find((r) => r.roundNumber === currentRound);
+    if (!round) {
+      setError("Раунд не найден");
+      return;
+    }
 
-        if (!roundRes.ok) {
-          const data = await roundRes.json();
-          setError(data.error || "Ошибка создания раунда");
-          setSubmitting(false);
-          return;
-        }
+    setCurrentRoundId(round.id);
 
-        const { round } = await roundRes.json();
-        setCurrentRoundId(round.id);
+    // Уведомляем всех через Socket.io
+    emit("activate_round", {
+      code: game.code,
+      roundId: round.id,
+      roundNumber: currentRound,
+    });
 
-        // 2. Загружаем фотографии если есть
-        if (selectedPhotos.length > 0) {
-          const formData = new FormData();
-          selectedPhotos.forEach((photo) => {
-            formData.append("photos", photo);
-          });
-
-          await fetch(`/api/rounds/${round.id}/photos`, {
-            method: "POST",
-            body: formData,
-          });
-        }
-
-        // 3. Уведомляем всех через Socket.io
-        emit("activate_round", {
-          code: game.code,
-          roundId: round.id,
-          roundNumber: currentRound,
-        });
-
-        // Хост переходит в режим ожидания
-        setPhase("ROUND_ACTIVE");
-        setGuessCount(0);
-        setSelectedPhotos([]);
-        setPhotoPreviewUrls([]);
-        setSubmitting(false);
-      } catch {
-        setError("Ошибка при создании раунда");
-        setSubmitting(false);
-      }
-    },
-    [game, currentRound, selectedPhotos, emit]
-  );
+    setPhase("ROUND_ACTIVE");
+    setGuessCount(0);
+  }, [game, currentRound, rounds, emit]);
 
   // Участник: Отправить догадку
   const handleSubmitGuess = useCallback(
@@ -309,7 +286,9 @@ export default function PlayPage() {
           sweetness: guessParams.sweetness || null,
           vintageYear: guessParams.vintageYear ? parseInt(guessParams.vintageYear) : null,
           country: guessParams.country || null,
-          alcoholContent: guessParams.alcoholContent ? parseFloat(guessParams.alcoholContent) : null,
+          alcoholContent: guessParams.alcoholContent
+            ? parseFloat(guessParams.alcoholContent)
+            : null,
           isOakAged: guessParams.isOakAged,
           color: guessParams.color || null,
           composition: guessParams.composition || null,
@@ -331,7 +310,7 @@ export default function PlayPage() {
     setCurrentRoundId(null);
     setRoundResult(null);
     setGuessCount(0);
-    setPhase("ROUND_SETUP");
+    setPhase("ROUND_READY");
   }, []);
 
   // Хост: Завершить игру
@@ -339,33 +318,6 @@ export default function PlayPage() {
     if (!game) return;
     emit("finish_game", { code: game.code });
   }, [game, emit]);
-
-  // Обработка фотографий
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const totalPhotos = selectedPhotos.length + files.length;
-
-    if (totalPhotos > 4) {
-      setError("Максимум 4 фотографии");
-      return;
-    }
-
-    setSelectedPhotos((prev) => [...prev, ...files]);
-
-    // Создаём превью
-    files.forEach((file) => {
-      const url = URL.createObjectURL(file);
-      setPhotoPreviewUrls((prev) => [...prev, url]);
-    });
-  };
-
-  const removePhoto = (index: number) => {
-    setSelectedPhotos((prev) => prev.filter((_, i) => i !== index));
-    setPhotoPreviewUrls((prev) => {
-      URL.revokeObjectURL(prev[index]);
-      return prev.filter((_, i) => i !== index);
-    });
-  };
 
   // =============================================
   // Рендеринг
@@ -441,80 +393,40 @@ export default function PlayPage() {
 
       {/* === Основной контент === */}
       <div className="w-full max-w-lg mx-auto px-4 mt-4">
-        {/* ──────────── ROUND_SETUP ──────────── */}
-        {phase === "ROUND_SETUP" && isHost && (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-xl font-bold">🍷 Настройте раунд {currentRound}</h2>
-              <p className="text-sm text-[var(--muted-foreground)] mt-1">
-                Введите параметры загаданного вина
-              </p>
+        {/* ──────────── ROUND_READY (Хост) ──────────── */}
+        {phase === "ROUND_READY" && isHost && (
+          <div className="text-center py-8 space-y-6">
+            <div className="text-6xl mb-4">🍷</div>
+            <h2 className="text-xl font-bold">Раунд {currentRound}</h2>
+            <p className="text-[var(--muted-foreground)]">
+              Вино уже загадано. Запустите раунд, когда все будут готовы!
+            </p>
+
+            <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)] text-sm text-[var(--muted-foreground)]">
+              <p>👥 Игроков: {totalPlayers}</p>
             </div>
 
-            {/* Загрузка фото */}
-            <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
-              <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-2">
-                📸 Фотографии бутылки (до 4 шт.)
-              </label>
-
-              {photoPreviewUrls.length > 0 && (
-                <div className="grid grid-cols-4 gap-2 mb-3">
-                  {photoPreviewUrls.map((url, i) => (
-                    <div key={i} className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[var(--muted)]">
-                      <img src={url} alt={`Фото ${i + 1}`} className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => removePhoto(i)}
-                        className="absolute top-1 right-1 w-6 h-6 bg-[var(--error)] text-white rounded-full text-xs flex items-center justify-center"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {selectedPhotos.length < 4 && (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full p-4 border-2 border-dashed border-[var(--border)] rounded-xl text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
-                >
-                  📷 Добавить фото
-                </button>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoSelect}
-                className="hidden"
-              />
-            </div>
-
-            {/* Форма параметров вина */}
-            <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
-              <WineForm
-                mode="host"
-                onSubmit={handleStartRound}
-                loading={submitting}
-                submitLabel="🍷 Начать раунд"
-              />
-            </div>
+            <button
+              onClick={handleActivateRound}
+              className="w-full px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg"
+            >
+              ▶️ Запустить раунд {currentRound}
+            </button>
           </div>
         )}
 
-        {phase === "ROUND_SETUP" && !isHost && (
+        {/* ROUND_READY (Участник ждёт) */}
+        {phase === "ROUND_READY" && !isHost && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4 animate-pulse">🍷</div>
-            <h2 className="text-xl font-bold mb-2">Ожидание хоста...</h2>
+            <h2 className="text-xl font-bold mb-2">Ожидание...</h2>
             <p className="text-[var(--muted-foreground)]">
               Хост готовит раунд {currentRound}
             </p>
           </div>
         )}
 
-        {/* ──────────── ROUND_ACTIVE ──────────── */}
+        {/* ──────────── ROUND_ACTIVE (Хост ждёт ответы) ──────────── */}
         {phase === "ROUND_ACTIVE" && isHost && (
           <div className="text-center py-8 space-y-6">
             <div className="text-6xl mb-4">⏳</div>
@@ -536,6 +448,7 @@ export default function PlayPage() {
           </div>
         )}
 
+        {/* ROUND_ACTIVE (Участник заполняет форму) */}
         {phase === "ROUND_ACTIVE" && !isHost && (
           <div className="space-y-4">
             <div className="text-center">

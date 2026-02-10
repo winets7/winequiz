@@ -2,7 +2,34 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 /**
- * POST /api/rounds — Создание раунда (хост задаёт параметры вина)
+ * GET /api/rounds?gameId=xxx — Получить все раунды игры
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const gameId = request.nextUrl.searchParams.get("gameId");
+    if (!gameId) {
+      return NextResponse.json({ error: "gameId обязателен" }, { status: 400 });
+    }
+
+    const rounds = await prisma.round.findMany({
+      where: { gameId },
+      include: { photos: { orderBy: { sortOrder: "asc" } } },
+      orderBy: { roundNumber: "asc" },
+    });
+
+    return NextResponse.json({ rounds });
+  } catch (error) {
+    console.error("Ошибка получения раундов:", error);
+    return NextResponse.json(
+      { error: "Внутренняя ошибка сервера" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/rounds — Создание/обновление раунда (хост задаёт параметры вина)
+ * Разрешено в статусах WAITING и PLAYING
  */
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +54,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Проверяем что игра существует и в статусе PLAYING
     const game = await prisma.gameSession.findUnique({
       where: { id: gameId },
     });
@@ -39,9 +65,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (game.status !== "PLAYING") {
+    // Разрешаем создание раундов в WAITING (подготовка) и PLAYING
+    if (game.status !== "WAITING" && game.status !== "PLAYING") {
       return NextResponse.json(
-        { error: "Игра не в статусе PLAYING" },
+        { error: "Игра уже завершена" },
         { status: 400 }
       );
     }
@@ -53,7 +80,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Создаём или обновляем раунд
+    // Раунды в лобби создаются как CREATED (ещё не активированы)
+    const roundStatus = game.status === "WAITING" ? "CREATED" : "ACTIVE";
+
     const round = await prisma.round.upsert({
       where: {
         gameId_roundNumber: { gameId, roundNumber },
@@ -61,33 +90,27 @@ export async function POST(request: NextRequest) {
       update: {
         grapeVarieties: grapeVarieties || [],
         sweetness: sweetness || null,
-        vintageYear: vintageYear ? parseInt(vintageYear) : null,
+        vintageYear: vintageYear ? parseInt(String(vintageYear)) : null,
         country: country || null,
-        alcoholContent: alcoholContent ? parseFloat(alcoholContent) : null,
+        alcoholContent: alcoholContent ? parseFloat(String(alcoholContent)) : null,
         isOakAged: isOakAged ?? null,
         color: color || null,
         composition: composition || null,
-        status: "ACTIVE",
+        status: roundStatus,
       },
       create: {
         gameId,
         roundNumber,
         grapeVarieties: grapeVarieties || [],
         sweetness: sweetness || null,
-        vintageYear: vintageYear ? parseInt(vintageYear) : null,
+        vintageYear: vintageYear ? parseInt(String(vintageYear)) : null,
         country: country || null,
-        alcoholContent: alcoholContent ? parseFloat(alcoholContent) : null,
+        alcoholContent: alcoholContent ? parseFloat(String(alcoholContent)) : null,
         isOakAged: isOakAged ?? null,
         color: color || null,
         composition: composition || null,
-        status: "ACTIVE",
+        status: roundStatus,
       },
-    });
-
-    // Обновляем текущий раунд в игре
-    await prisma.gameSession.update({
-      where: { id: gameId },
-      data: { currentRound: roundNumber },
     });
 
     return NextResponse.json({ round });

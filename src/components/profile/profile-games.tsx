@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface GamePlayer {
   id: string;
@@ -104,8 +105,23 @@ function gameDuration(createdAt: string, finishedAt: string | null): string {
 /* ─── Модальное окно карточки игры ─── */
 
 function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
+  const router = useRouter();
   const isParticipated = game._type === "participated";
   const pGame = game as ParticipatedGame;
+
+  const gameLink =
+    game.status === "WAITING"
+      ? `/lobby/${game.id}`
+      : game.status === "PLAYING"
+      ? `/play/${game.id}`
+      : null;
+
+  const handleGoToGame = () => {
+    if (gameLink) {
+      onClose();
+      router.push(gameLink);
+    }
+  };
 
   return (
     <div
@@ -125,9 +141,18 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
           <div className="flex items-center gap-3">
             <span className="text-2xl">🍷</span>
             <div>
-              <div className="font-mono font-bold text-[var(--primary)] text-lg">
-                {game.code}
-              </div>
+              {gameLink ? (
+                <button
+                  onClick={handleGoToGame}
+                  className="font-mono font-bold text-[var(--primary)] text-lg hover:underline cursor-pointer"
+                >
+                  {game.code}
+                </button>
+              ) : (
+                <div className="font-mono font-bold text-[var(--primary)] text-lg">
+                  {game.code}
+                </div>
+              )}
               <StatusBadge status={game.status} />
             </div>
           </div>
@@ -236,6 +261,16 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
               )}
             </div>
           </div>
+
+          {/* Кнопка перехода к игре */}
+          {gameLink && (
+            <button
+              onClick={handleGoToGame}
+              className="w-full px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-sm font-bold hover:opacity-90 transition-opacity"
+            >
+              {game.status === "WAITING" ? "🚀 Перейти в лобби" : "🎮 Перейти к игре"}
+            </button>
+          )}
         </div>
       </div>
     </div>

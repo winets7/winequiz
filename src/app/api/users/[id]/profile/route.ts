@@ -88,7 +88,15 @@ export async function GET(
               select: { id: true, name: true, avatar: true },
             },
             players: {
-              select: { id: true },
+              select: {
+                id: true,
+                score: true,
+                position: true,
+                user: {
+                  select: { id: true, name: true, avatar: true },
+                },
+              },
+              orderBy: { score: "desc" },
             },
           },
         },
@@ -158,6 +166,7 @@ export async function GET(
         finishedAt: entry.game.finishedAt,
         host: entry.game.host,
         playersCount: entry.game.players.length,
+        players: entry.game.players,
         myScore: entry.score,
         myPosition: entry.position,
       })),

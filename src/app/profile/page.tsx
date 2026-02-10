@@ -44,6 +44,12 @@ interface ProfileData {
     finishedAt: string | null;
     host: { id: string; name: string; avatar: string | null };
     playersCount: number;
+    players: Array<{
+      id: string;
+      score: number;
+      position: number | null;
+      user: { id: string; name: string; avatar: string | null };
+    }>;
     myScore: number;
     myPosition: number | null;
   }>;

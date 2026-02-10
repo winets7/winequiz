@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizePhone } from "@/lib/phone";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   providers: [
     Credentials({
       name: "Телефон и пароль",

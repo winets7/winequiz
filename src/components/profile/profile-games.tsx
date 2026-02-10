@@ -116,6 +116,8 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
       ? `/play/${game.id}`
       : null;
 
+  const isFinished = game.status === "FINISHED";
+
   const handleGoToGame = () => {
     if (gameLink) {
       onClose();
@@ -133,7 +135,7 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
 
       {/* Карточка */}
       <div
-        className="relative bg-[var(--card)] rounded-3xl shadow-2xl border border-[var(--border)] w-full max-w-md max-h-[85vh] flex flex-col animate-scale-in"
+        className="relative bg-[var(--card)] rounded-3xl shadow-2xl border border-[var(--border)] w-full max-w-md max-h-[90vh] flex flex-col animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Шапка */}
@@ -265,8 +267,8 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
         </div>
 
         {/* Кнопки действий - всегда видимы внизу, вне прокрутки */}
-        <div className="bg-[var(--card)] border-t border-[var(--border)] rounded-b-3xl px-6 py-4 space-y-2 shrink-0">
-          {game.status === "FINISHED" && (
+        <div className="bg-[var(--card)] border-t border-[var(--border)] rounded-b-3xl px-6 py-4 space-y-2 shrink-0 min-h-[60px] flex flex-col justify-center">
+          {isFinished && (
             <button
               onClick={() => {
                 onClose();
@@ -284,6 +286,11 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
             >
               {game.status === "WAITING" ? "🚀 Перейти в лобби" : "🎮 Перейти к игре"}
             </button>
+          )}
+          {!isFinished && !gameLink && (
+            <div className="text-center text-xs text-[var(--muted-foreground)] py-2">
+              Игра завершена
+            </div>
           )}
         </div>
       </div>

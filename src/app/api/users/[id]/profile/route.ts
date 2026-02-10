@@ -117,9 +117,14 @@ export async function GET(
       where: { gamePlayer: { userId: id }, isCorrect: true },
     });
 
-    // Общее количество сыгранных игр
-    const totalGamesPlayed = await prisma.gamePlayer.count({
-      where: { userId: id },
+    // Завершённые игры (только FINISHED)
+    const totalGamesFinished = await prisma.gamePlayer.count({
+      where: { userId: id, game: { status: "FINISHED" } },
+    });
+
+    // Запланированные игры (WAITING)
+    const plannedGames = await prisma.gamePlayer.count({
+      where: { userId: id, game: { status: "WAITING" } },
     });
 
     // Количество побед (позиция = 1)
@@ -171,7 +176,8 @@ export async function GET(
         myPosition: entry.position,
       })),
       stats: {
-        totalGames: totalGamesPlayed,
+        totalGames: totalGamesFinished,
+        plannedGames,
         totalWins,
         totalAnswers: answersAgg._count.id,
         correctAnswers,

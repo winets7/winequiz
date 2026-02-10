@@ -55,6 +55,7 @@ interface ProfileData {
   }>;
   stats: {
     totalGames: number;
+    plannedGames: number;
     totalWins: number;
     totalAnswers: number;
     correctAnswers: number;

@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
 // Роуты, требующие авторизации
-const protectedRoutes = ["/lobby", "/join"];
+const protectedRoutes = ["/lobby", "/join", "/profile"];
 
 // Роуты только для неавторизованных (если залогинен — редирект на главную)
 const authRoutes = ["/login", "/register"];

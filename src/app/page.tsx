@@ -84,14 +84,17 @@ export default function Home() {
 
       {/* Приветствие для залогиненного пользователя */}
       {isLoggedIn && (
-        <div className="fixed top-4 left-4 flex items-center gap-2 text-sm">
+        <Link
+          href="/profile"
+          className="fixed top-4 left-4 flex items-center gap-2 text-sm hover:opacity-80 transition-opacity"
+        >
           <div className="w-8 h-8 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center font-bold text-xs">
             {session.user.name?.charAt(0).toUpperCase()}
           </div>
           <span className="text-[var(--foreground)] font-medium">
             {session.user.name}
           </span>
-        </div>
+        </Link>
       )}
 
       {/* Логотип / Заголовок */}

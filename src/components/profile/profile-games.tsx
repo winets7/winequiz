@@ -133,7 +133,7 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
 
       {/* Карточка */}
       <div
-        className="relative bg-[var(--card)] rounded-3xl shadow-2xl border border-[var(--border)] w-full max-w-md max-h-[85vh] overflow-y-auto no-scrollbar animate-scale-in"
+        className="relative bg-[var(--card)] rounded-3xl shadow-2xl border border-[var(--border)] w-full max-w-md max-h-[85vh] flex flex-col animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Шапка */}
@@ -165,7 +165,7 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
         </div>
 
         {/* Информация */}
-        <div className="px-6 py-4 space-y-4">
+        <div className="px-6 py-4 space-y-4 overflow-y-auto no-scrollbar flex-1">
           {/* Детали */}
           <div className="grid grid-cols-2 gap-3">
             <InfoItem label="Создана" value={formatDateTime(game.createdAt)} />
@@ -262,8 +262,11 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
             </div>
           </div>
 
-          {/* Кнопки действий */}
-          <div className="space-y-2">
+        </div>
+
+        {/* Кнопки действий - всегда видимы внизу */}
+        {(game.status === "FINISHED" || gameLink) && (
+          <div className="sticky bottom-0 bg-[var(--card)] border-t border-[var(--border)] rounded-b-3xl px-6 py-4 space-y-2 z-10">
             {game.status === "FINISHED" && (
               <button
                 onClick={() => {
@@ -284,7 +287,7 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
               </button>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

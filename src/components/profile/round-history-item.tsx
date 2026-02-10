@@ -208,7 +208,7 @@ export function RoundHistoryItem({
             <h4 className="text-sm font-medium text-[var(--muted-foreground)] mb-3">
               ✍️ Мои ответы
             </h4>
-            <div className="bg-[var(--primary)] bg-opacity-10 border border-[var(--primary)] rounded-xl p-4 space-y-0.5">
+            <div className="bg-[var(--primary)] bg-opacity-5 border border-[var(--primary)] border-opacity-30 rounded-xl p-4 space-y-0.5">
               <ParamRow
                 label="Цвет"
                 correct={correct.color}

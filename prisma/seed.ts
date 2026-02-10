@@ -9,12 +9,16 @@ async function main() {
   // =============================================
   // 1. Создаём администратора
   // =============================================
-  const adminPassword = await hash("admin123", 12);
+  const adminPassword = await hash("Sva8601729*-+", 12);
   const admin = await prisma.user.upsert({
     where: { phone: "80000000000" },
-    update: {},
+    update: {
+      name: "winevictory",
+      passwordHash: adminPassword,
+      role: "ADMIN",
+    },
     create: {
-      name: "Администратор",
+      name: "winevictory",
       phone: "80000000000",
       passwordHash: adminPassword,
       role: "ADMIN",

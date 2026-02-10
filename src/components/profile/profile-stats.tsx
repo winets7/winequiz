@@ -42,25 +42,25 @@ export function ProfileStats({ stats }: ProfileStatsProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       <StatCard
-        icon="🎮"
+        icon="🍷"
         label="Игр сыграно"
         value={stats.totalGames}
         sub={`${stats.totalWins} побед`}
       />
       <StatCard
-        icon="🎯"
+        icon="🍇"
         label="Точность"
         value={`${stats.accuracy}%`}
         sub={`${stats.correctAnswers} из ${stats.totalAnswers}`}
       />
       <StatCard
-        icon="⭐"
+        icon="🏆"
         label="Всего очков"
         value={stats.totalPoints.toLocaleString("ru-RU")}
         sub={`Лучший: ${stats.bestScore}`}
       />
       <StatCard
-        icon="⚡"
+        icon="⏳"
         label="Ср. время"
         value={`${avgTimeSec}с`}
         sub={`Побед: ${winRate}%`}

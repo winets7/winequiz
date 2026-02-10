@@ -4,7 +4,7 @@
   "description": "Интерактивная мультиплеерная викторина на винную тему",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFFBF5",
+  "background_color": "#722F37",
   "theme_color": "#722F37",
   "orientation": "portrait",
   "scope": "/",

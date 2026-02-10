@@ -26,13 +26,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Создаём гостевого пользователя с уникальным email
-    const guestEmail = `guest_${uuidv4()}@winequiz.local`;
+    // Создаём гостевого пользователя с уникальным телефоном-заглушкой
+    const guestPhone = `guest_${uuidv4()}`;
 
     const user = await prisma.user.create({
       data: {
         name: name.trim(),
-        email: guestEmail,
+        phone: guestPhone,
         passwordHash: "", // Гостевой — без пароля
         role: "PLAYER",
       },

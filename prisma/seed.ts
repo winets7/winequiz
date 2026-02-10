@@ -11,18 +11,18 @@ async function main() {
   // =============================================
   const adminPassword = await hash("admin123", 12);
   const admin = await prisma.user.upsert({
-    where: { email: "admin@winequiz.ru" },
+    where: { phone: "80000000000" },
     update: {},
     create: {
       name: "Администратор",
-      email: "admin@winequiz.ru",
+      phone: "80000000000",
       passwordHash: adminPassword,
       role: "ADMIN",
       level: 1,
       xp: 0,
     },
   });
-  console.log(`✅ Администратор создан: ${admin.email}`);
+  console.log(`✅ Администратор создан: ${admin.phone}`);
 
   // =============================================
   // 2. Создаём категории

@@ -168,12 +168,22 @@ export default function PlayPage() {
   useEffect(() => {
     if (!isConnected || !game || !userId || !session?.user?.name) return;
 
-    emit("join_game", {
-      code: game.code,
-      userId,
-      name: session.user.name,
-    });
-  }, [isConnected, game, userId, session, emit]);
+    if (isHost) {
+      // Хост пересоздаёт комнату (важно после рестарта сокет-сервера)
+      emit("create_game", {
+        gameId: game.id,
+        code: game.code,
+        userId,
+        name: session.user.name,
+      });
+    } else {
+      emit("join_game", {
+        code: game.code,
+        userId,
+        name: session.user.name,
+      });
+    }
+  }, [isConnected, game, userId, session, isHost, emit]);
 
   // =============================================
   // Socket.io события

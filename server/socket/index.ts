@@ -40,25 +40,45 @@ export function createSocketServer(httpServer?: HttpServer) {
       const { gameId, code, userId, name } = data;
       const roomKey = code;
 
+      // Проверяем, есть ли уже комната (при рекреации после рестарта)
+      const existingRoom = activeRooms.get(roomKey);
+      if (existingRoom) {
+        // Обновляем hostSocketId и добавляем хоста обратно
+        existingRoom.hostSocketId = socket.id;
+        existingRoom.players.set(userId, { userId, name, socketId: socket.id });
+        socket.join(roomKey);
+
+        const playersList = Array.from(existingRoom.players.values()).map((p) => ({
+          userId: p.userId,
+          name: p.name,
+        }));
+
+        console.log(`🔄 Хост ${name} переподключился к ${code}`);
+
+        socket.emit("game_created", {
+          gameId,
+          code,
+          players: playersList,
+        });
+        return;
+      }
+
+      // Получаем данные из БД
+      const game = await prisma.gameSession.findUnique({
+        where: { id: gameId },
+      });
+
       // Создаём комнату
       const room: GameRoom = {
         gameId,
         code,
         hostSocketId: socket.id,
         players: new Map(),
-        currentRound: 0,
-        totalRounds: 0,
+        currentRound: game?.currentRound || 0,
+        totalRounds: game?.totalRounds || 0,
         currentRoundId: null,
       };
       room.players.set(userId, { userId, name, socketId: socket.id });
-
-      // Получаем totalRounds из БД
-      const game = await prisma.gameSession.findUnique({
-        where: { id: gameId },
-      });
-      if (game) {
-        room.totalRounds = game.totalRounds;
-      }
 
       activeRooms.set(roomKey, room);
       socket.join(roomKey);
@@ -77,16 +97,58 @@ export function createSocketServer(httpServer?: HttpServer) {
     // =============================================
     socket.on("join_game", async (data: { code: string; userId: string; name: string }) => {
       const { code, userId, name } = data;
-      const room = activeRooms.get(code);
+      let room = activeRooms.get(code);
 
+      // Если комната не найдена в памяти — пробуем восстановить из БД
       if (!room) {
-        socket.emit("error", { message: "Комната не найдена" });
-        return;
+        try {
+          const game = await prisma.gameSession.findUnique({
+            where: { code },
+            select: { id: true, status: true, totalRounds: true, currentRound: true, hostId: true },
+          });
+
+          if (!game) {
+            socket.emit("error", { message: "Комната не найдена" });
+            return;
+          }
+
+          if (game.status === "FINISHED") {
+            socket.emit("error", { message: "Игра уже завершена" });
+            return;
+          }
+
+          // Восстанавливаем комнату из БД
+          const isHost = game.hostId === userId;
+          room = {
+            gameId: game.id,
+            code,
+            hostSocketId: isHost ? socket.id : "",
+            players: new Map(),
+            currentRound: game.currentRound || 0,
+            totalRounds: game.totalRounds,
+            currentRoundId: null,
+          };
+          activeRooms.set(code, room);
+          console.log(`🔄 Комната ${code} восстановлена из БД (статус: ${game.status})`);
+        } catch (err) {
+          console.error("Ошибка восстановления комнаты:", err);
+          socket.emit("error", { message: "Ошибка подключения к комнате" });
+          return;
+        }
       }
 
       if (room.players.size >= 99) {
         socket.emit("error", { message: "Комната заполнена" });
         return;
+      }
+
+      // Если это хост — обновляем его socketId
+      const gameForHost = await prisma.gameSession.findUnique({
+        where: { id: room.gameId },
+        select: { hostId: true, status: true },
+      });
+      if (gameForHost?.hostId === userId) {
+        room.hostSocketId = socket.id;
       }
 
       // Добавляем игрока
@@ -107,12 +169,7 @@ export function createSocketServer(httpServer?: HttpServer) {
         count: room.players.size,
       });
 
-      // Проверяем статус игры в БД
-      const game = await prisma.gameSession.findUnique({
-        where: { id: room.gameId },
-        select: { status: true },
-      });
-      const gameStatus = game?.status || "WAITING";
+      const gameStatus = gameForHost?.status || "WAITING";
 
       // Подтверждение игроку
       socket.emit("joined_game", {

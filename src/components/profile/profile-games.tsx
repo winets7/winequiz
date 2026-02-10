@@ -117,6 +117,16 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
       : null;
 
   const isFinished = game.status === "FINISHED";
+  
+  // Отладка: проверяем статус игры
+  if (typeof window !== "undefined") {
+    console.log("GameModal Debug:", {
+      status: game.status,
+      isFinished,
+      gameId: game.id,
+      hasGameLink: !!gameLink,
+    });
+  }
 
   const handleGoToGame = () => {
     if (gameLink) {

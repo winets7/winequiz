@@ -346,7 +346,7 @@ export default function LobbyPage() {
     const existingRound = getRoundData(editingRound);
 
     // Начальные значения из существующего раунда
-    const initialValues: Partial<WineParams> = existingRound
+    const initialValues: Partial<WineParams> | undefined = existingRound
       ? {
           color: existingRound.color || "",
           sweetness: existingRound.sweetness || "",

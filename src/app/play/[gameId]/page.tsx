@@ -134,24 +134,38 @@ export default function PlayPage() {
         setTotalPlayers(g.players?.length || 0);
 
         // Загружаем раунды
+        let loadedRounds: RoundInfo[] = [];
         const roundsRes = await fetch(`/api/rounds?gameId=${gameId}`);
         if (roundsRes.ok) {
           const roundsData = await roundsRes.json();
-          setRounds(
-            (roundsData.rounds || []).map((r: RoundInfo) => ({
-              id: r.id,
-              roundNumber: r.roundNumber,
-              status: r.status,
-              color: r.color,
-              country: r.country,
-              grapeVarieties: r.grapeVarieties,
-            }))
-          );
+          loadedRounds = (roundsData.rounds || []).map((r: RoundInfo) => ({
+            id: r.id,
+            roundNumber: r.roundNumber,
+            status: r.status,
+            color: r.color,
+            country: r.country,
+            grapeVarieties: r.grapeVarieties,
+          }));
+          setRounds(loadedRounds);
         }
 
-        // Определяем начальную фазу
+        // Определяем начальную фазу на основе состояния в БД
         if (g.status === "FINISHED") {
           setPhase("GAME_FINISHED");
+        } else if (g.status === "PLAYING") {
+          // Проверяем, есть ли активный раунд
+          const activeRound = loadedRounds.find(
+            (r: RoundInfo) => r.status === "ACTIVE"
+          );
+          if (activeRound) {
+            // Раунд уже идёт — восстанавливаем фазу
+            setCurrentRound(activeRound.roundNumber);
+            setCurrentRoundId(activeRound.id);
+            setPhase("ROUND_ACTIVE");
+          } else {
+            // Нет активного раунда — следующий раунд
+            setPhase("ROUND_READY");
+          }
         } else {
           setPhase("ROUND_READY");
         }
@@ -236,6 +250,17 @@ export default function PlayPage() {
       setPhase("GAME_FINISHED");
     });
 
+    // Хост временно отключился
+    const unsubHostDisconnected = on("host_temporarily_disconnected", (data: unknown) => {
+      const { message } = data as { message: string };
+      setError(message);
+    });
+
+    // Хост вернулся
+    const unsubHostReconnected = on("host_reconnected", () => {
+      setError(null);
+    });
+
     // Ошибки
     const unsubError = on("error", (data: unknown) => {
       const { message } = data as { message: string };
@@ -249,6 +274,8 @@ export default function PlayPage() {
       unsubGuessReceived();
       unsubRoundResults();
       unsubGameFinished();
+      unsubHostDisconnected();
+      unsubHostReconnected();
       unsubError();
     };
   }, [isConnected, on]);

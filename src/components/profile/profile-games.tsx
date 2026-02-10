@@ -264,16 +264,16 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
 
         </div>
 
-        {/* Кнопки действий - всегда видимы внизу */}
+        {/* Кнопки действий - всегда видимы внизу, вне прокрутки */}
         {(game.status === "FINISHED" || gameLink) && (
-          <div className="sticky bottom-0 bg-[var(--card)] border-t border-[var(--border)] rounded-b-3xl px-6 py-4 space-y-2 z-10">
+          <div className="bg-[var(--card)] border-t border-[var(--border)] rounded-b-3xl px-6 py-4 space-y-2 shrink-0">
             {game.status === "FINISHED" && (
               <button
                 onClick={() => {
                   onClose();
                   router.push(`/history/${game.id}`);
                 }}
-                className="w-full px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-sm font-bold hover:opacity-90 transition-opacity"
+                className="w-full px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-sm font-bold hover:opacity-90 transition-opacity shadow-lg"
               >
                 📋 История ответов
               </button>

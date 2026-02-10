@@ -116,12 +116,14 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
       ? `/play/${game.id}`
       : null;
 
-  const isFinished = game.status === "FINISHED";
+  // Проверяем завершённость игры: либо статус FINISHED, либо есть finishedAt
+  const isFinished = game.status === "FINISHED" || !!game.finishedAt;
   
   // Отладка: проверяем статус игры
   if (typeof window !== "undefined") {
     console.log("GameModal Debug:", {
       status: game.status,
+      finishedAt: game.finishedAt,
       isFinished,
       gameId: game.id,
       hasGameLink: !!gameLink,

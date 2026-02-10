@@ -7,14 +7,19 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-type BrowserType = "chromium" | "ios-safari" | "firefox" | "other";
+type BrowserType = "chromium" | "ios-safari" | "firefox" | "yandex" | "other";
 
 function detectBrowser(): BrowserType {
   const ua = navigator.userAgent;
 
-  // iOS Safari (не Chrome на iOS, не Firefox на iOS)
+  // iOS (любой браузер на iOS использует WebKit)
   if (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
     return "ios-safari";
+  }
+
+  // Яндекс Браузер (до проверки Chrome, т.к. UA содержит оба)
+  if (/YaBrowser/i.test(ua)) {
+    return "yandex";
   }
 
   // Firefox на Android/Desktop
@@ -62,20 +67,36 @@ export function InstallPrompt() {
     setBrowser(detectedBrowser);
 
     if (detectedBrowser === "chromium") {
-      // Chromium — ждём beforeinstallprompt
+      // Chromium — ждём beforeinstallprompt с фолбэком
+      let promptReceived = false;
+
       const handler = (e: Event) => {
         e.preventDefault();
+        promptReceived = true;
         setDeferredPrompt(e as BeforeInstallPromptEvent);
         setTimeout(() => setShowBanner(true), 3000);
       };
+
       window.addEventListener("beforeinstallprompt", handler);
       window.addEventListener("appinstalled", () => {
         setShowBanner(false);
         setDeferredPrompt(null);
       });
-      return () => window.removeEventListener("beforeinstallprompt", handler);
+
+      // Фолбэк: если за 5 сек событие не пришло — показываем ручную инструкцию
+      const fallbackTimer = setTimeout(() => {
+        if (!promptReceived) {
+          setBrowser("other");
+          setShowBanner(true);
+        }
+      }, 5000);
+
+      return () => {
+        clearTimeout(fallbackTimer);
+        window.removeEventListener("beforeinstallprompt", handler);
+      };
     } else {
-      // iOS Safari, Firefox, другие — показываем инструкцию
+      // iOS Safari, Firefox, Яндекс, другие — показываем инструкцию
       setTimeout(() => setShowBanner(true), 3000);
     }
   }, []);
@@ -115,6 +136,8 @@ export function InstallPrompt() {
           <IOSBanner onDismiss={handleDismiss} />
         ) : browser === "firefox" ? (
           <FirefoxBanner onDismiss={handleDismiss} />
+        ) : browser === "yandex" ? (
+          <YandexBanner onDismiss={handleDismiss} />
         ) : (
           <GenericBanner onDismiss={handleDismiss} />
         )}
@@ -244,6 +267,51 @@ function FirefoxBanner({ onDismiss }: { onDismiss: () => void }) {
           <span className="text-xl">📲</span>
           <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
             Установить
+          </span>
+        </span>
+      </div>
+      <button
+        onClick={onDismiss}
+        className="mt-3 w-full text-center py-2 text-xs transition-colors"
+        style={{ color: "var(--muted-foreground)" }}
+      >
+        Понятно, спасибо
+      </button>
+    </div>
+  );
+}
+
+function YandexBanner({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div>
+      <div className="flex items-start gap-3">
+        <AppIcon />
+        <div className="flex-1">
+          <p className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>
+            Установите приложение
+          </p>
+          <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+            Нажмите <strong>⋮</strong> (меню), затем{" "}
+            <strong>«Добавить на главный экран»</strong>
+          </p>
+        </div>
+      </div>
+      {/* Визуальная инструкция */}
+      <div
+        className="mt-3 flex items-center justify-center gap-4 py-3 px-4 rounded-xl text-sm"
+        style={{ backgroundColor: "var(--muted)" }}
+      >
+        <span className="flex flex-col items-center gap-1">
+          <span className="text-xl">⋮</span>
+          <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+            Меню
+          </span>
+        </span>
+        <span style={{ color: "var(--muted-foreground)" }}>→</span>
+        <span className="flex flex-col items-center gap-1">
+          <span className="text-xl">📲</span>
+          <span className="text-xs text-center" style={{ color: "var(--muted-foreground)" }}>
+            Добавить на<br />главный экран
           </span>
         </span>
       </div>

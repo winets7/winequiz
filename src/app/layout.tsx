@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { SessionProvider } from "@/components/providers/session-provider";
+import { ServiceWorkerRegister } from "@/components/providers/sw-register";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,6 +24,17 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "Винная Викторина",
+    startupImage: "/icons/icon-512x512.png",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-72x72.png", sizes: "72x72", type: "image/png" },
+      { url: "/icons/icon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/icons/icon-144x144.png", sizes: "144x144", type: "image/png" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
   },
   formatDetection: {
     telephone: false,
@@ -60,6 +72,7 @@ export default function RootLayout({
             {children}
           </ThemeProvider>
         </SessionProvider>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

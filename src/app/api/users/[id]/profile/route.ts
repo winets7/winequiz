@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
  * - Основные данные пользователя
  * - Созданные им игры (hostedGames)
  * - Игры, в которых участвовал (participatedGames)
- * - Статистику (totalGames, correctAnswers, totalPoints, avgTime)
+ * - Статистику (totalGames, totalPoints, avgScore)
  * - Достижения
  */
 export async function GET(
@@ -105,16 +105,11 @@ export async function GET(
       take: 20,
     });
 
-    // Статистика ответов
-    const answersAgg = await prisma.playerAnswer.aggregate({
+    // Статистика догадок
+    const guessesAgg = await prisma.playerGuess.aggregate({
       where: { gamePlayer: { userId: id } },
       _count: { id: true },
-      _sum: { points: true },
-      _avg: { timeTaken: true },
-    });
-
-    const correctAnswers = await prisma.playerAnswer.count({
-      where: { gamePlayer: { userId: id }, isCorrect: true },
+      _sum: { score: true },
     });
 
     // Завершённые игры (только FINISHED)
@@ -179,15 +174,8 @@ export async function GET(
         totalGames: totalGamesFinished,
         plannedGames,
         totalWins,
-        totalAnswers: answersAgg._count.id,
-        correctAnswers,
-        accuracy: answersAgg._count.id > 0
-          ? Math.round((correctAnswers / answersAgg._count.id) * 100)
-          : 0,
-        totalPoints: answersAgg._sum.points ?? 0,
-        avgTime: answersAgg._avg.timeTaken
-          ? Math.round(answersAgg._avg.timeTaken)
-          : 0,
+        totalGuesses: guessesAgg._count.id,
+        totalPoints: guessesAgg._sum.score ?? 0,
         bestScore: bestScore._max.score ?? 0,
       },
       achievements: achievements.map((a) => ({

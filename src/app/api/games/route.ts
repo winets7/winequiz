@@ -7,18 +7,25 @@ import { generateGameCode } from "@/lib/game-code";
  *
  * Body: {
  *   hostId: string       — ID хоста (пользователя)
- *   totalRounds?: number — количество раундов (по умолч. 10)
+ *   totalRounds?: number — количество раундов (по умолч. 5)
  *   maxPlayers?: number  — макс. игроков (по умолч. 99)
  * }
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { hostId, totalRounds = 10, maxPlayers = 99 } = body;
+    const { hostId, totalRounds = 5, maxPlayers = 99 } = body;
 
     if (!hostId) {
       return NextResponse.json(
         { error: "hostId обязателен" },
+        { status: 400 }
+      );
+    }
+
+    if (totalRounds < 1 || totalRounds > 20) {
+      return NextResponse.json(
+        { error: "Количество раундов должно быть от 1 до 20" },
         { status: 400 }
       );
     }
@@ -59,27 +66,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Выбираем случайные вопросы для игры
-    const questions = await prisma.question.findMany({
-      include: { answers: true },
-      take: totalRounds,
-      orderBy: { createdAt: "asc" },
-    });
-
-    if (questions.length === 0) {
-      return NextResponse.json(
-        { error: "Нет доступных вопросов в базе данных" },
-        { status: 400 }
-      );
-    }
-
     // Создаём игровую сессию
     const game = await prisma.gameSession.create({
       data: {
         hostId,
         code,
         maxPlayers: Math.min(maxPlayers, 99),
-        totalRounds: Math.min(questions.length, totalRounds),
+        totalRounds: Math.min(totalRounds, 20),
         status: "WAITING",
         currentRound: 0,
       },
@@ -106,7 +99,6 @@ export async function POST(request: NextRequest) {
         maxPlayers: game.maxPlayers,
         totalRounds: game.totalRounds,
         host: game.host,
-        questionsCount: questions.length,
       },
     });
   } catch (error) {

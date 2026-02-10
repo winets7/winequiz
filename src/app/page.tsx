@@ -12,6 +12,8 @@ export default function Home() {
   const [creating, setCreating] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [showJoinInput, setShowJoinInput] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [totalRounds, setTotalRounds] = useState(5);
   const [error, setError] = useState<string | null>(null);
 
   const isLoading = status === "loading";
@@ -30,7 +32,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           hostId: session.user.id,
-          totalRounds: 10,
+          totalRounds,
           maxPlayers: 99,
         }),
       });
@@ -127,17 +129,10 @@ export default function Home() {
         <>
           <div className="mt-12 flex flex-col sm:flex-row gap-4">
             <button
-              onClick={handleCreateGame}
-              disabled={creating}
-              className="px-8 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="px-8 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold hover:opacity-90 transition-opacity shadow-lg"
             >
-              {creating ? (
-                <span className="flex items-center gap-2">
-                  <span className="animate-spin">⏳</span> Создание...
-                </span>
-              ) : (
-                "🚀 Создать игру"
-              )}
+              🚀 Создать игру
             </button>
             <button
               onClick={() => setShowJoinInput(!showJoinInput)}
@@ -146,6 +141,50 @@ export default function Home() {
               📱 Присоединиться
             </button>
           </div>
+
+          {/* Форма создания игры */}
+          {showCreateForm && (
+            <div className="mt-6 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 max-w-md w-full shadow-lg">
+              <h3 className="text-lg font-bold mb-4 text-center">Настройки игры</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-[var(--muted-foreground)] mb-2">
+                    Количество раундов (вин для угадывания)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setTotalRounds(Math.max(1, totalRounds - 1))}
+                      className="w-10 h-10 bg-[var(--muted)] rounded-xl flex items-center justify-center text-lg font-bold hover:bg-[var(--border)] transition-colors"
+                    >
+                      −
+                    </button>
+                    <span className="text-3xl font-bold text-[var(--primary)] min-w-[3rem] text-center">
+                      {totalRounds}
+                    </span>
+                    <button
+                      onClick={() => setTotalRounds(Math.min(20, totalRounds + 1))}
+                      className="w-10 h-10 bg-[var(--muted)] rounded-xl flex items-center justify-center text-lg font-bold hover:bg-[var(--border)] transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCreateGame}
+                  disabled={creating}
+                  className="w-full px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creating ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="animate-spin">⏳</span> Создание...
+                    </span>
+                  ) : (
+                    "🍷 Начать"
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Поле ввода кода */}
           {showJoinInput && (

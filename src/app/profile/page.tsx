@@ -57,11 +57,8 @@ interface ProfileData {
     totalGames: number;
     plannedGames: number;
     totalWins: number;
-    totalAnswers: number;
-    correctAnswers: number;
-    accuracy: number;
+    totalGuesses: number;
     totalPoints: number;
-    avgTime: number;
     bestScore: number;
   };
   achievements: Array<{

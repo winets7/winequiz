@@ -10,6 +10,9 @@ interface GameRoom {
   code: string;
   hostSocketId: string;
   players: Map<string, { userId: string; name: string; socketId: string }>;
+  currentRound: number;
+  totalRounds: number;
+  currentRoundId: string | null;
 }
 
 // Хранилище активных комнат (в памяти)
@@ -43,8 +46,19 @@ export function createSocketServer(httpServer?: HttpServer) {
         code,
         hostSocketId: socket.id,
         players: new Map(),
+        currentRound: 0,
+        totalRounds: 0,
+        currentRoundId: null,
       };
       room.players.set(userId, { userId, name, socketId: socket.id });
+
+      // Получаем totalRounds из БД
+      const game = await prisma.gameSession.findUnique({
+        where: { id: gameId },
+      });
+      if (game) {
+        room.totalRounds = game.totalRounds;
+      }
 
       activeRooms.set(roomKey, room);
       socket.join(roomKey);
@@ -130,55 +144,385 @@ export function createSocketServer(httpServer?: HttpServer) {
           data: { status: "PLAYING", currentRound: 1 },
         });
 
-        // Получаем вопросы
-        const game = await prisma.gameSession.findUnique({
-          where: { id: room.gameId },
-        });
+        room.currentRound = 1;
 
-        if (!game) return;
-
-        const questions = await prisma.question.findMany({
-          include: {
-            answers: {
-              select: { id: true, text: true },  // НЕ отправляем isCorrect!
-            },
-            category: { select: { name: true, icon: true } },
-          },
-          take: game.totalRounds,
-          orderBy: { createdAt: "asc" },
-        });
-
-        console.log(`🚀 Игра ${code} началась! ${room.players.size} игроков, ${questions.length} вопросов`);
+        console.log(`🚀 Игра ${code} началась! ${room.players.size} игроков, ${room.totalRounds} раундов`);
 
         // Уведомляем всех о старте
         io.to(code).emit("game_started", {
-          totalRounds: questions.length,
+          totalRounds: room.totalRounds,
           playersCount: room.players.size,
         });
-
-        // Отправляем первый вопрос с задержкой
-        setTimeout(() => {
-          if (questions.length > 0) {
-            const question = questions[0];
-            io.to(code).emit("new_question", {
-              round: 1,
-              totalRounds: questions.length,
-              question: {
-                id: question.id,
-                text: question.text,
-                imageUrl: question.imageUrl,
-                difficulty: question.difficulty,
-                timeLimit: question.timeLimit,
-                category: question.category,
-                answers: question.answers,
-              },
-            });
-          }
-        }, 3000); // 3 сек на подготовку
-
       } catch (error) {
         console.error("Ошибка старта игры:", error);
         socket.emit("error", { message: "Ошибка при запуске игры" });
+      }
+    });
+
+    // =============================================
+    // Хост настраивает раунд (вводит параметры вина)
+    // =============================================
+    socket.on("setup_round", async (data: {
+      code: string;
+      roundNumber: number;
+      wine: {
+        grapeVarieties: string[];
+        sweetness: string;
+        vintageYear: number;
+        country: string;
+        alcoholContent: number;
+        isOakAged: boolean;
+        color: string;
+        composition: string;
+      };
+    }) => {
+      const { code, roundNumber, wine } = data;
+      const room = activeRooms.get(code);
+
+      if (!room) {
+        socket.emit("error", { message: "Комната не найдена" });
+        return;
+      }
+
+      if (socket.id !== room.hostSocketId) {
+        socket.emit("error", { message: "Только хост может настраивать раунд" });
+        return;
+      }
+
+      try {
+        // Создаём раунд в БД
+        const round = await prisma.round.create({
+          data: {
+            gameId: room.gameId,
+            roundNumber,
+            status: "ACTIVE",
+            grapeVarieties: wine.grapeVarieties,
+            sweetness: wine.sweetness as "DRY" | "SEMI_DRY" | "SEMI_SWEET" | "SWEET",
+            vintageYear: wine.vintageYear,
+            country: wine.country,
+            alcoholContent: wine.alcoholContent,
+            isOakAged: wine.isOakAged,
+            color: wine.color as "RED" | "WHITE" | "ROSE" | "ORANGE",
+            composition: wine.composition as "MONO" | "BLEND",
+          },
+        });
+
+        room.currentRound = roundNumber;
+        room.currentRoundId = round.id;
+
+        // Обновляем текущий раунд в БД
+        await prisma.gameSession.update({
+          where: { id: room.gameId },
+          data: { currentRound: roundNumber },
+        });
+
+        console.log(`🍷 Раунд ${roundNumber} настроен в игре ${code}`);
+
+        // Уведомляем участников (БЕЗ правильных ответов и фото!)
+        io.to(code).emit("round_started", {
+          roundNumber,
+          roundId: round.id,
+          totalRounds: room.totalRounds,
+        });
+      } catch (error) {
+        console.error("Ошибка настройки раунда:", error);
+        socket.emit("error", { message: "Ошибка при создании раунда" });
+      }
+    });
+
+    // =============================================
+    // Участник отправляет догадку
+    // =============================================
+    socket.on("submit_guess", async (data: {
+      code: string;
+      roundId: string;
+      userId: string;
+      guess: {
+        grapeVarieties: string[];
+        sweetness: string;
+        vintageYear: number;
+        country: string;
+        alcoholContent: number;
+        isOakAged: boolean;
+        color: string;
+        composition: string;
+      };
+    }) => {
+      const { code, roundId, userId, guess } = data;
+      const room = activeRooms.get(code);
+
+      if (!room) {
+        socket.emit("error", { message: "Комната не найдена" });
+        return;
+      }
+
+      try {
+        // Находим gamePlayer
+        const gamePlayer = await prisma.gamePlayer.findUnique({
+          where: { gameId_userId: { gameId: room.gameId, userId: userId } },
+        });
+
+        if (!gamePlayer) {
+          socket.emit("error", { message: "Игрок не найден в этой игре" });
+          return;
+        }
+
+        // Сохраняем догадку
+        await prisma.playerGuess.upsert({
+          where: {
+            roundId_gamePlayerId: { roundId, gamePlayerId: gamePlayer.id },
+          },
+          update: {
+            grapeVarieties: guess.grapeVarieties,
+            sweetness: guess.sweetness as "DRY" | "SEMI_DRY" | "SEMI_SWEET" | "SWEET",
+            vintageYear: guess.vintageYear,
+            country: guess.country,
+            alcoholContent: guess.alcoholContent,
+            isOakAged: guess.isOakAged,
+            color: guess.color as "RED" | "WHITE" | "ROSE" | "ORANGE",
+            composition: guess.composition as "MONO" | "BLEND",
+          },
+          create: {
+            roundId,
+            gamePlayerId: gamePlayer.id,
+            grapeVarieties: guess.grapeVarieties,
+            sweetness: guess.sweetness as "DRY" | "SEMI_DRY" | "SEMI_SWEET" | "SWEET",
+            vintageYear: guess.vintageYear,
+            country: guess.country,
+            alcoholContent: guess.alcoholContent,
+            isOakAged: guess.isOakAged,
+            color: guess.color as "RED" | "WHITE" | "ROSE" | "ORANGE",
+            composition: guess.composition as "MONO" | "BLEND",
+          },
+        });
+
+        const player = room.players.get(userId);
+        console.log(`🎯 ${player?.name || userId} отправил догадку в раунде ${room.currentRound}`);
+
+        // Подтверждение участнику
+        socket.emit("guess_received", { roundId });
+
+        // Уведомляем хоста о полученных ответах
+        const guessCount = await prisma.playerGuess.count({
+          where: { roundId },
+        });
+
+        io.to(room.hostSocketId).emit("guess_update", {
+          roundId,
+          guessCount,
+          totalPlayers: room.players.size,
+          playerName: player?.name,
+        });
+      } catch (error) {
+        console.error("Ошибка сохранения догадки:", error);
+        socket.emit("error", { message: "Ошибка при сохранении догадки" });
+      }
+    });
+
+    // =============================================
+    // Хост закрывает раунд — подсчёт баллов
+    // =============================================
+    socket.on("close_round", async (data: { code: string; roundId: string }) => {
+      const { code, roundId } = data;
+      const room = activeRooms.get(code);
+
+      if (!room) {
+        socket.emit("error", { message: "Комната не найдена" });
+        return;
+      }
+
+      if (socket.id !== room.hostSocketId) {
+        socket.emit("error", { message: "Только хост может закрыть раунд" });
+        return;
+      }
+
+      try {
+        // Получаем раунд с правильными ответами и фотографиями
+        const round = await prisma.round.findUnique({
+          where: { id: roundId },
+          include: {
+            photos: { orderBy: { sortOrder: "asc" } },
+            guesses: {
+              include: {
+                gamePlayer: {
+                  include: { user: { select: { id: true, name: true } } },
+                },
+              },
+            },
+          },
+        });
+
+        if (!round) {
+          socket.emit("error", { message: "Раунд не найден" });
+          return;
+        }
+
+        // Подсчитываем баллы для каждого участника
+        const results = [];
+        for (const guess of round.guesses) {
+          let score = 0;
+
+          // Цвет вина — 2 балла
+          if (guess.color === round.color) score += 2;
+
+          // Сладость — 2 балла
+          if (guess.sweetness === round.sweetness) score += 2;
+
+          // Состав (бленд/моно) — 1 балл
+          if (guess.composition === round.composition) score += 1;
+
+          // Выдержка в бочке — 1 балл
+          if (guess.isOakAged === round.isOakAged) score += 1;
+
+          // Страна — 2 балла
+          if (guess.country && round.country &&
+              guess.country.toLowerCase().trim() === round.country.toLowerCase().trim()) {
+            score += 2;
+          }
+
+          // Год урожая — 3 балла (точно), 1 балл (±2 года)
+          if (guess.vintageYear && round.vintageYear) {
+            const diff = Math.abs(guess.vintageYear - round.vintageYear);
+            if (diff === 0) score += 3;
+            else if (diff <= 2) score += 1;
+          }
+
+          // Крепость — 3 балла (точно ±0.5), 1 балл (±1.5)
+          if (guess.alcoholContent != null && round.alcoholContent != null) {
+            const diff = Math.abs(guess.alcoholContent - round.alcoholContent);
+            if (diff <= 0.5) score += 3;
+            else if (diff <= 1.5) score += 1;
+          }
+
+          // Сорта винограда — 2 балла за каждый угаданный
+          if (guess.grapeVarieties.length > 0 && round.grapeVarieties.length > 0) {
+            const correctGrapes = round.grapeVarieties.map((g) => g.toLowerCase().trim());
+            for (const grape of guess.grapeVarieties) {
+              if (correctGrapes.includes(grape.toLowerCase().trim())) {
+                score += 2;
+              }
+            }
+          }
+
+          // Обновляем баллы в БД
+          await prisma.playerGuess.update({
+            where: { id: guess.id },
+            data: { score },
+          });
+
+          // Обновляем общий счёт игрока
+          await prisma.gamePlayer.update({
+            where: { id: guess.gamePlayerId },
+            data: { score: { increment: score } },
+          });
+
+          results.push({
+            userId: guess.gamePlayer.user.id,
+            name: guess.gamePlayer.user.name,
+            guess: {
+              grapeVarieties: guess.grapeVarieties,
+              sweetness: guess.sweetness,
+              vintageYear: guess.vintageYear,
+              country: guess.country,
+              alcoholContent: guess.alcoholContent,
+              isOakAged: guess.isOakAged,
+              color: guess.color,
+              composition: guess.composition,
+            },
+            score,
+          });
+        }
+
+        // Закрываем раунд
+        await prisma.round.update({
+          where: { id: roundId },
+          data: { status: "CLOSED", closedAt: new Date() },
+        });
+
+        // Сортируем по баллам
+        results.sort((a, b) => b.score - a.score);
+
+        console.log(`📊 Раунд ${room.currentRound} закрыт в игре ${code}`);
+
+        // Отправляем результаты ВСЕМ (включая фото и правильные ответы)
+        io.to(code).emit("round_results", {
+          roundNumber: room.currentRound,
+          totalRounds: room.totalRounds,
+          correctAnswer: {
+            grapeVarieties: round.grapeVarieties,
+            sweetness: round.sweetness,
+            vintageYear: round.vintageYear,
+            country: round.country,
+            alcoholContent: round.alcoholContent,
+            isOakAged: round.isOakAged,
+            color: round.color,
+            composition: round.composition,
+          },
+          photos: round.photos.map((p) => p.imageUrl),
+          results,
+        });
+      } catch (error) {
+        console.error("Ошибка закрытия раунда:", error);
+        socket.emit("error", { message: "Ошибка при закрытии раунда" });
+      }
+    });
+
+    // =============================================
+    // Хост завершает игру
+    // =============================================
+    socket.on("finish_game", async (data: { code: string }) => {
+      const { code } = data;
+      const room = activeRooms.get(code);
+
+      if (!room) {
+        socket.emit("error", { message: "Комната не найдена" });
+        return;
+      }
+
+      if (socket.id !== room.hostSocketId) {
+        socket.emit("error", { message: "Только хост может завершить игру" });
+        return;
+      }
+
+      try {
+        // Получаем финальный рейтинг
+        const players = await prisma.gamePlayer.findMany({
+          where: { gameId: room.gameId },
+          include: { user: { select: { id: true, name: true, avatar: true } } },
+          orderBy: { score: "desc" },
+        });
+
+        // Устанавливаем позиции
+        for (let i = 0; i < players.length; i++) {
+          await prisma.gamePlayer.update({
+            where: { id: players[i].id },
+            data: { position: i + 1 },
+          });
+        }
+
+        // Завершаем игру
+        await prisma.gameSession.update({
+          where: { id: room.gameId },
+          data: { status: "FINISHED", finishedAt: new Date() },
+        });
+
+        const rankings = players.map((p, i) => ({
+          position: i + 1,
+          userId: p.user.id,
+          name: p.user.name,
+          avatar: p.user.avatar,
+          score: p.score,
+        }));
+
+        console.log(`🏁 Игра ${code} завершена!`);
+
+        io.to(code).emit("game_finished", { rankings });
+
+        // Удаляем комнату из памяти
+        activeRooms.delete(code);
+      } catch (error) {
+        console.error("Ошибка завершения игры:", error);
+        socket.emit("error", { message: "Ошибка при завершении игры" });
       }
     });
 

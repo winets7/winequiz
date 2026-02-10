@@ -5,11 +5,8 @@ interface ProfileStatsProps {
     totalGames: number;
     plannedGames: number;
     totalWins: number;
-    totalAnswers: number;
-    correctAnswers: number;
-    accuracy: number;
+    totalGuesses: number;
     totalPoints: number;
-    avgTime: number;
     bestScore: number;
   };
 }
@@ -35,7 +32,6 @@ function StatCard({ icon, label, value, sub }: StatCardProps) {
 }
 
 export function ProfileStats({ stats }: ProfileStatsProps) {
-  const avgTimeSec = stats.avgTime > 0 ? (stats.avgTime / 1000).toFixed(1) : "—";
   const winRate = stats.totalGames > 0
     ? Math.round((stats.totalWins / stats.totalGames) * 100)
     : 0;
@@ -56,9 +52,9 @@ export function ProfileStats({ stats }: ProfileStatsProps) {
       />
       <StatCard
         icon="🍇"
-        label="Точность"
-        value={`${stats.accuracy}%`}
-        sub={`${stats.correctAnswers} из ${stats.totalAnswers}`}
+        label="Раундов пройдено"
+        value={stats.totalGuesses}
+        sub="всего догадок"
       />
       <StatCard
         icon="🏆"
@@ -67,10 +63,10 @@ export function ProfileStats({ stats }: ProfileStatsProps) {
         sub={`Лучший: ${stats.bestScore}`}
       />
       <StatCard
-        icon="⏳"
-        label="Ср. время"
-        value={`${avgTimeSec}с`}
-        sub={`Побед: ${winRate}%`}
+        icon="⚡"
+        label="Винрейт"
+        value={`${winRate}%`}
+        sub={`${stats.totalWins} из ${stats.totalGames}`}
       />
     </div>
   );

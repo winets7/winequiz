@@ -20,16 +20,35 @@ enum Role {
   PLAYER
 }
 
-enum Difficulty {
-  EASY
-  MEDIUM
-  HARD
-}
-
 enum GameStatus {
   WAITING
   PLAYING
   FINISHED
+}
+
+enum RoundStatus {
+  CREATED  // Хост заполняет параметры
+  ACTIVE   // Участники угадывают
+  CLOSED   // Раунд закрыт, результаты показаны
+}
+
+enum WineSweetness {
+  DRY        // Сухое
+  SEMI_DRY   // Полусухое
+  SEMI_SWEET // Полусладкое
+  SWEET      // Сладкое
+}
+
+enum WineColor {
+  RED    // Красное
+  WHITE  // Белое
+  ROSE   // Розовое
+  ORANGE // Оранжевое
+}
+
+enum WineComposition {
+  MONO  // Моносортовое
+  BLEND // Бленд
 }
 
 // =============================================
@@ -57,52 +76,6 @@ model User {
   @@map("users")
 }
 
-/// Категория вопросов (Красное, Белое, Регионы, Сорта, История...)
-model Category {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  icon      String?
-  createdAt DateTime @default(now())
-
-  // Связи
-  questions Question[]
-
-  @@map("categories")
-}
-
-/// Вопрос викторины
-model Question {
-  id         String     @id @default(uuid())
-  text       String
-  imageUrl   String?
-  difficulty Difficulty @default(MEDIUM)
-  timeLimit  Int        @default(15) // секунды
-  categoryId String
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-
-  // Связи
-  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  answers       Answer[]
-  playerAnswers PlayerAnswer[]
-
-  @@map("questions")
-}
-
-/// Вариант ответа на вопрос
-model Answer {
-  id         String  @id @default(uuid())
-  text       String
-  isCorrect  Boolean @default(false)
-  questionId String
-
-  // Связи
-  question      Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  playerAnswers PlayerAnswer[]
-
-  @@map("answers")
-}
-
 /// Игровая сессия (комната)
 model GameSession {
   id           String     @id @default(uuid())
@@ -111,7 +84,7 @@ model GameSession {
   code         String     @unique // Код комнаты, напр. "WN-482917"
   maxPlayers   Int        @default(99)
   currentRound Int        @default(0)
-  totalRounds  Int        @default(10)
+  totalRounds  Int        @default(5)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   finishedAt   DateTime?
@@ -119,6 +92,7 @@ model GameSession {
   // Связи
   host    User         @relation("HostedGames", fields: [hostId], references: [id], onDelete: Cascade)
   players GamePlayer[]
+  rounds  Round[]
 
   @@map("game_sessions")
 }
@@ -133,32 +107,81 @@ model GamePlayer {
   joinedAt DateTime @default(now())
 
   // Связи
-  game          GameSession    @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  playerAnswers PlayerAnswer[]
+  game    GameSession   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guesses PlayerGuess[]
 
   @@unique([gameId, userId]) // Один пользователь — одна запись в игре
   @@map("game_players")
 }
 
-/// Ответ игрока на вопрос в рамках игры
-model PlayerAnswer {
-  id           String   @id @default(uuid())
-  gamePlayerId String
-  questionId   String
-  answerId     String?  // null если не ответил
-  timeTaken    Int      @default(0) // миллисекунды
-  points       Int      @default(0)
-  isCorrect    Boolean  @default(false)
-  answeredAt   DateTime @default(now())
+/// Раунд (одно загаданное вино)
+model Round {
+  id          String      @id @default(uuid())
+  gameId      String
+  roundNumber Int         // 1, 2, 3...
+  status      RoundStatus @default(CREATED)
+
+  // Правильные параметры (заполняет хост)
+  grapeVarieties  String[]         // Массив сортов ["Каберне Совиньон", "Мерло"]
+  sweetness       WineSweetness?
+  vintageYear     Int?             // Год урожая
+  country         String?          // Страна
+  alcoholContent  Float?           // Крепость (напр. 13.5)
+  isOakAged       Boolean?         // Выдержано ли в дубовой бочке
+  color           WineColor?
+  composition     WineComposition?
+
+  createdAt DateTime  @default(now())
+  closedAt  DateTime?
 
   // Связи
-  gamePlayer GamePlayer @relation(fields: [gamePlayerId], references: [id], onDelete: Cascade)
-  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  answer     Answer?    @relation(fields: [answerId], references: [id], onDelete: SetNull)
+  game    GameSession  @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  photos  RoundPhoto[]
+  guesses PlayerGuess[]
 
-  @@unique([gamePlayerId, questionId]) // Один ответ на вопрос за игру
-  @@map("player_answers")
+  @@unique([gameId, roundNumber])
+  @@map("rounds")
+}
+
+/// Фотографии бутылки (загружает хост)
+model RoundPhoto {
+  id        String @id @default(uuid())
+  roundId   String
+  imageUrl  String
+  sortOrder Int    @default(0)
+
+  // Связи
+  round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@map("round_photos")
+}
+
+/// Догадки участника по параметрам вина
+model PlayerGuess {
+  id           String @id @default(uuid())
+  roundId      String
+  gamePlayerId String
+
+  // Догадки участника
+  grapeVarieties  String[]          // Что указал участник
+  sweetness       WineSweetness?
+  vintageYear     Int?
+  country         String?
+  alcoholContent  Float?
+  isOakAged       Boolean?
+  color           WineColor?
+  composition     WineComposition?
+
+  score       Int      @default(0) // Баллы за раунд
+  submittedAt DateTime @default(now())
+
+  // Связи
+  round      Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  gamePlayer GamePlayer @relation(fields: [gamePlayerId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, gamePlayerId]) // Одна догадка на раунд за участника
+  @@map("player_guesses")
 }
 
 /// Достижение (шаблон)
@@ -167,7 +190,7 @@ model Achievement {
   name        String @unique
   description String
   icon        String
-  condition   String // JSON с условием: { "type": "total_correct", "value": 100 }
+  condition   String // JSON с условием: { "type": "total_games", "value": 10 }
   xpReward    Int    @default(50)
 
   // Связи

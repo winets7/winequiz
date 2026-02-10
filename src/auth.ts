@@ -77,11 +77,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       // Передаём данные из токена в сессию
       if (session.user) {
-        session.user.id = token.id;
-        session.user.phone = token.phone;
-        session.user.role = token.role;
-        session.user.level = token.level;
-        session.user.xp = token.xp;
+        session.user.id = token.id as string;
+        session.user.phone = token.phone as string;
+        session.user.role = token.role as string;
+        session.user.level = token.level as number;
+        session.user.xp = token.xp as number;
       }
       return session;
     },

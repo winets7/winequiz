@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSocket } from "@/hooks/useSocket";
@@ -23,6 +23,7 @@ export default function JoinPage() {
   const [joined, setJoined] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
   const [gameId, setGameId] = useState<string | null>(null);
+  const gameIdRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -41,14 +42,22 @@ export default function JoinPage() {
     if (!isConnected) return;
 
     const unsubJoined = on("joined_game", (data: unknown) => {
-      const { gameId: gId, players: p } = data as {
+      const { gameId: gId, players: p, status } = data as {
         gameId: string;
         players: Player[];
+        status?: string;
       };
       setGameId(gId);
+      gameIdRef.current = gId;
       setPlayers(p);
       setJoined(true);
       setLoading(false);
+
+      // Если игра уже идёт — сразу перенаправляем
+      if (status === "PLAYING") {
+        router.push(`/play/${gId}`);
+        return;
+      }
     });
 
     const unsubPlayerJoined = on("player_joined", (data: unknown) => {
@@ -62,8 +71,10 @@ export default function JoinPage() {
     });
 
     const unsubStarted = on("game_started", () => {
-      if (gameId) {
-        router.push(`/play/${gameId}`);
+      // Используем ref для актуального значения gameId
+      const currentGameId = gameIdRef.current || gameId;
+      if (currentGameId) {
+        router.push(`/play/${currentGameId}`);
       }
     });
 

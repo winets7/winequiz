@@ -44,9 +44,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (game.status !== "WAITING") {
+    if (game.status === "FINISHED") {
       return NextResponse.json(
-        { error: "Игра уже началась или завершена" },
+        { error: "Игра уже завершена" },
         { status: 400 }
       );
     }

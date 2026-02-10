@@ -107,12 +107,28 @@ export function createSocketServer(httpServer?: HttpServer) {
         count: room.players.size,
       });
 
+      // Проверяем статус игры в БД
+      const game = await prisma.gameSession.findUnique({
+        where: { id: room.gameId },
+        select: { status: true },
+      });
+      const gameStatus = game?.status || "WAITING";
+
       // Подтверждение игроку
       socket.emit("joined_game", {
         gameId: room.gameId,
         code,
         players: playersList,
+        status: gameStatus,
       });
+
+      // Если игра уже идёт — сразу уведомляем игрока
+      if (gameStatus === "PLAYING") {
+        socket.emit("game_started", {
+          totalRounds: room.totalRounds,
+          playersCount: room.players.size,
+        });
+      }
     });
 
     // =============================================

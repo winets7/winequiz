@@ -2,42 +2,34 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function Home() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [creating, setCreating] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isLoading = status === "loading";
+  const isLoggedIn = !!session?.user;
+
   // Создать игру
   const handleCreateGame = async () => {
+    if (!session?.user?.id) return;
+
     setCreating(true);
     setError(null);
 
     try {
-      // Создаём гостевого хоста (позже заменим на аутентификацию)
-      const userRes = await fetch("/api/users/guest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "Хост" }),
-      });
-
-      if (!userRes.ok) {
-        setError("Ошибка создания пользователя");
-        setCreating(false);
-        return;
-      }
-
-      const { user } = await userRes.json();
-
-      // Создаём игру
       const gameRes = await fetch("/api/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          hostId: user.id,
+          hostId: session.user.id,
           totalRounds: 10,
           maxPlayers: 99,
         }),
@@ -65,17 +57,42 @@ export default function Home() {
       setError("Введите код комнаты");
       return;
     }
-    // Добавляем префикс если его нет
     const fullCode = code.startsWith("WN-") ? code : `WN-${code}`;
     router.push(`/join/${fullCode}`);
   };
 
+  // Выйти
+  const handleSignOut = async () => {
+    await signOut({ redirect: false });
+    router.refresh();
+  };
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-4">
-      {/* Кнопка смены темы */}
-      <div className="fixed top-4 right-4">
+      {/* Верхняя панель */}
+      <div className="fixed top-4 right-4 flex items-center gap-3">
+        {isLoggedIn && (
+          <button
+            onClick={handleSignOut}
+            className="text-sm text-[var(--muted-foreground)] hover:text-[var(--error)] transition-colors"
+          >
+            Выйти
+          </button>
+        )}
         <ThemeToggle />
       </div>
+
+      {/* Приветствие для залогиненного пользователя */}
+      {isLoggedIn && (
+        <div className="fixed top-4 left-4 flex items-center gap-2 text-sm">
+          <div className="w-8 h-8 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center font-bold text-xs">
+            {session.user.name?.charAt(0).toUpperCase()}
+          </div>
+          <span className="text-[var(--foreground)] font-medium">
+            {session.user.name}
+          </span>
+        </div>
+      )}
 
       {/* Логотип / Заголовок */}
       <div className="text-center space-y-6">
@@ -95,52 +112,81 @@ export default function Home() {
         </div>
       )}
 
-      {/* Кнопки */}
-      <div className="mt-12 flex flex-col sm:flex-row gap-4">
-        <button
-          onClick={handleCreateGame}
-          disabled={creating}
-          className="px-8 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {creating ? (
-            <span className="flex items-center gap-2">
-              <span className="animate-spin">⏳</span> Создание...
-            </span>
-          ) : (
-            "🚀 Создать игру"
-          )}
-        </button>
-        <button
-          onClick={() => setShowJoinInput(!showJoinInput)}
-          className="px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-colors shadow-lg"
-        >
-          📱 Присоединиться
-        </button>
-      </div>
+      {/* Загрузка сессии */}
+      {isLoading && (
+        <div className="mt-12 text-[var(--muted-foreground)]">
+          <span className="animate-pulse">⏳</span> Загрузка...
+        </div>
+      )}
 
-      {/* Поле ввода кода */}
-      {showJoinInput && (
-        <div className="mt-6 flex flex-col sm:flex-row gap-3 items-center max-w-md w-full">
-          <div className="flex-1 w-full">
-            <input
-              type="text"
-              value={joinCode}
-              onChange={(e) => {
-                setJoinCode(e.target.value.toUpperCase());
-                setError(null);
-              }}
-              onKeyDown={(e) => e.key === "Enter" && handleJoinByCode()}
-              placeholder="WN-000000"
-              maxLength={9}
-              className="w-full px-4 py-3 bg-[var(--card)] border-2 border-[var(--border)] rounded-xl text-center text-lg font-mono focus:outline-none focus:ring-2 focus:ring-[var(--primary)] placeholder:text-[var(--muted-foreground)]"
-            />
+      {/* Кнопки для залогиненного пользователя */}
+      {!isLoading && isLoggedIn && (
+        <>
+          <div className="mt-12 flex flex-col sm:flex-row gap-4">
+            <button
+              onClick={handleCreateGame}
+              disabled={creating}
+              className="px-8 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creating ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin">⏳</span> Создание...
+                </span>
+              ) : (
+                "🚀 Создать игру"
+              )}
+            </button>
+            <button
+              onClick={() => setShowJoinInput(!showJoinInput)}
+              className="px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-colors shadow-lg"
+            >
+              📱 Присоединиться
+            </button>
           </div>
-          <button
-            onClick={handleJoinByCode}
-            className="px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl font-semibold hover:opacity-90 transition-opacity whitespace-nowrap"
+
+          {/* Поле ввода кода */}
+          {showJoinInput && (
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 items-center max-w-md w-full">
+              <div className="flex-1 w-full">
+                <input
+                  type="text"
+                  value={joinCode}
+                  onChange={(e) => {
+                    setJoinCode(e.target.value.toUpperCase());
+                    setError(null);
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && handleJoinByCode()}
+                  placeholder="WN-000000"
+                  maxLength={9}
+                  className="w-full px-4 py-3 bg-[var(--card)] border-2 border-[var(--border)] rounded-xl text-center text-lg font-mono focus:outline-none focus:ring-2 focus:ring-[var(--primary)] placeholder:text-[var(--muted-foreground)]"
+                />
+              </div>
+              <button
+                onClick={handleJoinByCode}
+                className="px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl font-semibold hover:opacity-90 transition-opacity whitespace-nowrap"
+              >
+                Войти
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Кнопки для незалогиненного пользователя */}
+      {!isLoading && !isLoggedIn && (
+        <div className="mt-12 flex flex-col sm:flex-row gap-4">
+          <Link
+            href="/login"
+            className="px-8 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold hover:opacity-90 transition-opacity shadow-lg text-center"
           >
-            Войти
-          </button>
+            🔐 Войти
+          </Link>
+          <Link
+            href="/register"
+            className="px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-colors shadow-lg text-center"
+          >
+            📝 Зарегистрироваться
+          </Link>
         </div>
       )}
 
@@ -149,9 +195,11 @@ export default function Home() {
         <a href="/leaderboard" className="hover:text-[var(--primary)] transition-colors">
           🏆 Рейтинг
         </a>
-        <a href="/profile" className="hover:text-[var(--primary)] transition-colors">
-          👤 Профиль
-        </a>
+        {isLoggedIn && (
+          <a href="/profile" className="hover:text-[var(--primary)] transition-colors">
+            👤 Профиль
+          </a>
+        )}
         <a href="/achievements" className="hover:text-[var(--primary)] transition-colors">
           ⭐ Достижения
         </a>

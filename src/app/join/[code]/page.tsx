@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useSocket } from "@/hooks/useSocket";
 import { isValidGameCode } from "@/lib/game-code";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -15,16 +16,18 @@ export default function JoinPage() {
   const params = useParams();
   const router = useRouter();
   const code = params.code as string;
+  const { data: session } = useSession();
 
   const { isConnected, emit, on } = useSocket();
 
-  const [playerName, setPlayerName] = useState("");
   const [joined, setJoined] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
   const [gameId, setGameId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+
+  const userId = session?.user?.id ?? null;
+  const userName = session?.user?.name ?? "Игрок";
 
   // Валидация кода при загрузке
   useEffect(() => {
@@ -88,36 +91,17 @@ export default function JoinPage() {
 
   // Присоединиться к игре
   const handleJoin = async () => {
-    if (!playerName.trim()) {
-      setError("Введите ваше имя");
-      return;
-    }
+    if (!userId) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      // Создаём временного пользователя (или ищем по имени)
-      const res = await fetch("/api/users/guest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: playerName.trim() }),
-      });
-
-      if (!res.ok) {
-        setError("Ошибка создания пользователя");
-        setLoading(false);
-        return;
-      }
-
-      const { user } = await res.json();
-      setUserId(user.id);
-
       // Подключаемся к комнате через API
       const joinRes = await fetch("/api/games/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, userId: user.id }),
+        body: JSON.stringify({ code, userId }),
       });
 
       if (!joinRes.ok) {
@@ -130,8 +114,8 @@ export default function JoinPage() {
       // Подключаемся через Socket.io
       emit("join_game", {
         code,
-        userId: user.id,
-        name: playerName.trim(),
+        userId,
+        name: userName,
       });
     } catch {
       setError("Ошибка подключения к серверу");
@@ -185,7 +169,7 @@ export default function JoinPage() {
     );
   }
 
-  // Экран ввода имени
+  // Экран подключения
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="fixed top-4 right-4">
@@ -206,34 +190,25 @@ export default function JoinPage() {
           </div>
         )}
 
-        <div className="space-y-4">
-          <input
-            type="text"
-            value={playerName}
-            onChange={(e) => {
-              setPlayerName(e.target.value);
-              setError(null);
-            }}
-            onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-            placeholder="Введите ваше имя"
-            maxLength={20}
-            className="w-full px-4 py-3 bg-[var(--muted)] border border-[var(--border)] rounded-xl text-center text-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)] placeholder:text-[var(--muted-foreground)]"
-          />
-
-          <button
-            onClick={handleJoin}
-            disabled={loading || !playerName.trim() || !isConnected}
-            className="w-full px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="animate-spin">⏳</span> Подключение...
-              </span>
-            ) : (
-              "Присоединиться"
-            )}
-          </button>
+        {/* Показываем имя из сессии */}
+        <div className="mb-4 p-3 bg-[var(--muted)] rounded-xl">
+          <p className="text-sm text-[var(--muted-foreground)]">Вы входите как</p>
+          <p className="text-lg font-semibold">{userName}</p>
         </div>
+
+        <button
+          onClick={handleJoin}
+          disabled={loading || !isConnected || !userId}
+          className="w-full px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-spin">⏳</span> Подключение...
+            </span>
+          ) : (
+            "Присоединиться"
+          )}
+        </button>
 
         {!isConnected && (
           <p className="mt-4 text-xs text-[var(--error)]">

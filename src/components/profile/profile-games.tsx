@@ -262,15 +262,28 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
             </div>
           </div>
 
-          {/* Кнопка перехода к игре */}
-          {gameLink && (
-            <button
-              onClick={handleGoToGame}
-              className="w-full px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-sm font-bold hover:opacity-90 transition-opacity"
-            >
-              {game.status === "WAITING" ? "🚀 Перейти в лобби" : "🎮 Перейти к игре"}
-            </button>
-          )}
+          {/* Кнопки действий */}
+          <div className="space-y-2">
+            {gameLink && (
+              <button
+                onClick={handleGoToGame}
+                className="w-full px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-sm font-bold hover:opacity-90 transition-opacity"
+              >
+                {game.status === "WAITING" ? "🚀 Перейти в лобби" : "🎮 Перейти к игре"}
+              </button>
+            )}
+            {game.status === "FINISHED" && (
+              <button
+                onClick={() => {
+                  onClose();
+                  router.push(`/history/${game.id}`);
+                }}
+                className="w-full px-6 py-3 bg-[var(--secondary)] text-[var(--secondary-foreground)] rounded-2xl text-sm font-bold hover:opacity-90 transition-opacity"
+              >
+                📋 История ответов
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

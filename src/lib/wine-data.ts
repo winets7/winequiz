@@ -84,6 +84,11 @@ export const VINTAGE_YEARS = Array.from({ length: 131 }, (_, i) =>
   String(1900 + i)
 ).reverse(); // От нового к старому
 
+/** Значения крепости (от 18.0% до 0.0% с шагом 0.1) */
+export const ALCOHOL_CONTENT_VALUES = Array.from({ length: 181 }, (_, i) => 
+  (18.0 - i * 0.1).toFixed(1)
+);
+
 /** Подписи для enum WineSweetness */
 export const SWEETNESS_LABELS: Record<string, string> = {
   DRY: "Сухое",

@@ -130,11 +130,10 @@ export function CharacteristicCards({ gameId, values, onValueChange }: Character
           onClick={() => handleCardClick(card.field, card.path)}
           className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 text-left hover:bg-[var(--muted)] transition-colors"
         >
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xl">{card.icon}</span>
-            <span className="text-sm font-medium text-[var(--foreground)]">{card.label}</span>
+          <div className="mb-2">
+            <span className="text-sm text-[var(--foreground)]">{card.label}</span>
           </div>
-          <div className="text-sm text-[var(--muted-foreground)]">{card.value}</div>
+          <div className="text-sm font-medium text-[var(--foreground)]">{card.value}</div>
         </button>
       ))}
     </div>

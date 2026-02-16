@@ -575,23 +575,21 @@ export default function PlayPage() {
               </p>
             </div>
 
-            <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
-              <CharacteristicCards gameId={gameId} values={guessValues} />
-              
-              <button
-                onClick={handleSubmitGuess}
-                disabled={submitting}
-                className="w-full mt-6 px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="animate-spin">⏳</span> Отправка...
-                  </span>
-                ) : (
-                  "✅ Отправить ответ"
-                )}
-              </button>
-            </div>
+            <CharacteristicCards gameId={gameId} values={guessValues} />
+            
+            <button
+              onClick={handleSubmitGuess}
+              disabled={submitting}
+              className="w-full mt-6 px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin">⏳</span> Отправка...
+                </span>
+              ) : (
+                "✅ Отправить ответ"
+              )}
+            </button>
           </div>
         )}
 

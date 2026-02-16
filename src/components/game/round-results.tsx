@@ -97,7 +97,7 @@ export function RoundResults({
       {photos.length > 0 && (
         <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
           <h3 className="text-sm font-medium text-[var(--muted-foreground)] mb-3">📸 Бутылка</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
             {photos.map((url, i) => (
               <div key={i} className="aspect-[3/4] rounded-xl overflow-hidden bg-[var(--muted)]">
                 <img
@@ -114,7 +114,7 @@ export function RoundResults({
       {/* Правильные ответы */}
       <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
         <h3 className="text-sm font-medium text-[var(--muted-foreground)] mb-3">🍷 Правильные ответы</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-1 text-sm">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-1 text-sm">
           <div><span className="text-[var(--muted-foreground)]">Цвет:</span> <span className="font-medium">{correct.color}</span></div>
           <div><span className="text-[var(--muted-foreground)]">Сладость:</span> <span className="font-medium">{correct.sweetness}</span></div>
           <div><span className="text-[var(--muted-foreground)]">Состав:</span> <span className="font-medium">{correct.composition}</span></div>
@@ -122,7 +122,7 @@ export function RoundResults({
           <div><span className="text-[var(--muted-foreground)]">Страна:</span> <span className="font-medium">{correct.country}</span></div>
           <div><span className="text-[var(--muted-foreground)]">Год:</span> <span className="font-medium">{correct.year}</span></div>
           <div><span className="text-[var(--muted-foreground)]">Крепость:</span> <span className="font-medium">{correct.alcohol}</span></div>
-          <div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4"><span className="text-[var(--muted-foreground)]">Сорта:</span> <span className="font-medium">{correct.grapes}</span></div>
+          <div className="col-span-2 md:col-span-3 lg:col-span-4"><span className="text-[var(--muted-foreground)]">Сорта:</span> <span className="font-medium">{correct.grapes}</span></div>
         </div>
       </div>
 

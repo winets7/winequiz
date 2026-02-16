@@ -7,6 +7,7 @@ import { useSocket } from "@/hooks/useSocket";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WineForm, WineParams } from "@/components/game/wine-form";
 import { RoundResults } from "@/components/game/round-results";
+import { CharacteristicCards } from "@/components/game/characteristic-cards";
 
 // =============================================
 // Типы
@@ -103,9 +104,75 @@ export default function PlayPage() {
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [guessValues, setGuessValues] = useState<Partial<WineParams>>({});
 
   const userId = session?.user?.id;
   const isHost = game?.host?.id === userId;
+
+  // =============================================
+  // Загрузка сохраненных значений из localStorage
+  // =============================================
+  const loadSavedValues = useCallback(() => {
+    if (!gameId) return;
+    
+    const saved: Partial<WineParams> = {
+      color: localStorage.getItem(`wine-guess-${gameId}-color`) || "",
+      sweetness: localStorage.getItem(`wine-guess-${gameId}-sweetness`) || "",
+      composition: localStorage.getItem(`wine-guess-${gameId}-composition`) || "",
+      country: localStorage.getItem(`wine-guess-${gameId}-country`) || "",
+      vintageYear: localStorage.getItem(`wine-guess-${gameId}-vintageYear`) || "",
+      alcoholContent: localStorage.getItem(`wine-guess-${gameId}-alcoholContent`) || "",
+      grapeVarieties: JSON.parse(localStorage.getItem(`wine-guess-${gameId}-grapeVarieties`) || "[]"),
+      isOakAged: (() => {
+        const saved = localStorage.getItem(`wine-guess-${gameId}-isOakAged`);
+        if (saved === null) return null;
+        return saved === "true";
+      })(),
+    };
+    setGuessValues(saved);
+  }, [gameId]);
+
+  useEffect(() => {
+    if (!gameId || !userId) return;
+    
+    loadSavedValues();
+    
+    // Слушаем изменения в localStorage (для синхронизации между вкладками и страницами)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key?.startsWith(`wine-guess-${gameId}-`)) {
+        loadSavedValues();
+      }
+    };
+    
+    // Также слушаем кастомные события для обновления в той же вкладке
+    const handleCustomStorageChange = () => {
+      loadSavedValues();
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("localStorageChange", handleCustomStorageChange);
+    
+    // Обновляем при фокусе окна и изменении видимости (когда пользователь возвращается на страницу)
+    const handleFocus = () => {
+      loadSavedValues();
+    };
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadSavedValues();
+      }
+    };
+    
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("localStorageChange", handleCustomStorageChange);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [gameId, userId, loadSavedValues]);
 
   // =============================================
   // Загрузка данных игры
@@ -309,31 +376,44 @@ export default function PlayPage() {
   }, [game, currentRound, rounds, emit]);
 
   // Участник: Отправить догадку
-  const handleSubmitGuess = useCallback(
-    (guessParams: WineParams) => {
-      if (!game || !userId || !currentRoundId) return;
-      setSubmitting(true);
+  const handleSubmitGuess = useCallback(() => {
+    if (!game || !userId || !currentRoundId) return;
+    setSubmitting(true);
 
-      emit("submit_guess", {
-        code: game.code,
-        roundId: currentRoundId,
-        userId,
-        guess: {
-          grapeVarieties: guessParams.grapeVarieties,
-          sweetness: guessParams.sweetness || null,
-          vintageYear: guessParams.vintageYear ? parseInt(guessParams.vintageYear) : null,
-          country: guessParams.country || null,
-          alcoholContent: guessParams.alcoholContent
-            ? parseFloat(guessParams.alcoholContent)
-            : null,
-          isOakAged: guessParams.isOakAged,
-          color: guessParams.color || null,
-          composition: guessParams.composition || null,
-        },
-      });
-    },
-    [game, userId, currentRoundId, emit]
-  );
+    // Собираем все значения из localStorage
+    const guessParams: WineParams = {
+      color: localStorage.getItem(`wine-guess-${gameId}-color`) || "",
+      sweetness: localStorage.getItem(`wine-guess-${gameId}-sweetness`) || "",
+      composition: localStorage.getItem(`wine-guess-${gameId}-composition`) || "",
+      country: localStorage.getItem(`wine-guess-${gameId}-country`) || "",
+      vintageYear: localStorage.getItem(`wine-guess-${gameId}-vintageYear`) || "",
+      alcoholContent: localStorage.getItem(`wine-guess-${gameId}-alcoholContent`) || "",
+      grapeVarieties: JSON.parse(localStorage.getItem(`wine-guess-${gameId}-grapeVarieties`) || "[]"),
+      isOakAged: (() => {
+        const saved = localStorage.getItem(`wine-guess-${gameId}-isOakAged`);
+        if (saved === null) return null;
+        return saved === "true";
+      })(),
+    };
+
+    emit("submit_guess", {
+      code: game.code,
+      roundId: currentRoundId,
+      userId,
+      guess: {
+        grapeVarieties: guessParams.grapeVarieties,
+        sweetness: guessParams.sweetness || null,
+        vintageYear: guessParams.vintageYear ? parseInt(guessParams.vintageYear) : null,
+        country: guessParams.country || null,
+        alcoholContent: guessParams.alcoholContent
+          ? parseFloat(guessParams.alcoholContent)
+          : null,
+        isOakAged: guessParams.isOakAged,
+        color: guessParams.color || null,
+        composition: guessParams.composition || null,
+      },
+    });
+  }, [game, userId, currentRoundId, gameId, emit]);
 
   // Хост: Закрыть раунд
   const handleCloseRound = useCallback(() => {
@@ -496,12 +576,21 @@ export default function PlayPage() {
             </div>
 
             <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
-              <WineForm
-                mode="player"
-                onSubmit={handleSubmitGuess}
-                loading={submitting}
-                submitLabel="✅ Отправить ответ"
-              />
+              <CharacteristicCards gameId={gameId} values={guessValues} />
+              
+              <button
+                onClick={handleSubmitGuess}
+                disabled={submitting}
+                className="w-full mt-6 px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin">⏳</span> Отправка...
+                  </span>
+                ) : (
+                  "✅ Отправить ответ"
+                )}
+              </button>
             </div>
           </div>
         )}

@@ -79,6 +79,11 @@ export const WINE_COUNTRIES = [
   "Другая",
 ];
 
+/** Годы урожая (от 1900 до 2030) */
+export const VINTAGE_YEARS = Array.from({ length: 131 }, (_, i) => 
+  String(1900 + i)
+).reverse(); // От нового к старому
+
 /** Подписи для enum WineSweetness */
 export const SWEETNESS_LABELS: Record<string, string> = {
   DRY: "Сухое",

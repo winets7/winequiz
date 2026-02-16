@@ -120,7 +120,7 @@ export function WineForm({
         <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-2">
           🎨 Цвет вина
         </label>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {Object.entries(COLOR_LABELS).map(([value, label]) => (
             <button
               key={value}
@@ -145,7 +145,7 @@ export function WineForm({
         <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-2">
           🍬 Сладость
         </label>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {Object.entries(SWEETNESS_LABELS).map(([value, label]) => (
             <button
               key={value}
@@ -279,7 +279,7 @@ export function WineForm({
       </div>
 
       {/* === Год урожая и крепость === */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-2">
             📅 Год урожая

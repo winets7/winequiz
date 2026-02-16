@@ -472,7 +472,7 @@ export default function PlayPage() {
     <main className="min-h-screen flex flex-col items-center pb-8">
       {/* === Верхняя панель === */}
       <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-mono text-[var(--muted-foreground)]">
               {game?.code}
@@ -501,7 +501,7 @@ export default function PlayPage() {
 
       {/* === Ошибка === */}
       {error && (
-        <div className="w-full max-w-lg mx-auto px-4 mt-4">
+        <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 mt-4">
           <div className="bg-[var(--card)] border border-[var(--error)] text-[var(--error)] px-4 py-2 rounded-xl text-sm text-center">
             {error}
           </div>
@@ -509,7 +509,7 @@ export default function PlayPage() {
       )}
 
       {/* === Основной контент === */}
-      <div className="w-full max-w-lg mx-auto px-4 mt-4">
+      <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 mt-4">
         {/* ──────────── ROUND_READY (Хост) ──────────── */}
         {phase === "ROUND_READY" && isHost && (
           <div className="text-center py-8 space-y-6">

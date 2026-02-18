@@ -69,9 +69,12 @@ export async function GET(
       );
     }
 
-    // Получаем все раунды игры
+    // Получаем только завершенные раунды игры
     const rounds = await prisma.round.findMany({
-      where: { gameId },
+      where: { 
+        gameId,
+        status: "CLOSED", // Показываем только завершенные раунды
+      },
       include: {
         photos: {
           orderBy: { sortOrder: "asc" },

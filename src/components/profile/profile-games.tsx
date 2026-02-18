@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 interface GamePlayer {
   id: string;
@@ -100,6 +101,103 @@ function gameDuration(createdAt: string, finishedAt: string | null): string {
   const sec = totalSec % 60;
   if (min === 0) return `${sec} сек`;
   return `${min} мин ${sec} сек`;
+}
+
+/* ─── Компонент ссылки на профиль игрока ─── */
+
+function PlayerLink({ 
+  player, 
+  index, 
+  gameStatus 
+}: { 
+  player: GamePlayer; 
+  index: number; 
+  gameStatus: string;
+}) {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [isChecking, setIsChecking] = useState(false);
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Если это собственный профиль, переходим сразу
+    if (session?.user?.id === player.user.id) {
+      router.push(`/profile/${player.user.id}`);
+      return;
+    }
+
+    // Если это админ, переходим сразу
+    if (session?.user?.role === "ADMIN") {
+      router.push(`/profile/${player.user.id}`);
+      return;
+    }
+
+    // Проверяем доступность профиля
+    setIsChecking(true);
+    try {
+      const res = await fetch(`/api/users/${player.user.id}/profile`);
+      if (res.ok) {
+        // Профиль доступен, переходим
+        router.push(`/profile/${player.user.id}`);
+      } else {
+        // Профиль недоступен
+        const data = await res.json();
+        alert(data.error || "Профиль недоступен");
+      }
+    } catch (error) {
+      console.error("Ошибка проверки профиля:", error);
+      alert("Не удалось проверить доступность профиля");
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={isChecking}
+      className="w-full flex items-center gap-3 bg-[var(--muted)] rounded-xl p-3 hover:bg-[var(--border)] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {/* Позиция / Номер */}
+      <div className="w-8 text-center shrink-0">
+        {gameStatus === "FINISHED" && player.position ? (
+          <PositionBadge position={player.position} />
+        ) : (
+          <span className="text-xs text-[var(--muted-foreground)]">
+            {index + 1}
+          </span>
+        )}
+      </div>
+
+      {/* Аватар */}
+      <div className="w-8 h-8 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center text-xs font-bold shrink-0">
+        {player.user.avatar ? (
+          <img
+            src={player.user.avatar}
+            alt={player.user.name}
+            className="w-full h-full rounded-full object-cover"
+          />
+        ) : (
+          player.user.name.charAt(0).toUpperCase()
+        )}
+      </div>
+
+      {/* Имя */}
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-sm text-[var(--foreground)] truncate">
+          {player.user.name}
+        </div>
+      </div>
+
+      {/* Счёт */}
+      {gameStatus === "FINISHED" && (
+        <div className="text-sm font-semibold text-[var(--foreground)] shrink-0">
+          {player.score} очк.
+        </div>
+      )}
+    </button>
+  );
 }
 
 /* ─── Модальное окно карточки игры ─── */
@@ -228,49 +326,7 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
             </div>
             <div className="space-y-2">
               {game.players.map((player, index) => (
-                <Link
-                  key={player.id}
-                  href={`/profile/${player.user.id}`}
-                  className="flex items-center gap-3 bg-[var(--muted)] rounded-xl p-3 hover:bg-[var(--border)] transition-colors"
-                >
-                  {/* Позиция / Номер */}
-                  <div className="w-8 text-center shrink-0">
-                    {game.status === "FINISHED" && player.position ? (
-                      <PositionBadge position={player.position} />
-                    ) : (
-                      <span className="text-xs text-[var(--muted-foreground)]">
-                        {index + 1}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Аватар */}
-                  <div className="w-8 h-8 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center text-xs font-bold shrink-0">
-                    {player.user.avatar ? (
-                      <img
-                        src={player.user.avatar}
-                        alt={player.user.name}
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      player.user.name.charAt(0).toUpperCase()
-                    )}
-                  </div>
-
-                  {/* Имя */}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm text-[var(--foreground)] truncate">
-                      {player.user.name}
-                    </div>
-                  </div>
-
-                  {/* Счёт */}
-                  {game.status === "FINISHED" && (
-                    <div className="text-sm font-semibold text-[var(--foreground)] shrink-0">
-                      {player.score} очк.
-                    </div>
-                  )}
-                </Link>
+                <PlayerLink key={player.id} player={player} index={index} gameStatus={game.status} />
               ))}
 
               {game.players.length === 0 && (

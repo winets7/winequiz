@@ -9,6 +9,7 @@ import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileStats } from "@/components/profile/profile-stats";
 import { ProfileGames } from "@/components/profile/profile-games";
 import { ProfileAchievements } from "@/components/profile/profile-achievements";
+import { ProfilePrivacy } from "@/components/profile/profile-privacy";
 
 interface ProfileData {
   user: {
@@ -19,6 +20,7 @@ interface ProfileData {
     level: number;
     xp: number;
     createdAt: string;
+    isProfilePublic?: boolean;
   };
   hostedGames: Array<{
     id: string;
@@ -154,6 +156,7 @@ export default function ProfilePage() {
       {/* Контент профиля */}
       <div className="max-w-2xl mx-auto px-4 space-y-4 mt-4">
         <ProfileHeader user={profile.user} isOwnProfile={true} />
+        <ProfilePrivacy userId={profile.user.id} initialIsPublic={profile.user.isProfilePublic ?? false} />
         <ProfileStats stats={profile.stats} />
         <ProfileGames
           hostedGames={profile.hostedGames}

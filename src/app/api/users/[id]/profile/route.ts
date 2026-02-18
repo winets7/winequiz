@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 /**
  * GET /api/users/[id]/profile — Получение данных профиля пользователя
@@ -17,8 +18,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const session = await auth();
+    const currentUserId = session?.user?.id;
+    const currentUserRole = session?.user?.role;
 
-    // Основные данные пользователя
+    // Основные данные пользователя (включая настройку приватности)
     const user = await prisma.user.findUnique({
       where: { id },
       select: {
@@ -29,6 +33,7 @@ export async function GET(
         level: true,
         xp: true,
         createdAt: true,
+        isProfilePublic: true,
       },
     });
 
@@ -36,6 +41,21 @@ export async function GET(
       return NextResponse.json(
         { error: "Пользователь не найден" },
         { status: 404 }
+      );
+    }
+
+    // Проверка доступа к профилю:
+    // 1. Владелец профиля всегда видит свой профиль
+    // 2. Администратор всегда видит все профили
+    // 3. Остальные видят только если isProfilePublic = true
+    const isOwner = currentUserId === id;
+    const isAdmin = currentUserRole === "ADMIN";
+    const isPublic = user.isProfilePublic;
+
+    if (!isOwner && !isAdmin && !isPublic) {
+      return NextResponse.json(
+        { error: "Профиль недоступен" },
+        { status: 403 }
       );
     }
 
@@ -151,8 +171,13 @@ export async function GET(
       _max: { score: true },
     });
 
+    // Скрываем isProfilePublic для других пользователей (кроме владельца и админа)
+    const userResponse = isOwner || isAdmin
+      ? user
+      : { ...user, isProfilePublic: undefined };
+
     return NextResponse.json({
-      user,
+      user: userResponse,
       hostedGames: hostedGames.map((g) => ({
         ...g,
         playersCount: g.players.length,

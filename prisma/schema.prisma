@@ -65,6 +65,7 @@ model User {
   role         Role     @default(PLAYER)
   level        Int      @default(1)
   xp           Int      @default(0)
+  isProfilePublic Boolean @default(false) // Показывать профиль всем пользователям
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

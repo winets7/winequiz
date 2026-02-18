@@ -492,8 +492,8 @@ export default function PlayPage() {
             {isHost && (
               <>
                 <button
-                  onClick={() => router.push(`/scoreboard/${gameId}`)}
-                  className="text-xs bg-[var(--primary)] text-white px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity font-medium flex items-center gap-1"
+                  onClick={() => window.open(`/scoreboard/${gameId}`, '_blank')}
+                  className="text-sm bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity font-bold flex items-center gap-2 shadow-md"
                   title="Открыть scoreboard для трансляции"
                 >
                   📊 Scoreboard
@@ -628,6 +628,12 @@ export default function PlayPage() {
             {/* Кнопки навигации (только хост) */}
             {isHost && (
               <div className="space-y-3">
+                <button
+                  onClick={() => window.open(`/scoreboard/${gameId}`, '_blank')}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-[#DAA520] to-[#C4941A] text-[#3D0F1E] rounded-2xl text-base font-bold hover:opacity-90 transition-opacity shadow-lg flex items-center justify-center gap-2"
+                >
+                  📊 Открыть Scoreboard для трансляции
+                </button>
                 {currentRound < (game?.totalRounds || 0) ? (
                   <button
                     onClick={handleNextRound}
@@ -704,6 +710,16 @@ export default function PlayPage() {
                 })}
               </div>
             </div>
+
+            {/* Кнопки для хоста */}
+            {isHost && (
+              <button
+                onClick={() => window.open(`/scoreboard/${gameId}`, '_blank')}
+                className="w-full px-6 py-4 bg-gradient-to-r from-[#DAA520] to-[#C4941A] text-[#3D0F1E] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg flex items-center justify-center gap-2"
+              >
+                📊 Открыть Scoreboard для трансляции
+              </button>
+            )}
 
             <button
               onClick={() => router.push("/")}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -57,8 +57,18 @@ interface HistoryData {
 export default function HistoryPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const gameId = params.gameId as string;
   const { data: session, status: sessionStatus } = useSession();
+
+  // Получаем номер раунда из query параметра
+  const roundFilter = searchParams.get("round");
+  const selectedRoundNumber = roundFilter
+    ? (() => {
+        const num = parseInt(roundFilter, 10);
+        return isNaN(num) ? null : num;
+      })()
+    : null;
 
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -120,6 +130,11 @@ export default function HistoryPage() {
     );
   }
 
+  // Фильтруем раунды: если указан round в URL, показываем только этот раунд
+  const displayedRounds = selectedRoundNumber
+    ? history.rounds.filter((round) => round.roundNumber === selectedRoundNumber)
+    : history.rounds;
+
   const totalScore = history.rounds.reduce((sum, round) => sum + (round.userGuess?.score || 0), 0);
 
   return (
@@ -135,6 +150,7 @@ export default function HistoryPage() {
           </Link>
           <h1 className="text-lg font-bold text-[var(--primary)]">
             📋 История ответов
+            {selectedRoundNumber && ` - Раунд ${selectedRoundNumber}`}
           </h1>
           <ThemeToggle />
         </div>
@@ -193,13 +209,27 @@ export default function HistoryPage() {
 
         {/* Раунды */}
         <div className="space-y-4">
-          {history.rounds.length === 0 ? (
+          {selectedRoundNumber && (
+            <div className="mb-4">
+              <Link
+                href={`/history/${gameId}`}
+                className="inline-flex items-center gap-2 text-sm text-[var(--primary)] hover:opacity-80 transition-opacity"
+              >
+                ← Показать все раунды
+              </Link>
+            </div>
+          )}
+          {displayedRounds.length === 0 ? (
             <div className="text-center py-10 text-[var(--muted-foreground)]">
               <div className="text-4xl mb-3">🍷</div>
-              <p className="font-medium">Нет раундов в этой игре</p>
+              <p className="font-medium">
+                {selectedRoundNumber
+                  ? `Раунд ${selectedRoundNumber} не найден`
+                  : "Нет раундов в этой игре"}
+              </p>
             </div>
           ) : (
-            history.rounds.map((round) => (
+            displayedRounds.map((round) => (
               <RoundHistoryItem
                 key={round.roundNumber}
                 roundNumber={round.roundNumber}
@@ -213,7 +243,7 @@ export default function HistoryPage() {
         </div>
 
         {/* Итоговая статистика */}
-        {history.rounds.length > 0 && (
+        {!selectedRoundNumber && history.rounds.length > 0 && (
           <div className="bg-[var(--card)] rounded-3xl shadow-lg border border-[var(--border)] p-6">
             <h3 className="text-lg font-bold mb-4">📊 Итоговая статистика</h3>
             <div className="grid grid-cols-2 gap-4">

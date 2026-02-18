@@ -45,8 +45,8 @@ export function PlayerRoundsList({
       // Активный раунд - переходим на страницу игры
       router.push(`/play/${gameId}`);
     } else if (round.status === "CLOSED") {
-      // Завершённый раунд - переходим на страницу истории
-      router.push(`/history/${gameId}`);
+      // Завершённый раунд - переходим на страницу истории с фильтром по раунду
+      router.push(`/history/${gameId}?round=${roundNumber}`);
     } else if (round.status === "CREATED") {
       // Раунд создан, но ещё не начат
       // Можно показать уведомление или просто ничего не делать

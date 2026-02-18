@@ -124,7 +124,7 @@ export function PlayerRoundsList({
                 roundStatus.status === "active"
                   ? "bg-[var(--primary)] bg-opacity-10 border-2 border-[var(--primary)] hover:bg-opacity-20 cursor-pointer"
                   : roundStatus.status === "completed"
-                  ? "bg-[var(--success)] bg-opacity-10 border border-[var(--success)] hover:bg-opacity-20 cursor-pointer"
+                  ? "bg-[var(--success)] bg-opacity-10 border border-[var(--success)] hover:bg-opacity-20 cursor-pointer text-white"
                   : roundStatus.status === "created"
                   ? "bg-[var(--muted)] border border-[var(--border)] opacity-60 cursor-not-allowed"
                   : "bg-[var(--muted)] hover:bg-[var(--border)] cursor-not-allowed"

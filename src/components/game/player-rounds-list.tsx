@@ -133,7 +133,7 @@ export function PlayerRoundsList({
               <span className="text-xl">{roundStatus.icon}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-medium">Раунд {num}</p>
-                {round && roundStatus.status !== "pending" && (
+                {round && roundStatus.status === "active" && (
                   <p className="text-xs text-[var(--muted-foreground)] truncate">
                     {round.color === "RED"
                       ? "🔴"
@@ -159,7 +159,7 @@ export function PlayerRoundsList({
                   </p>
                 )}
               </div>
-              {isClickable && (
+              {isClickable && roundStatus.status !== "completed" && (
                 <span className="text-[var(--muted-foreground)]">→</span>
               )}
             </button>

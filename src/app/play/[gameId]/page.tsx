@@ -490,9 +490,18 @@ export default function PlayPage() {
           </div>
           <div className="flex items-center gap-2">
             {isHost && (
-              <span className="text-xs bg-[var(--secondary)] text-[var(--secondary-foreground)] px-2 py-0.5 rounded-full">
-                Хост
-              </span>
+              <>
+                <button
+                  onClick={() => router.push(`/scoreboard/${gameId}`)}
+                  className="text-xs bg-[var(--primary)] text-white px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity font-medium flex items-center gap-1"
+                  title="Открыть scoreboard для трансляции"
+                >
+                  📊 Scoreboard
+                </button>
+                <span className="text-xs bg-[var(--secondary)] text-[var(--secondary-foreground)] px-2 py-0.5 rounded-full">
+                  Хост
+                </span>
+              </>
             )}
             <ThemeToggle />
           </div>

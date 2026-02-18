@@ -8,6 +8,7 @@ import { useSocket } from "@/hooks/useSocket";
 import { getJoinUrl } from "@/lib/game-code";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WineForm, WineParams } from "@/components/game/wine-form";
+import { PlayerRoundsList } from "@/components/game/player-rounds-list";
 
 interface Player {
   userId: string;
@@ -149,7 +150,35 @@ export default function LobbyPage() {
     });
 
     const unsubStarted = on("game_started", () => {
-      router.push(`/play/${gameId}`);
+      // Обновляем статус игры и перезагружаем раунды
+      if (game) {
+        setGame({ ...game, status: "PLAYING" });
+        // Перезагружаем раунды
+        fetch(`/api/rounds?gameId=${gameId}`)
+          .then((res) => res.json())
+          .then((data) => setRounds(data.rounds || []))
+          .catch(() => {});
+      }
+      // Хост перенаправляется на страницу игры, игроки остаются в лобби
+      if (isHost) {
+        router.push(`/play/${gameId}`);
+      }
+    });
+
+    const unsubRoundStarted = on("round_started", () => {
+      // При старте раунда обновляем список раундов
+      fetch(`/api/rounds?gameId=${gameId}`)
+        .then((res) => res.json())
+        .then((data) => setRounds(data.rounds || []))
+        .catch(() => {});
+    });
+
+    const unsubRoundResults = on("round_results", () => {
+      // При завершении раунда обновляем список раундов
+      fetch(`/api/rounds?gameId=${gameId}`)
+        .then((res) => res.json())
+        .then((data) => setRounds(data.rounds || []))
+        .catch(() => {});
     });
 
     const unsubError = on("error", (data: unknown) => {
@@ -162,9 +191,11 @@ export default function LobbyPage() {
       unsubJoin();
       unsubLeft();
       unsubStarted();
+      unsubRoundStarted();
+      unsubRoundResults();
       unsubError();
     };
-  }, [isConnected, on, gameId, router]);
+  }, [isConnected, on, gameId, game, router]);
 
   // =============================================
   // Обработчики раундов
@@ -525,8 +556,8 @@ export default function LobbyPage() {
             </div>
           </div>
 
-          {/* Раунды (только хост видит) */}
-          {isHost && (
+          {/* Раунды */}
+          {isHost ? (
             <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
               <h3 className="text-lg font-bold mb-3">
                 🍷 Раунды ({roundNumbers.filter(isRoundFilled).length}/{game.totalRounds})
@@ -573,6 +604,21 @@ export default function LobbyPage() {
                 })}
               </div>
             </div>
+          ) : (
+            <PlayerRoundsList
+              rounds={rounds.map((r) => ({
+                id: r.id,
+                roundNumber: r.roundNumber,
+                status: r.status,
+                color: r.color,
+                country: r.country,
+                vintageYear: r.vintageYear,
+                grapeVarieties: r.grapeVarieties,
+              }))}
+              totalRounds={game.totalRounds}
+              gameId={game.id}
+              gameStatus={game.status}
+            />
           )}
 
           {/* Настройки игры */}

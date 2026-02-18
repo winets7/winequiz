@@ -130,13 +130,22 @@ export default function Home() {
           <div className="mt-12 flex flex-col sm:flex-row gap-4">
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="px-8 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold hover:opacity-90 transition-opacity shadow-lg"
+              className="px-8 py-4 text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold transition-all shadow-lg"
+              style={{ background: 'var(--gradient-primary)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(139, 26, 42, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 26, 42, 0.3)';
+              }}
             >
               🚀 Создать игру
             </button>
             <button
               onClick={() => setShowJoinInput(!showJoinInput)}
-              className="px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-colors shadow-lg"
+              className="px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
             >
               📱 Присоединиться
             </button>
@@ -144,7 +153,7 @@ export default function Home() {
 
           {/* Форма создания игры */}
           {showCreateForm && (
-            <div className="mt-6 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 max-w-md w-full shadow-lg">
+            <div className="mt-6 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 max-w-md w-full shadow-lg card-shadow">
               <h3 className="text-lg font-bold mb-4 text-center">Настройки игры</h3>
               <div className="space-y-4">
                 <div>
@@ -172,7 +181,20 @@ export default function Home() {
                 <button
                   onClick={handleCreateGame}
                   disabled={creating}
-                  className="w-full px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-6 py-3 text-[var(--primary-foreground)] rounded-xl text-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
+                  style={{ background: creating ? 'var(--primary)' : 'var(--gradient-primary)' }}
+                  onMouseEnter={(e) => {
+                if (!creating) {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(139, 26, 42, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!creating) {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 26, 42, 0.3)';
+                }
+              }}
                 >
                   {creating ? (
                     <span className="flex items-center justify-center gap-2">
@@ -205,7 +227,16 @@ export default function Home() {
               </div>
               <button
                 onClick={handleJoinByCode}
-                className="px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl font-semibold hover:opacity-90 transition-opacity whitespace-nowrap"
+                className="px-6 py-3 text-[var(--primary-foreground)] rounded-xl font-semibold transition-all whitespace-nowrap"
+                style={{ background: 'var(--gradient-primary)' }}
+                onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(139, 26, 42, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 26, 42, 0.3)';
+              }}
               >
                 Войти
               </button>
@@ -219,7 +250,8 @@ export default function Home() {
         <div className="mt-12 flex flex-col sm:flex-row gap-4">
           <Link
             href="/login"
-            className="px-8 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold hover:opacity-90 transition-opacity shadow-lg text-center"
+            className="px-8 py-4 text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold transition-all shadow-lg text-center"
+            style={{ background: 'var(--gradient-primary)' }}
           >
             🔐 Войти
           </Link>

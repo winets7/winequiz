@@ -59,9 +59,10 @@ interface ProfileData {
     totalGames: number;
     plannedGames: number;
     totalWins: number;
-    totalGuesses: number;
+    totalRounds: number;
     totalPoints: number;
     bestScore: number;
+    maxPossiblePoints: number;
   };
   achievements: Array<{
     id: string;
@@ -157,7 +158,7 @@ export default function UserProfilePage() {
         {isOwnProfile && (
           <ProfilePrivacy userId={profile.user.id} initialIsPublic={profile.user.isProfilePublic ?? false} />
         )}
-        <ProfileStats stats={profile.stats} />
+        <ProfileStats stats={profile.stats} isHost={isOwnProfile} />
         <ProfileGames
           hostedGames={profile.hostedGames}
           participatedGames={profile.participatedGames}

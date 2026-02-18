@@ -125,27 +125,85 @@ export async function GET(
       take: 20,
     });
 
-    // Статистика догадок
+    // Запланированные игры (WAITING) - только где пользователь является хостом
+    const plannedGames = await prisma.gameSession.count({
+      where: { 
+        hostId: id,
+        status: "WAITING" 
+      },
+    });
+
+    // Завершённые игры (только FINISHED) - только где пользователь был участником (не хостом)
+    const totalGamesFinished = await prisma.gamePlayer.count({
+      where: { 
+        userId: id, 
+        game: { 
+          status: "FINISHED",
+          hostId: { not: id } // Исключаем игры, где пользователь был хостом
+        } 
+      },
+    });
+
+    // Статистика догадок - только из игр, где пользователь был участником (не хостом)
     const guessesAgg = await prisma.playerGuess.aggregate({
-      where: { gamePlayer: { userId: id } },
+      where: { 
+        gamePlayer: { 
+          userId: id,
+          game: {
+            hostId: { not: id } // Только игры, где пользователь был участником
+          }
+        } 
+      },
       _count: { id: true },
       _sum: { score: true },
     });
 
-    // Завершённые игры (только FINISHED)
-    const totalGamesFinished = await prisma.gamePlayer.count({
-      where: { userId: id, game: { status: "FINISHED" } },
+    // Количество уникальных раундов, где пользователь делал догадку (как участник)
+    const allRounds = await prisma.playerGuess.findMany({
+      where: {
+        gamePlayer: {
+          userId: id,
+          game: {
+            hostId: { not: id } // Только игры, где пользователь был участником
+          }
+        }
+      },
+      select: {
+        roundId: true,
+      },
     });
+    // Получаем уникальные roundId
+    const uniqueRoundIds = new Set(allRounds.map(r => r.roundId));
 
-    // Запланированные игры (WAITING)
-    const plannedGames = await prisma.gamePlayer.count({
-      where: { userId: id, game: { status: "WAITING" } },
-    });
-
-    // Количество побед (позиция = 1)
+    // Количество побед (позиция = 1) - только в играх, где пользователь был участником
     const totalWins = await prisma.gamePlayer.count({
-      where: { userId: id, position: 1 },
+      where: { 
+        userId: id, 
+        position: 1,
+        game: {
+          hostId: { not: id } // Только игры, где пользователь был участником
+        }
+      },
     });
+
+    // Подсчет максимально возможных очков для всех пройденных раундов
+    // Для каждого раунда: 14 + (2 * количество сортов винограда)
+    const roundsWithGuesses = await prisma.round.findMany({
+      where: {
+        id: {
+          in: Array.from(uniqueRoundIds)
+        }
+      },
+      select: {
+        grapeVarieties: true,
+      },
+    });
+
+    // Максимальное количество очков за все пройденные раунды
+    const maxPossiblePoints = roundsWithGuesses.reduce((sum, round) => {
+      const maxPointsPerRound = 14 + (2 * round.grapeVarieties.length);
+      return sum + maxPointsPerRound;
+    }, 0);
 
     // Достижения
     const achievements = await prisma.userAchievement.findMany({
@@ -165,9 +223,14 @@ export async function GET(
       orderBy: { unlockedAt: "desc" },
     });
 
-    // Лучший результат
+    // Лучший результат - только из игр, где пользователь был участником (не хостом)
     const bestScore = await prisma.gamePlayer.aggregate({
-      where: { userId: id },
+      where: { 
+        userId: id,
+        game: {
+          hostId: { not: id } // Только игры, где пользователь был участником
+        }
+      },
       _max: { score: true },
     });
 
@@ -199,9 +262,10 @@ export async function GET(
         totalGames: totalGamesFinished,
         plannedGames,
         totalWins,
-        totalGuesses: guessesAgg._count.id,
+        totalRounds: uniqueRoundIds.size, // Количество уникальных пройденных раундов
         totalPoints: guessesAgg._sum.score ?? 0,
         bestScore: bestScore._max.score ?? 0,
+        maxPossiblePoints, // Максимально возможные очки для расчета винрейта
       },
       achievements: achievements.map((a) => ({
         ...a.achievement,

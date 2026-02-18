@@ -5,10 +5,12 @@ interface ProfileStatsProps {
     totalGames: number;
     plannedGames: number;
     totalWins: number;
-    totalGuesses: number;
+    totalRounds: number;
     totalPoints: number;
     bestScore: number;
+    maxPossiblePoints: number;
   };
+  isHost?: boolean; // Является ли пользователь хостом (для отображения виджета "Запланировано")
 }
 
 interface StatCardProps {
@@ -31,43 +33,60 @@ function StatCard({ icon, label, value, sub }: StatCardProps) {
   );
 }
 
-export function ProfileStats({ stats }: ProfileStatsProps) {
-  const winRate = stats.totalGames > 0
-    ? Math.round((stats.totalWins / stats.totalGames) * 100)
+export function ProfileStats({ stats, isHost = false }: ProfileStatsProps) {
+  // Винрейт = отношение набранных очков к максимально возможным очкам
+  const winRate = stats.maxPossiblePoints > 0
+    ? Math.round((stats.totalPoints / stats.maxPossiblePoints) * 100)
     : 0;
 
+  // Виджет "Запланировано" показываем только хосту
+  const cards = [
+    ...(isHost ? [{
+      icon: "📋",
+      label: "Запланировано",
+      value: stats.plannedGames,
+      sub: "в ожидании"
+    }] : []),
+    {
+      icon: "🍷",
+      label: "Игр сыграно",
+      value: stats.totalGames,
+      sub: `${stats.totalWins} побед`
+    },
+    {
+      icon: "🍇",
+      label: "Раундов пройдено",
+      value: stats.totalRounds,
+      sub: "всего раундов"
+    },
+    {
+      icon: "🏆",
+      label: "Всего очков",
+      value: stats.totalPoints.toLocaleString("ru-RU"),
+      sub: `Лучший: ${stats.bestScore}`
+    },
+    {
+      icon: "⚡",
+      label: "Винрейт",
+      value: `${winRate}%`,
+      sub: `${stats.totalPoints} из ${stats.maxPossiblePoints}`
+    }
+  ];
+
+  // Определяем количество колонок в зависимости от количества карточек
+  const gridCols = isHost ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-5" : "grid-cols-2 sm:grid-cols-2 md:grid-cols-4";
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-      <StatCard
-        icon="📋"
-        label="Запланировано"
-        value={stats.plannedGames}
-        sub="в ожидании"
-      />
-      <StatCard
-        icon="🍷"
-        label="Игр сыграно"
-        value={stats.totalGames}
-        sub={`${stats.totalWins} побед`}
-      />
-      <StatCard
-        icon="🍇"
-        label="Раундов пройдено"
-        value={stats.totalGuesses}
-        sub="всего догадок"
-      />
-      <StatCard
-        icon="🏆"
-        label="Всего очков"
-        value={stats.totalPoints.toLocaleString("ru-RU")}
-        sub={`Лучший: ${stats.bestScore}`}
-      />
-      <StatCard
-        icon="⚡"
-        label="Винрейт"
-        value={`${winRate}%`}
-        sub={`${stats.totalWins} из ${stats.totalGames}`}
-      />
+    <div className={`grid ${gridCols} gap-3`}>
+      {cards.map((card, index) => (
+        <StatCard
+          key={index}
+          icon={card.icon}
+          label={card.label}
+          value={card.value}
+          sub={card.sub}
+        />
+      ))}
     </div>
   );
 }

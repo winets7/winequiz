@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+/* =============================================
+   🍷 Винная Викторина — Глобальные стили
+   ============================================= */
+
+@theme inline {
+  /* Шрифты */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* === Винная цветовая палитра === */
+
+  /* Основные цвета */
+  --color-wine-50: #FFF5F5;
+  --color-wine-100: #FFE0E0;
+  --color-wine-200: #F5B7B7;
+  --color-wine-300: #E08A8A;
+  --color-wine-400: #C2485B;
+  --color-wine-500: #A23045;
+  --color-wine-600: #8B2740;
+  --color-wine-700: #722F37;
+  --color-wine-800: #5A1A2A;
+  --color-wine-900: #3D0F1E;
+  --color-wine-950: #1A1118;
+
+  /* Золотой акцент */
+  --color-gold-50: #FFFDF0;
+  --color-gold-100: #FFF8D6;
+  --color-gold-200: #FFEEA3;
+  --color-gold-300: #F0C75E;
+  --color-gold-400: #DAA520;
+  --color-gold-500: #C4941A;
+  --color-gold-600: #A07714;
+  --color-gold-700: #7C5C10;
+  --color-gold-800: #5C440C;
+  --color-gold-900: #3D2E08;
+
+  /* Успех */
+  --color-success-light: #2D6A4F;
+  --color-success-dark: #52B788;
+
+  /* Ошибка */
+  --color-error-light: #9B2226;
+  --color-error-dark: #E5383B;
+}
+
+/* === Светлая тема (по умолчанию) === */
+:root {
+  --background: #FFFBF5;
+  --foreground: #1F1215;
+  --card: #FFFFFF;
+  --card-foreground: #1F1215;
+  --primary: #722F37;
+  --primary-foreground: #FFFFFF;
+  --secondary: #DAA520;
+  --secondary-foreground: #1F1215;
+  --muted: #F5EDE8;
+  --muted-foreground: #6B5C5E;
+  --accent: #722F37;
+  --accent-foreground: #FFFFFF;
+  --border: #E8DDD5;
+  --input: #E8DDD5;
+  --ring: #722F37;
+  --success: #2D6A4F;
+  --error: #9B2226;
+}
+
+/* === Тёмная тема === */
+.dark {
+  --background: #1A1118;
+  --foreground: #F5EDE8;
+  --card: #2D1F2B;
+  --card-foreground: #F5EDE8;
+  --primary: #C2485B;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F0C75E;
+  --secondary-foreground: #1A1118;
+  --muted: #3D2535;
+  --muted-foreground: #A89496;
+  --accent: #C2485B;
+  --accent-foreground: #FFFFFF;
+  --border: #4A3545;
+  --input: #4A3545;
+  --ring: #C2485B;
+  --success: #52B788;
+  --error: #E5383B;
+}
+
+/* === Базовые стили === */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Плавные переходы для смены темы */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Скрыть скроллбар но сохранить прокрутку (для мобильных) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* PWA Install Banner Animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+/* Game Card Modal Animation */
+@keyframes scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}

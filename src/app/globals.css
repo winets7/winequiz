@@ -1,0 +1,208 @@
+@import "tailwindcss";
+
+/* =============================================
+   🍷 Винная Викторина — Глобальные стили
+   ============================================= */
+
+@theme inline {
+  /* Шрифты */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* === Винная цветовая палитра === */
+
+  /* Основные цвета */
+  --color-wine-50: #FFF5F5;
+  --color-wine-100: #FFE0E0;
+  --color-wine-200: #F5B7B7;
+  --color-wine-300: #E08A8A;
+  --color-wine-400: #C2485B;
+  --color-wine-500: #A23045;
+  --color-wine-600: #8B2740;
+  --color-wine-700: #722F37;
+  --color-wine-800: #5A1A2A;
+  --color-wine-900: #3D0F1E;
+  --color-wine-950: #1A1118;
+
+  /* Золотой акцент */
+  --color-gold-50: #FFFDF0;
+  --color-gold-100: #FFF8D6;
+  --color-gold-200: #FFEEA3;
+  --color-gold-300: #F0C75E;
+  --color-gold-400: #DAA520;
+  --color-gold-500: #C4941A;
+  --color-gold-600: #A07714;
+  --color-gold-700: #7C5C10;
+  --color-gold-800: #5C440C;
+  --color-gold-900: #3D2E08;
+
+  /* Успех */
+  --color-success-light: #2D6A4F;
+  --color-success-dark: #52B788;
+
+  /* Ошибка */
+  --color-error-light: #9B2226;
+  --color-error-dark: #E5383B;
+}
+
+/* === Светлая тема (по умолчанию) === */
+:root {
+  --background: #FFFFFF;
+  --foreground: #0F0F0F;
+  --card: #FFFFFF;
+  --card-foreground: #0F0F0F;
+  --primary: #8B1A2A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #DAA520;
+  --secondary-foreground: #0F0F0F;
+  --muted: #F5F5F5;
+  --muted-foreground: #4A4A4A;
+  --accent: #8B1A2A;
+  --accent-foreground: #FFFFFF;
+  --border: #E0E0E0;
+  --input: #E0E0E0;
+  --ring: #8B1A2A;
+  --success: #1B7A4E;
+  --error: #C41E3A;
+  
+  /* Градиенты для кнопок и карточек */
+  --gradient-primary: linear-gradient(135deg, #8B1A2A 0%, #A23045 100%);
+  --gradient-secondary: linear-gradient(135deg, #DAA520 0%, #F0C75E 100%);
+  --gradient-card: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
+}
+
+/* === Тёмная тема === */
+.dark {
+  --background: #0F0F0F;
+  --foreground: #F5F5F5;
+  --card: #1A1A1A;
+  --card-foreground: #F5F5F5;
+  --primary: #D43D5A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F0C75E;
+  --secondary-foreground: #0F0F0F;
+  --muted: #2A2A2A;
+  --muted-foreground: #B0B0B0;
+  --accent: #D43D5A;
+  --accent-foreground: #FFFFFF;
+  --border: #333333;
+  --input: #333333;
+  --ring: #D43D5A;
+  --success: #52B788;
+  --error: #E5383B;
+  
+  /* Градиенты для кнопок и карточек */
+  --gradient-primary: linear-gradient(135deg, #D43D5A 0%, #C2485B 100%);
+  --gradient-secondary: linear-gradient(135deg, #F0C75E 0%, #FFD700 100%);
+  --gradient-card: linear-gradient(135deg, #1A1A1A 0%, #222222 100%);
+}
+
+/* === Базовые стили === */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Плавные переходы для смены темы */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Скрыть скроллбар но сохранить прокрутку (для мобильных) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* PWA Install Banner Animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+/* Game Card Modal Animation */
+@keyframes scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+/* === Современные градиенты и эффекты === */
+
+/* Градиентные кнопки */
+.btn-gradient-primary {
+  background: var(--gradient-primary);
+  color: var(--primary-foreground);
+  border: none;
+  box-shadow: 0 4px 12px rgba(139, 26, 42, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-gradient-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(139, 26, 42, 0.4);
+}
+
+.dark .btn-gradient-primary {
+  box-shadow: 0 4px 12px rgba(212, 61, 90, 0.4);
+}
+
+.dark .btn-gradient-primary:hover {
+  box-shadow: 0 6px 16px rgba(212, 61, 90, 0.5);
+}
+
+/* Градиентные карточки */
+.card-gradient {
+  background: var(--gradient-card);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.card-gradient:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.dark .card-gradient:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Улучшенные тени для карточек */
+.card-shadow {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s ease;
+}
+
+.card-shadow:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.dark .card-shadow {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark .card-shadow:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}

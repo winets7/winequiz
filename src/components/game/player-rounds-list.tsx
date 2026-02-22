@@ -148,38 +148,17 @@ export function PlayerRoundsList({
                   onClick={() => onEditRound?.(num)}
                   className="flex flex-1 items-center gap-3 min-w-0 text-left sm:min-w-0"
                 >
-                  <span className="text-xl shrink-0">{roundStatus.icon}</span>
+                  <span className="text-xl shrink-0" title={roundStatus.statusLabel}>
+                    {roundStatus.icon}
+                  </span>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium">Раунд {num}</p>
-                    {filled && round && (
-                      <p className="text-xs text-[var(--muted-foreground)] truncate">
-                        {round.color === "RED"
-                          ? "🔴"
-                          : round.color === "WHITE"
-                          ? "⚪"
-                          : round.color === "ROSE"
-                          ? "🩷"
-                          : round.color === "ORANGE"
-                          ? "🟠"
-                          : ""}{" "}
-                        {round.country || "?"} · {round.vintageYear || "?"} ·{" "}
-                        {round.grapeVarieties?.join(", ") || "?"}
-                      </p>
-                    )}
-                    {!filled && (
-                      <p className="text-xs text-[var(--muted-foreground)]">
-                        Нажмите чтобы заполнить
-                      </p>
-                    )}
                   </div>
                 </button>
                 <div
                   className="flex flex-wrap items-center gap-2 sm:shrink-0 min-w-0"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <span className="text-sm text-[var(--muted-foreground)] w-24 shrink-0 text-right">
-                    {roundStatus.statusLabel}
-                  </span>
                   {round?.status === "CREATED" && allRoundsFilled && onStartRound && (
                     <button
                       type="button"

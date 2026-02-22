@@ -133,7 +133,7 @@ export function PlayerRoundsList({
             return (
               <div
                 key={num}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors ${
+                className={`w-full flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3 rounded-xl border transition-colors ${
                   roundStatus.status === "active"
                     ? "bg-[var(--primary)] bg-opacity-10 border-[var(--primary)]"
                     : roundStatus.status === "completed"
@@ -146,7 +146,7 @@ export function PlayerRoundsList({
                 <button
                   type="button"
                   onClick={() => onEditRound?.(num)}
-                  className="flex flex-1 items-center gap-3 min-w-0 text-left"
+                  className="flex flex-1 items-center gap-3 min-w-0 text-left sm:min-w-0"
                 >
                   <span className="text-xl shrink-0">{roundStatus.icon}</span>
                   <div className="flex-1 min-w-0">
@@ -173,15 +173,18 @@ export function PlayerRoundsList({
                     )}
                   </div>
                 </button>
-                <span className="text-sm text-[var(--muted-foreground)] shrink-0 w-24 text-right">
-                  {roundStatus.statusLabel}
-                </span>
-                <div className="shrink-0 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="flex flex-wrap items-center gap-2 sm:shrink-0 min-w-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="text-sm text-[var(--muted-foreground)] w-24 shrink-0 text-right">
+                    {roundStatus.statusLabel}
+                  </span>
                   {round?.status === "CREATED" && allRoundsFilled && onStartRound && (
                     <button
                       type="button"
                       onClick={() => onStartRound(round.id, round.roundNumber)}
-                      className="px-3 py-1.5 text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:opacity-90"
+                      className="px-3 py-1.5 text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:opacity-90 whitespace-nowrap"
                     >
                       Начать раунд
                     </button>
@@ -190,7 +193,7 @@ export function PlayerRoundsList({
                     <button
                       type="button"
                       onClick={() => onCloseRound(round.id)}
-                      className="px-3 py-1.5 text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:opacity-90"
+                      className="px-3 py-1.5 text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:opacity-90 whitespace-nowrap"
                     >
                       Завершить раунд
                     </button>
@@ -199,9 +202,10 @@ export function PlayerRoundsList({
                     <button
                       type="button"
                       onClick={() => router.push(`/history/${gameId}?round=${num}`)}
-                      className="px-3 py-1.5 text-sm font-medium bg-[var(--secondary)] text-[var(--secondary-foreground)] rounded-lg hover:opacity-90"
+                      className="px-3 py-1.5 text-sm font-medium bg-[var(--secondary)] text-[var(--secondary-foreground)] rounded-lg hover:opacity-90 min-w-0 max-w-full"
                     >
-                      История ответов раунда
+                      <span className="sm:hidden">История ответов</span>
+                      <span className="hidden sm:inline">История ответов раунда</span>
                     </button>
                   )}
                 </div>

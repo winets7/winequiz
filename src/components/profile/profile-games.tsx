@@ -209,15 +209,12 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
   const pGame = game as ParticipatedGame;
 
   // Определяем ссылку в зависимости от статуса и роли пользователя
-  // Для игроков (не хостов) при статусе PLAYING ведём в лобби, чтобы видеть все раунды
-  // Для хостов при статусе PLAYING ведём на страницу игры
+  // При WAITING все идут в лобби. При PLAYING все (и хост, и игроки) идут в лобби (страница настройки игры).
   const gameLink =
     game.status === "WAITING"
       ? `/lobby/${game.id}`
       : game.status === "PLAYING"
-      ? isParticipated
-        ? `/lobby/${game.id}` // Игроки идут в лобби
-        : `/play/${game.id}` // Хост идёт на страницу игры
+      ? `/lobby/${game.id}` // Хост и игроки — в лобби (настройка/обзор раундов)
       : null;
 
   // Проверяем завершённость игры: либо статус FINISHED, либо есть finishedAt

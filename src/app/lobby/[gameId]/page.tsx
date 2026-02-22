@@ -305,6 +305,24 @@ export default function LobbyPage() {
     emit("start_game", { code: game.code });
   }, [game, emit]);
 
+  // Начать раунд (хост: activate_round)
+  const handleStartRound = useCallback(
+    async (roundId: string, roundNumber: number) => {
+      if (!game) return;
+      emit("activate_round", {
+        code: game.code,
+        roundId,
+        roundNumber,
+      });
+      const roundsRes = await fetch(`/api/rounds?gameId=${game.id}`);
+      if (roundsRes.ok) {
+        const data = await roundsRes.json();
+        setRounds(data.rounds || []);
+      }
+    },
+    [game, emit]
+  );
+
   // Копировать код
   const handleCopyCode = useCallback(() => {
     if (!game) return;
@@ -557,69 +575,24 @@ export default function LobbyPage() {
           </div>
 
           {/* Раунды */}
-          {isHost ? (
-            <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
-              <h3 className="text-lg font-bold mb-3">
-                🍷 Раунды ({roundNumbers.filter(isRoundFilled).length}/{game.totalRounds})
-              </h3>
-              <div className="space-y-2">
-                {roundNumbers.map((num) => {
-                  const filled = isRoundFilled(num);
-                  const roundData = getRoundData(num);
-                  return (
-                    <button
-                      key={num}
-                      onClick={() => openRoundEditor(num)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors ${
-                        filled
-                          ? "bg-[var(--success)] bg-opacity-10 border border-[var(--success)] hover:bg-opacity-20"
-                          : "bg-[var(--muted)] hover:bg-[var(--border)]"
-                      }`}
-                    >
-                      <span className="text-xl">{filled ? "✅" : "📝"}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium">Раунд {num}</p>
-                        {filled && roundData && (
-                          <p className="text-xs text-[var(--muted-foreground)] truncate">
-                            {roundData.color === "RED"
-                              ? "🔴"
-                              : roundData.color === "WHITE"
-                              ? "⚪"
-                              : roundData.color === "ROSE"
-                              ? "🩷"
-                              : "🟠"}{" "}
-                            {roundData.country || "?"} · {roundData.vintageYear || "?"} ·{" "}
-                            {roundData.grapeVarieties?.join(", ") || "?"}
-                          </p>
-                        )}
-                        {!filled && (
-                          <p className="text-xs text-[var(--muted-foreground)]">
-                            Нажмите чтобы заполнить
-                          </p>
-                        )}
-                      </div>
-                      <span className="text-[var(--muted-foreground)]">→</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <PlayerRoundsList
-              rounds={rounds.map((r) => ({
-                id: r.id,
-                roundNumber: r.roundNumber,
-                status: r.status,
-                color: r.color,
-                country: r.country,
-                vintageYear: r.vintageYear,
-                grapeVarieties: r.grapeVarieties,
-              }))}
-              totalRounds={game.totalRounds}
-              gameId={game.id}
-              gameStatus={game.status}
-            />
-          )}
+          <PlayerRoundsList
+            rounds={rounds.map((r) => ({
+              id: r.id,
+              roundNumber: r.roundNumber,
+              status: r.status,
+              color: r.color,
+              country: r.country,
+              vintageYear: r.vintageYear,
+              grapeVarieties: r.grapeVarieties,
+            }))}
+            totalRounds={game.totalRounds}
+            gameId={game.id}
+            gameStatus={game.status}
+            variant={isHost ? "host" : "player"}
+            allRoundsFilled={allRoundsFilled}
+            onStartRound={isHost ? handleStartRound : undefined}
+            onEditRound={isHost ? openRoundEditor : undefined}
+          />
 
           {/* Настройки игры */}
           <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">

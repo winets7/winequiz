@@ -17,6 +17,14 @@ interface PlayerRoundsListProps {
   totalRounds: number;
   gameId: string;
   gameStatus: string;
+  /** Режим для хоста: показывать статус раунда и кнопки «Начать раунд» / «История ответов раунда» */
+  variant?: "host" | "player";
+  /** Все раунды заполнены — только тогда у хоста показывается кнопка «Начать раунд» у запланированных */
+  allRoundsFilled?: boolean;
+  /** Хост: запуск раунда (activate_round) */
+  onStartRound?: (roundId: string, roundNumber: number) => void;
+  /** Хост: открыть редактор раунда */
+  onEditRound?: (roundNumber: number) => void;
 }
 
 export function PlayerRoundsList({
@@ -24,37 +32,33 @@ export function PlayerRoundsList({
   totalRounds,
   gameId,
   gameStatus,
+  variant = "player",
+  allRoundsFilled = false,
+  onStartRound,
+  onEditRound,
 }: PlayerRoundsListProps) {
   const router = useRouter();
 
-  // Получаем данные по номеру раунда
   const getRoundData = (roundNumber: number): RoundData | undefined => {
     return rounds.find((r) => r.roundNumber === roundNumber);
   };
 
-  // Обработка клика по раунду
+  const isRoundFilled = (roundNumber: number): boolean => {
+    const round = getRoundData(roundNumber);
+    return !!round?.color;
+  };
+
   const handleRoundClick = (roundNumber: number) => {
     const round = getRoundData(roundNumber);
-
-    if (!round) {
-      // Раунд не создан
-      return;
-    }
+    if (!round) return;
 
     if (round.status === "ACTIVE") {
-      // Активный раунд - переходим на страницу игры
       router.push(`/play/${gameId}`);
     } else if (round.status === "CLOSED") {
-      // Завершённый раунд - переходим на страницу истории с фильтром по раунду
       router.push(`/history/${gameId}?round=${roundNumber}`);
-    } else if (round.status === "CREATED") {
-      // Раунд создан, но ещё не начат
-      // Можно показать уведомление или просто ничего не делать
-      return;
     }
   };
 
-  // Определяем статус раунда для отображения
   const getRoundStatus = (roundNumber: number) => {
     const round = getRoundData(roundNumber);
 
@@ -62,7 +66,8 @@ export function PlayerRoundsList({
       return {
         icon: "⏳",
         label: "Ожидает начала",
-        status: "pending",
+        statusLabel: "—" as string,
+        status: "pending" as const,
         clickable: false,
       };
     }
@@ -71,7 +76,8 @@ export function PlayerRoundsList({
       return {
         icon: "✅",
         label: "Завершён",
-        status: "completed",
+        statusLabel: "Завершён",
+        status: "completed" as const,
         clickable: true,
       };
     }
@@ -80,7 +86,8 @@ export function PlayerRoundsList({
       return {
         icon: "🟢",
         label: "Играется сейчас",
-        status: "active",
+        statusLabel: "Идёт",
+        status: "active" as const,
         clickable: true,
       };
     }
@@ -89,7 +96,8 @@ export function PlayerRoundsList({
       return {
         icon: "📝",
         label: "Ожидает начала",
-        status: "created",
+        statusLabel: "Запланирован",
+        status: "created" as const,
         clickable: false,
       };
     }
@@ -97,12 +105,14 @@ export function PlayerRoundsList({
     return {
       icon: "⏳",
       label: "Ожидает начала",
-      status: "pending",
+      statusLabel: "—",
+      status: "pending" as const,
       clickable: false,
     };
   };
 
   const roundNumbers = Array.from({ length: totalRounds }, (_, i) => i + 1);
+  const isHost = variant === "host";
 
   return (
     <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
@@ -114,10 +124,83 @@ export function PlayerRoundsList({
           const roundStatus = getRoundStatus(num);
           const round = getRoundData(num);
           const isClickable = roundStatus.clickable;
+          const filled = isRoundFilled(num);
+
+          if (isHost) {
+            return (
+              <div
+                key={num}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors ${
+                  roundStatus.status === "active"
+                    ? "bg-[var(--primary)] bg-opacity-10 border-[var(--primary)]"
+                    : roundStatus.status === "completed"
+                    ? "bg-[var(--success)] bg-opacity-10 border-[var(--success)]"
+                    : filled
+                    ? "bg-[var(--muted)] border-[var(--border)]"
+                    : "bg-[var(--muted)] border-[var(--border)]"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => onEditRound?.(num)}
+                  className="flex flex-1 items-center gap-3 min-w-0 text-left"
+                >
+                  <span className="text-xl shrink-0">{roundStatus.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium">Раунд {num}</p>
+                    {filled && round && (
+                      <p className="text-xs text-[var(--muted-foreground)] truncate">
+                        {round.color === "RED"
+                          ? "🔴"
+                          : round.color === "WHITE"
+                          ? "⚪"
+                          : round.color === "ROSE"
+                          ? "🩷"
+                          : round.color === "ORANGE"
+                          ? "🟠"
+                          : ""}{" "}
+                        {round.country || "?"} · {round.vintageYear || "?"} ·{" "}
+                        {round.grapeVarieties?.join(", ") || "?"}
+                      </p>
+                    )}
+                    {!filled && (
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        Нажмите чтобы заполнить
+                      </p>
+                    )}
+                  </div>
+                </button>
+                <span className="text-sm text-[var(--muted-foreground)] shrink-0 w-24 text-right">
+                  {roundStatus.statusLabel}
+                </span>
+                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {round?.status === "CREATED" && allRoundsFilled && onStartRound && (
+                    <button
+                      type="button"
+                      onClick={() => onStartRound(round.id, round.roundNumber)}
+                      className="px-3 py-1.5 text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:opacity-90"
+                    >
+                      Начать раунд
+                    </button>
+                  )}
+                  {(round?.status === "ACTIVE" || round?.status === "CLOSED") && (
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/history/${gameId}?round=${num}`)}
+                      className="px-3 py-1.5 text-sm font-medium bg-[var(--secondary)] text-[var(--secondary-foreground)] rounded-lg hover:opacity-90"
+                    >
+                      История ответов раунда
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          }
 
           return (
             <button
               key={num}
+              type="button"
               onClick={() => isClickable && handleRoundClick(num)}
               disabled={!isClickable}
               className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors ${
@@ -148,12 +231,7 @@ export function PlayerRoundsList({
                     {round.grapeVarieties?.join(", ") || "?"}
                   </p>
                 )}
-                {roundStatus.status === "pending" && (
-                  <p className="text-xs text-[var(--muted-foreground)]">
-                    {roundStatus.label}
-                  </p>
-                )}
-                {roundStatus.status === "created" && (
+                {(roundStatus.status === "pending" || roundStatus.status === "created") && (
                   <p className="text-xs text-[var(--muted-foreground)]">
                     {roundStatus.label}
                   </p>

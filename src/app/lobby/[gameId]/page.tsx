@@ -323,6 +323,20 @@ export default function LobbyPage() {
     [game, emit]
   );
 
+  // Завершить раунд (хост: close_round)
+  const handleCloseRound = useCallback(
+    async (roundId: string) => {
+      if (!game) return;
+      emit("close_round", { code: game.code, roundId });
+      const roundsRes = await fetch(`/api/rounds?gameId=${game.id}`);
+      if (roundsRes.ok) {
+        const data = await roundsRes.json();
+        setRounds(data.rounds || []);
+      }
+    },
+    [game, emit]
+  );
+
   // Копировать код
   const handleCopyCode = useCallback(() => {
     if (!game) return;
@@ -591,6 +605,7 @@ export default function LobbyPage() {
             variant={isHost ? "host" : "player"}
             allRoundsFilled={allRoundsFilled}
             onStartRound={isHost ? handleStartRound : undefined}
+            onCloseRound={isHost ? handleCloseRound : undefined}
             onEditRound={isHost ? openRoundEditor : undefined}
           />
 

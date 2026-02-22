@@ -23,6 +23,8 @@ interface PlayerRoundsListProps {
   allRoundsFilled?: boolean;
   /** Хост: запуск раунда (activate_round) */
   onStartRound?: (roundId: string, roundNumber: number) => void;
+  /** Хост: завершить раунд (close_round) */
+  onCloseRound?: (roundId: string) => void;
   /** Хост: открыть редактор раунда */
   onEditRound?: (roundNumber: number) => void;
 }
@@ -35,6 +37,7 @@ export function PlayerRoundsList({
   variant = "player",
   allRoundsFilled = false,
   onStartRound,
+  onCloseRound,
   onEditRound,
 }: PlayerRoundsListProps) {
   const router = useRouter();
@@ -173,7 +176,7 @@ export function PlayerRoundsList({
                 <span className="text-sm text-[var(--muted-foreground)] shrink-0 w-24 text-right">
                   {roundStatus.statusLabel}
                 </span>
-                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                <div className="shrink-0 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   {round?.status === "CREATED" && allRoundsFilled && onStartRound && (
                     <button
                       type="button"
@@ -181,6 +184,15 @@ export function PlayerRoundsList({
                       className="px-3 py-1.5 text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:opacity-90"
                     >
                       Начать раунд
+                    </button>
+                  )}
+                  {round?.status === "ACTIVE" && onCloseRound && (
+                    <button
+                      type="button"
+                      onClick={() => onCloseRound(round.id)}
+                      className="px-3 py-1.5 text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:opacity-90"
+                    >
+                      Завершить раунд
                     </button>
                   )}
                   {(round?.status === "ACTIVE" || round?.status === "CLOSED") && (

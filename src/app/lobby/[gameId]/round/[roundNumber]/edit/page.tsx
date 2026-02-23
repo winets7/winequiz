@@ -23,6 +23,7 @@ interface GameData {
 interface RoundData extends RoundDataForDraft {
   id: string;
   roundNumber: number;
+  status?: string;
   photos: { id: string; imageUrl: string }[];
 }
 
@@ -131,8 +132,17 @@ export default function LobbyRoundEditPage() {
   }, [gameId, roundNumber, pathname]);
 
   const existingRound = rounds.find((r) => r.roundNumber === roundNumber);
+  const isRoundLocked =
+    existingRound?.status === "ACTIVE" || existingRound?.status === "CLOSED";
+  const lockReason =
+    existingRound?.status === "ACTIVE"
+      ? "Раунд уже начат, редактирование недоступно."
+      : existingRound?.status === "CLOSED"
+        ? "Раунд завершён, редактирование недоступно."
+        : null;
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isRoundLocked) return;
     const files = Array.from(e.target.files || []);
     const total = selectedPhotos.length + files.length;
     if (total > 4) {
@@ -147,6 +157,7 @@ export default function LobbyRoundEditPage() {
   };
 
   const removePhoto = (index: number) => {
+    if (isRoundLocked) return;
     setSelectedPhotos((prev) => prev.filter((_, i) => i !== index));
     setPhotoPreviewUrls((prev) => {
       URL.revokeObjectURL(prev[index]);
@@ -155,7 +166,7 @@ export default function LobbyRoundEditPage() {
   };
 
   const handleSaveRound = async () => {
-    if (!game || !draft) return;
+    if (!game || !draft || isRoundLocked) return;
     setSaving(true);
     setError(null);
 
@@ -259,6 +270,12 @@ export default function LobbyRoundEditPage() {
           </div>
         )}
 
+        {lockReason && (
+          <div className="bg-[var(--muted)] text-[var(--muted-foreground)] px-4 py-3 rounded-xl text-sm text-center border border-[var(--border)]">
+            🔒 {lockReason}
+          </div>
+        )}
+
         {/* Фото бутылки */}
         <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
           <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-2">
@@ -290,12 +307,14 @@ export default function LobbyRoundEditPage() {
                   className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[var(--muted)]"
                 >
                   <img src={url} alt={`Фото ${i + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => removePhoto(i)}
-                    className="absolute top-1 right-1 w-6 h-6 bg-[var(--error)] text-white rounded-full text-xs flex items-center justify-center"
-                  >
-                    ✕
-                  </button>
+                  {!isRoundLocked && (
+                    <button
+                      onClick={() => removePhoto(i)}
+                      className="absolute top-1 right-1 w-6 h-6 bg-[var(--error)] text-white rounded-full text-xs flex items-center justify-center"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -304,8 +323,13 @@ export default function LobbyRoundEditPage() {
           {selectedPhotos.length < 4 && (
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full p-4 border-2 border-dashed border-[var(--border)] rounded-xl text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
+              disabled={isRoundLocked}
+              onClick={() => !isRoundLocked && fileInputRef.current?.click()}
+              className={`w-full p-4 border-2 border-dashed border-[var(--border)] rounded-xl transition-colors ${
+                isRoundLocked
+                  ? "text-[var(--muted-foreground)] opacity-60 cursor-not-allowed"
+                  : "text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
+              }`}
             >
               📷 Добавить фото
             </button>
@@ -327,12 +351,13 @@ export default function LobbyRoundEditPage() {
             gameId={gameId}
             roundNumber={roundNumber}
             values={draft}
+            disabled={isRoundLocked}
           />
         </div>
 
         <button
           onClick={handleSaveRound}
-          disabled={saving}
+          disabled={saving || isRoundLocked}
           className="w-full px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? (

@@ -8,12 +8,14 @@ interface HostRoundCharacteristicCardsProps {
   gameId: string;
   roundNumber: number;
   values: Partial<WineParams>;
+  disabled?: boolean;
 }
 
 export function HostRoundCharacteristicCards({
   gameId,
   roundNumber,
   values,
+  disabled = false,
 }: HostRoundCharacteristicCardsProps) {
   const router = useRouter();
 
@@ -76,8 +78,13 @@ export function HostRoundCharacteristicCards({
         <button
           key={card.path}
           type="button"
-          onClick={() => router.push(`${basePath}/${card.path}`)}
-          className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 text-left hover:bg-[var(--muted)] transition-all card-shadow"
+          disabled={disabled}
+          onClick={() => !disabled && router.push(`${basePath}/${card.path}`)}
+          className={`bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 text-left transition-all card-shadow ${
+            disabled
+              ? "opacity-60 cursor-not-allowed"
+              : "hover:bg-[var(--muted)]"
+          }`}
         >
           <div className="mb-2 pb-2 border-b border-[var(--border)]">
             <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)]">

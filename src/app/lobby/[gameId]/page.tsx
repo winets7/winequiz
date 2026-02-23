@@ -53,6 +53,8 @@ export default function LobbyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gameStarting, setGameStarting] = useState(false);
+  const [lobbyOpen, setLobbyOpen] = useState(false);
+  const [gameEnded, setGameEnded] = useState(false);
 
   const userId = session?.user?.id;
   const isHost = game?.hostId === userId || game?.host?.id === userId;
@@ -142,19 +144,28 @@ export default function LobbyPage() {
     });
 
     const unsubStarted = on("game_started", () => {
-      // Обновляем статус игры и перезагружаем раунды
       if (game) {
         setGame({ ...game, status: "PLAYING" });
-        // Перезагружаем раунды
         fetch(`/api/rounds?gameId=${gameId}`)
           .then((res) => res.json())
           .then((data) => setRounds(data.rounds || []))
           .catch(() => {});
       }
-      // Хост перенаправляется на страницу игры, игроки остаются в лобби
-      if (isHost) {
-        router.push(`/play/${gameId}`);
-      }
+    });
+
+    const unsubGameCreated = on("game_created", (data: unknown) => {
+      const payload = data as { lobbyOpen?: boolean; gameEnded?: boolean };
+      if (payload.lobbyOpen !== undefined) setLobbyOpen(payload.lobbyOpen);
+      if (payload.gameEnded !== undefined) setGameEnded(payload.gameEnded);
+    });
+
+    const unsubLobbyOpened = on("lobby_opened", () => {
+      setLobbyOpen(true);
+      setGameStarting(false);
+    });
+
+    const unsubGameFinished = on("game_finished", () => {
+      setGameEnded(true);
     });
 
     const unsubRoundStarted = on("round_started", () => {
@@ -183,11 +194,14 @@ export default function LobbyPage() {
       unsubJoin();
       unsubLeft();
       unsubStarted();
+      unsubGameCreated();
+      unsubLobbyOpened();
+      unsubGameFinished();
       unsubRoundStarted();
       unsubRoundResults();
       unsubError();
     };
-  }, [isConnected, on, gameId, game, router]);
+  }, [isConnected, on, gameId, game]);
 
   // =============================================
   // Обработчики раундов
@@ -197,11 +211,17 @@ export default function LobbyPage() {
     router.push(`/lobby/${gameId}/round/${roundNum}/edit`);
   };
 
-  // Начать игру
+  // Открыть лобби (игроки могут присоединяться, доступны кнопки раундов)
   const handleStartGame = useCallback(() => {
     if (!game) return;
     setGameStarting(true);
     emit("start_game", { code: game.code });
+  }, [game, emit]);
+
+  // Завершить игру (присоединение и ответы становятся невозможны)
+  const handleFinishGame = useCallback(() => {
+    if (!game) return;
+    emit("finish_game", { code: game.code });
   }, [game, emit]);
 
   // Начать раунд (хост: activate_round)
@@ -263,8 +283,14 @@ export default function LobbyPage() {
   const allRoundsFilled =
     game ? Array.from({ length: game.totalRounds }, (_, i) => i + 1).every(isRoundFilled) : false;
 
-  // Можно ли начать игру?
-  const canStartGame = allRoundsFilled && players.length >= 1 && !gameStarting;
+  // Все раунды в статусе «Завершён»?
+  const allRoundsClosed =
+    game &&
+    rounds.length >= (game.totalRounds || 0) &&
+    rounds.every((r) => r.status === "CLOSED");
+
+  // Кнопка «Начать игру» активна только когда все раунды заполнены
+  const canStartGame = allRoundsFilled && !gameStarting && !lobbyOpen && !gameEnded;
 
   // =============================================
   // Рендеринг
@@ -378,6 +404,7 @@ export default function LobbyPage() {
             gameStatus={game.status}
             variant={isHost ? "host" : "player"}
             allRoundsFilled={allRoundsFilled}
+            lobbyOpen={lobbyOpen}
             onStartRound={isHost ? handleStartRound : undefined}
             onCloseRound={isHost ? handleCloseRound : undefined}
             onEditRound={isHost ? openRoundEditor : undefined}
@@ -438,27 +465,45 @@ export default function LobbyPage() {
             </div>
           </div>
 
-          {/* Кнопка старта (только хост) */}
+          {/* Кнопка старта / статус игры (только хост) */}
           {isHost && (
             <div className="space-y-2">
-              <button
-                onClick={handleStartGame}
-                disabled={!canStartGame}
-                className="w-full px-8 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {gameStarting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="animate-spin">⏳</span> Запуск...
-                  </span>
-                ) : (
-                  "🚀 Начать игру"
-                )}
-              </button>
-
-              {!allRoundsFilled && (
-                <p className="text-center text-sm text-[var(--muted-foreground)]">
-                  Заполните все раунды, чтобы начать игру
-                </p>
+              {gameEnded ? (
+                <div className="w-full px-8 py-4 bg-[var(--muted)] text-[var(--muted-foreground)] rounded-2xl text-lg font-bold text-center cursor-default">
+                  Игра завершена
+                </div>
+              ) : allRoundsClosed ? (
+                <button
+                  onClick={handleFinishGame}
+                  className="w-full px-8 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg"
+                >
+                  Завершить игру
+                </button>
+              ) : lobbyOpen ? (
+                <div className="w-full px-8 py-4 bg-[var(--muted)] text-[var(--muted-foreground)] rounded-2xl text-lg font-bold text-center cursor-default">
+                  Идёт игра
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={handleStartGame}
+                    disabled={!canStartGame}
+                    className="w-full px-8 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {gameStarting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="animate-spin">⏳</span> Запуск...
+                      </span>
+                    ) : (
+                      "🚀 Начать игру"
+                    )}
+                  </button>
+                  {!allRoundsFilled && (
+                    <p className="text-center text-sm text-[var(--muted-foreground)]">
+                      Заполните все раунды, чтобы начать игру
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}

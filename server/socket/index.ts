@@ -13,6 +13,10 @@ interface GameRoom {
   currentRound: number;
   totalRounds: number;
   currentRoundId: string | null;
+  /** Лобби открыто: игроки могут присоединяться, хост может запускать раунды */
+  lobbyOpen: boolean;
+  /** Игра завершена: присоединение и ответы на раунды невозможны */
+  gameEnded: boolean;
 }
 
 // Хранилище активных комнат (в памяти)
@@ -43,6 +47,10 @@ export function createSocketServer(httpServer?: HttpServer) {
       // Проверяем, есть ли уже комната (при рекреации после рестарта)
       const existingRoom = activeRooms.get(roomKey);
       if (existingRoom) {
+        // Обратная совместимость: могли быть созданы до добавления lobbyOpen/gameEnded
+        if (existingRoom.lobbyOpen === undefined) existingRoom.lobbyOpen = false;
+        if (existingRoom.gameEnded === undefined) existingRoom.gameEnded = false;
+
         // Обновляем hostSocketId и добавляем хоста обратно
         existingRoom.hostSocketId = socket.id;
         existingRoom.players.set(userId, { userId, name, socketId: socket.id });
@@ -69,6 +77,8 @@ export function createSocketServer(httpServer?: HttpServer) {
           currentRound: existingRoom.currentRound,
           currentRoundId: existingRoom.currentRoundId,
           totalRounds: existingRoom.totalRounds,
+          lobbyOpen: existingRoom.lobbyOpen,
+          gameEnded: existingRoom.gameEnded,
         });
 
         // Если игра идёт — восстанавливаем состояние хоста
@@ -148,6 +158,8 @@ export function createSocketServer(httpServer?: HttpServer) {
         currentRound: game?.currentRound || 0,
         totalRounds: game?.totalRounds || 0,
         currentRoundId: null,
+        lobbyOpen: false,
+        gameEnded: false,
       };
       room.players.set(userId, { userId, name, socketId: socket.id });
 
@@ -160,6 +172,8 @@ export function createSocketServer(httpServer?: HttpServer) {
         gameId,
         code,
         players: [{ userId, name }],
+        lobbyOpen: room.lobbyOpen,
+        gameEnded: room.gameEnded,
       });
     });
 
@@ -207,6 +221,25 @@ export function createSocketServer(httpServer?: HttpServer) {
             console.error("Ошибка поиска активного раунда при восстановлении:", err);
           }
 
+          // Восстанавливаем lobbyOpen/gameEnded по раундам (храним только в памяти)
+          let lobbyOpen = false;
+          let gameEnded = false;
+          try {
+            const roundsList = await prisma.round.findMany({
+              where: { gameId: game.id },
+              select: { status: true },
+            });
+            const totalRounds = game.totalRounds || 0;
+            if (roundsList.length === totalRounds && roundsList.every((r) => r.status === "CLOSED")) {
+              lobbyOpen = true;
+              gameEnded = true;
+            } else if (roundsList.some((r) => r.status === "ACTIVE" || r.status === "CLOSED")) {
+              lobbyOpen = true;
+            }
+          } catch (err) {
+            console.error("Ошибка проверки раундов при восстановлении комнаты:", err);
+          }
+
           room = {
             gameId: game.id,
             code,
@@ -215,14 +248,31 @@ export function createSocketServer(httpServer?: HttpServer) {
             currentRound: activeRoundNumber,
             totalRounds: game.totalRounds,
             currentRoundId: activeRoundId,
+            lobbyOpen,
+            gameEnded,
           };
           activeRooms.set(code, room);
-          console.log(`🔄 Комната ${code} восстановлена из БД (статус: ${game.status}, раунд: ${activeRoundNumber})`);
+          console.log(`🔄 Комната ${code} восстановлена из БД (статус: ${game.status}, раунд: ${activeRoundNumber}, lobbyOpen: ${lobbyOpen}, gameEnded: ${gameEnded})`);
         } catch (err) {
           console.error("Ошибка восстановления комнаты:", err);
           socket.emit("error", { message: "Ошибка подключения к комнате" });
           return;
         }
+      }
+
+      if (room.gameEnded) {
+        socket.emit("error", { message: "Игра завершена" });
+        return;
+      }
+
+      const gameForHost = await prisma.gameSession.findUnique({
+        where: { id: room.gameId },
+        select: { hostId: true, status: true },
+      });
+      const isHostJoining = gameForHost?.hostId === userId;
+      if (!room.lobbyOpen && !isHostJoining) {
+        socket.emit("error", { message: "Ожидайте, пока хост начнёт игру" });
+        return;
       }
 
       if (room.players.size >= 99) {
@@ -231,10 +281,6 @@ export function createSocketServer(httpServer?: HttpServer) {
       }
 
       // Если это хост — обновляем его socketId
-      const gameForHost = await prisma.gameSession.findUnique({
-        where: { id: room.gameId },
-        select: { hostId: true, status: true },
-      });
       if (gameForHost?.hostId === userId) {
         room.hostSocketId = socket.id;
       }
@@ -312,7 +358,7 @@ export function createSocketServer(httpServer?: HttpServer) {
     });
 
     // =============================================
-    // Старт игры (только хост)
+    // Открыть лобби (только хост): игроки могут присоединяться, доступны кнопки раундов
     // =============================================
     socket.on("start_game", async (data: { code: string }) => {
       const { code } = data;
@@ -328,31 +374,50 @@ export function createSocketServer(httpServer?: HttpServer) {
         return;
       }
 
-      if (room.players.size < 1) {
-        socket.emit("error", { message: "Недостаточно игроков" });
+      if (room.gameEnded) {
+        socket.emit("error", { message: "Игра уже завершена" });
         return;
       }
 
-      try {
-        // Обновляем статус игры в БД
-        await prisma.gameSession.update({
-          where: { id: room.gameId },
-          data: { status: "PLAYING", currentRound: 1 },
-        });
+      room.lobbyOpen = true;
+      console.log(`🚀 Лобби ${code} открыто, игроки могут присоединяться`);
 
-        room.currentRound = 1;
+      io.to(code).emit("lobby_opened", {});
+    });
 
-        console.log(`🚀 Игра ${code} началась! ${room.players.size} игроков, ${room.totalRounds} раундов`);
+    // =============================================
+    // Завершить игру (только хост): присоединение и ответы на раунды невозможны
+    // =============================================
+    socket.on("finish_game", async (data: { code: string }) => {
+      const { code } = data;
+      const room = activeRooms.get(code);
 
-        // Уведомляем всех о старте
-        io.to(code).emit("game_started", {
-          totalRounds: room.totalRounds,
-          playersCount: room.players.size,
-        });
-      } catch (error) {
-        console.error("Ошибка старта игры:", error);
-        socket.emit("error", { message: "Ошибка при запуске игры" });
+      if (!room) {
+        socket.emit("error", { message: "Комната не найдена" });
+        return;
       }
+
+      if (socket.id !== room.hostSocketId) {
+        socket.emit("error", { message: "Только хост может завершить игру" });
+        return;
+      }
+
+      const rounds = await prisma.round.findMany({
+        where: { gameId: room.gameId },
+        select: { status: true },
+      });
+      const totalRounds = room.totalRounds || 0;
+      const allClosed = rounds.length === totalRounds && rounds.every((r) => r.status === "CLOSED");
+
+      if (!allClosed) {
+        socket.emit("error", { message: "Завершите все раунды, чтобы завершить игру" });
+        return;
+      }
+
+      room.gameEnded = true;
+      console.log(`🏁 Игра ${code} завершена`);
+
+      io.to(code).emit("game_finished", {});
     });
 
     // =============================================
@@ -373,6 +438,11 @@ export function createSocketServer(httpServer?: HttpServer) {
 
       if (socket.id !== room.hostSocketId) {
         socket.emit("error", { message: "Только хост может активировать раунд" });
+        return;
+      }
+
+      if (!room.lobbyOpen || room.gameEnded) {
+        socket.emit("error", { message: "Сначала начните игру" });
         return;
       }
 
@@ -426,6 +496,11 @@ export function createSocketServer(httpServer?: HttpServer) {
 
       if (!room) {
         socket.emit("error", { message: "Комната не найдена" });
+        return;
+      }
+
+      if (room.gameEnded) {
+        socket.emit("error", { message: "Игра завершена" });
         return;
       }
 

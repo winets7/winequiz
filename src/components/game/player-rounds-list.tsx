@@ -21,6 +21,8 @@ interface PlayerRoundsListProps {
   variant?: "host" | "player";
   /** Все раунды заполнены — только тогда у хоста показывается кнопка «Начать раунд» у запланированных */
   allRoundsFilled?: boolean;
+  /** Лобби открыто (хост нажал «Начать игру») — кнопки раундов доступны только тогда */
+  lobbyOpen?: boolean;
   /** Хост: запуск раунда (activate_round) */
   onStartRound?: (roundId: string, roundNumber: number) => void;
   /** Хост: завершить раунд (close_round) */
@@ -36,6 +38,7 @@ export function PlayerRoundsList({
   gameStatus,
   variant = "player",
   allRoundsFilled = false,
+  lobbyOpen = false,
   onStartRound,
   onCloseRound,
   onEditRound,
@@ -159,7 +162,7 @@ export function PlayerRoundsList({
                   className="flex flex-wrap items-center gap-2 sm:shrink-0 min-w-0"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {round?.status === "CREATED" && allRoundsFilled && onStartRound && (
+                  {round?.status === "CREATED" && lobbyOpen && allRoundsFilled && onStartRound && (
                     <button
                       type="button"
                       onClick={() => onStartRound(round.id, round.roundNumber)}

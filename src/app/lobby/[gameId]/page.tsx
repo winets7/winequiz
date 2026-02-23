@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { QRCodeSVG } from "qrcode.react";
 import { useSocket } from "@/hooks/useSocket";
 import { getJoinUrl } from "@/lib/game-code";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { WineForm, WineParams } from "@/components/game/wine-form";
 import { PlayerRoundsList } from "@/components/game/player-rounds-list";
 
 interface Player {
@@ -54,13 +53,6 @@ export default function LobbyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gameStarting, setGameStarting] = useState(false);
-
-  // Редактирование раунда
-  const [editingRound, setEditingRound] = useState<number | null>(null);
-  const [savingRound, setSavingRound] = useState(false);
-  const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
-  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userId = session?.user?.id;
   const isHost = game?.hostId === userId || game?.host?.id === userId;
@@ -201,101 +193,8 @@ export default function LobbyPage() {
   // Обработчики раундов
   // =============================================
 
-  // Сохранить параметры раунда
-  const handleSaveRound = useCallback(
-    async (roundNumber: number, wineParams: WineParams) => {
-      if (!game) return;
-      setSavingRound(true);
-      setError(null);
-
-      try {
-        // 1. Сохраняем параметры вина
-        const roundRes = await fetch("/api/rounds", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            gameId: game.id,
-            roundNumber,
-            ...wineParams,
-            vintageYear: wineParams.vintageYear ? parseInt(wineParams.vintageYear) : null,
-            alcoholContent: wineParams.alcoholContent
-              ? parseFloat(wineParams.alcoholContent)
-              : null,
-          }),
-        });
-
-        if (!roundRes.ok) {
-          const data = await roundRes.json();
-          setError(data.error || "Ошибка сохранения раунда");
-          setSavingRound(false);
-          return;
-        }
-
-        const { round } = await roundRes.json();
-
-        // 2. Загружаем фото если есть
-        if (selectedPhotos.length > 0) {
-          const formData = new FormData();
-          selectedPhotos.forEach((photo) => {
-            formData.append("photos", photo);
-          });
-
-          await fetch(`/api/rounds/${round.id}/photos`, {
-            method: "POST",
-            body: formData,
-          });
-        }
-
-        // 3. Перезагружаем раунды
-        const roundsRes = await fetch(`/api/rounds?gameId=${game.id}`);
-        if (roundsRes.ok) {
-          const roundsData = await roundsRes.json();
-          setRounds(roundsData.rounds || []);
-        }
-
-        // Закрываем форму
-        setEditingRound(null);
-        setSelectedPhotos([]);
-        setPhotoPreviewUrls([]);
-      } catch {
-        setError("Ошибка при сохранении раунда");
-      } finally {
-        setSavingRound(false);
-      }
-    },
-    [game, selectedPhotos]
-  );
-
-  // Обработка фотографий
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const totalPhotos = selectedPhotos.length + files.length;
-
-    if (totalPhotos > 4) {
-      setError("Максимум 4 фотографии");
-      return;
-    }
-
-    setSelectedPhotos((prev) => [...prev, ...files]);
-    files.forEach((file) => {
-      const url = URL.createObjectURL(file);
-      setPhotoPreviewUrls((prev) => [...prev, url]);
-    });
-  };
-
-  const removePhoto = (index: number) => {
-    setSelectedPhotos((prev) => prev.filter((_, i) => i !== index));
-    setPhotoPreviewUrls((prev) => {
-      URL.revokeObjectURL(prev[index]);
-      return prev.filter((_, i) => i !== index);
-    });
-  };
-
   const openRoundEditor = (roundNum: number) => {
-    setEditingRound(roundNum);
-    setSelectedPhotos([]);
-    setPhotoPreviewUrls([]);
-    setError(null);
+    router.push(`/lobby/${gameId}/round/${roundNum}/edit`);
   };
 
   // Начать игру
@@ -403,131 +302,6 @@ export default function LobbyPage() {
 
   const joinUrl = getJoinUrl(game.code);
   const roundNumbers = Array.from({ length: game.totalRounds }, (_, i) => i + 1);
-
-  // Если редактируем раунд — показываем форму
-  if (editingRound !== null && isHost) {
-    const existingRound = getRoundData(editingRound);
-
-    // Начальные значения из существующего раунда
-    const initialValues: Partial<WineParams> | undefined = existingRound
-      ? {
-          color: existingRound.color || "",
-          sweetness: existingRound.sweetness || "",
-          grapeVarieties: existingRound.grapeVarieties || [],
-          country: existingRound.country || "",
-          vintageYear: existingRound.vintageYear?.toString() || "",
-          alcoholContent: existingRound.alcoholContent?.toString() || "",
-          isOakAged: existingRound.isOakAged,
-          composition: existingRound.composition || "",
-        }
-      : undefined;
-
-    return (
-      <main className="min-h-screen flex flex-col items-center pb-8">
-        {/* Верхняя панель */}
-        <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
-          <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-            <button
-              onClick={() => {
-                setEditingRound(null);
-                setSelectedPhotos([]);
-                setPhotoPreviewUrls([]);
-              }}
-              className="text-sm text-[var(--primary)] font-medium flex items-center gap-1"
-            >
-              ← Назад
-            </button>
-            <h1 className="text-lg font-bold">Раунд {editingRound}</h1>
-            <ThemeToggle />
-          </div>
-        </div>
-
-        <div className="w-full max-w-lg mx-auto px-4 mt-4 space-y-6">
-          {/* Ошибка */}
-          {error && (
-            <div className="bg-[var(--card)] border border-[var(--error)] text-[var(--error)] px-4 py-2 rounded-xl text-sm text-center">
-              {error}
-            </div>
-          )}
-
-          {/* Загрузка фото */}
-          <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
-            <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-2">
-              📸 Фотографии бутылки (до 4 шт.)
-            </label>
-
-            {/* Существующие фото из БД */}
-            {existingRound && existingRound.photos.length > 0 && photoPreviewUrls.length === 0 && (
-              <div className="grid grid-cols-4 gap-2 mb-3">
-                {existingRound.photos.map((photo, i) => (
-                  <div
-                    key={photo.id}
-                    className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[var(--muted)]"
-                  >
-                    <img
-                      src={photo.imageUrl}
-                      alt={`Фото ${i + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Новые фото-превью */}
-            {photoPreviewUrls.length > 0 && (
-              <div className="grid grid-cols-4 gap-2 mb-3">
-                {photoPreviewUrls.map((url, i) => (
-                  <div
-                    key={i}
-                    className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[var(--muted)]"
-                  >
-                    <img src={url} alt={`Фото ${i + 1}`} className="w-full h-full object-cover" />
-                    <button
-                      onClick={() => removePhoto(i)}
-                      className="absolute top-1 right-1 w-6 h-6 bg-[var(--error)] text-white rounded-full text-xs flex items-center justify-center"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {selectedPhotos.length < 4 && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full p-4 border-2 border-dashed border-[var(--border)] rounded-xl text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
-              >
-                📷 Добавить фото
-              </button>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handlePhotoSelect}
-              className="hidden"
-            />
-          </div>
-
-          {/* Форма параметров вина */}
-          <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
-            <WineForm
-              key={`round-${editingRound}`}
-              mode="host"
-              initialValues={initialValues}
-              onSubmit={(params) => handleSaveRound(editingRound, params)}
-              loading={savingRound}
-              submitLabel={existingRound ? "💾 Сохранить изменения" : "💾 Сохранить раунд"}
-            />
-          </div>
-        </div>
-      </main>
-    );
-  }
 
   // Основной экран лобби
   return (

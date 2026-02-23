@@ -1,0 +1,328 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { HostRoundCharacteristicCards } from "@/components/game/host-round-characteristic-cards";
+import {
+  getDraft,
+  setDraft,
+  clearDraft,
+  roundToWineParams,
+  type RoundDataForDraft,
+} from "@/lib/lobby-round-draft";
+import type { WineParams } from "@/components/game/wine-form";
+
+interface GameData {
+  id: string;
+  code: string;
+  hostId: string;
+}
+
+interface RoundData extends RoundDataForDraft {
+  id: string;
+  roundNumber: number;
+  photos: { id: string; imageUrl: string }[];
+}
+
+export default function LobbyRoundEditPage() {
+  const params = useParams();
+  const router = useRouter();
+  const gameId = params.gameId as string;
+  const roundNumber = Number(params.roundNumber);
+  const { data: session } = useSession();
+
+  const [game, setGame] = useState<GameData | null>(null);
+  const [rounds, setRounds] = useState<RoundData[]>([]);
+  const [draft, setDraftState] = useState<WineParams | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const userId = session?.user?.id;
+  const isHost = game?.hostId === userId;
+
+  // Загрузка игры и раундов
+  useEffect(() => {
+    async function load() {
+      try {
+        const gameRes = await fetch(`/api/games/${gameId}`);
+        if (!gameRes.ok) {
+          setError("Игра не найдена");
+          setLoading(false);
+          return;
+        }
+        const gameJson = await gameRes.json();
+        const g = gameJson.game;
+        setGame({
+          id: g.id,
+          code: g.code,
+          hostId: g.hostId || g.host?.id,
+        });
+
+        const roundsRes = await fetch(`/api/rounds?gameId=${gameId}`);
+        if (roundsRes.ok) {
+          const roundsData = await roundsRes.json();
+          setRounds(roundsData.rounds || []);
+        }
+      } catch {
+        setError("Ошибка загрузки");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [gameId]);
+
+  // Инициализация черновика из sessionStorage или из раунда
+  useEffect(() => {
+    if (!gameId || !roundNumber || rounds.length === 0) return;
+
+    const existing = getDraft(gameId, roundNumber);
+    if (existing) {
+      setDraftState(existing);
+      return;
+    }
+
+    const round = rounds.find((r) => r.roundNumber === roundNumber);
+    const initial = roundToWineParams(round ?? null);
+    setDraft(gameId, roundNumber, initial);
+    setDraftState(initial);
+  }, [gameId, roundNumber, rounds]);
+
+  // При возврате с страницы выбора — перечитать черновик из sessionStorage
+  useEffect(() => {
+    const sync = () => {
+      if (!gameId || !roundNumber) return;
+      const d = getDraft(gameId, roundNumber);
+      if (d) setDraftState(d);
+    };
+    sync();
+    window.addEventListener("focus", sync);
+    return () => window.removeEventListener("focus", sync);
+  }, [gameId, roundNumber]);
+
+  const existingRound = rounds.find((r) => r.roundNumber === roundNumber);
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const total = selectedPhotos.length + files.length;
+    if (total > 4) {
+      setError("Максимум 4 фотографии");
+      return;
+    }
+    setError(null);
+    setSelectedPhotos((prev) => [...prev, ...files]);
+    files.forEach((file) => {
+      setPhotoPreviewUrls((prev) => [...prev, URL.createObjectURL(file)]);
+    });
+  };
+
+  const removePhoto = (index: number) => {
+    setSelectedPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPhotoPreviewUrls((prev) => {
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const handleSaveRound = async () => {
+    if (!game || !draft) return;
+    setSaving(true);
+    setError(null);
+
+    try {
+      const roundRes = await fetch("/api/rounds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId: game.id,
+          roundNumber,
+          ...draft,
+          vintageYear: draft.vintageYear ? parseInt(draft.vintageYear) : null,
+          alcoholContent: draft.alcoholContent ? parseFloat(draft.alcoholContent) : null,
+        }),
+      });
+
+      if (!roundRes.ok) {
+        const data = await roundRes.json();
+        setError(data.error || "Ошибка сохранения раунда");
+        setSaving(false);
+        return;
+      }
+
+      const { round } = await roundRes.json();
+
+      if (selectedPhotos.length > 0) {
+        const formData = new FormData();
+        selectedPhotos.forEach((photo) => formData.append("photos", photo));
+        await fetch(`/api/rounds/${round.id}/photos`, { method: "POST", body: formData });
+      }
+
+      clearDraft(gameId, roundNumber);
+      router.push(`/lobby/${gameId}`);
+    } catch {
+      setError("Ошибка при сохранении раунда");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-5xl mb-4 animate-pulse">🍷</div>
+          <p className="text-[var(--muted-foreground)]">Загрузка...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error && !game) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <div className="text-5xl">😕</div>
+          <p className="text-xl text-[var(--error)]">{error}</p>
+          <button
+            onClick={() => router.push("/")}
+            className="px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl"
+          >
+            На главную
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (!game || !isHost) {
+    router.replace(`/lobby/${gameId}`);
+    return null;
+  }
+
+  if (!draft) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-[var(--muted-foreground)]">Подготовка...</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen flex flex-col items-center pb-8">
+      <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => router.push(`/lobby/${gameId}`)}
+            className="text-sm text-[var(--primary)] font-medium flex items-center gap-1"
+          >
+            ← Назад
+          </button>
+          <h1 className="text-lg font-bold">Раунд {roundNumber}</h1>
+          <ThemeToggle />
+        </div>
+      </div>
+
+      <div className="w-full max-w-lg mx-auto px-4 mt-4 space-y-6">
+        {error && (
+          <div className="bg-[var(--card)] border border-[var(--error)] text-[var(--error)] px-4 py-2 rounded-xl text-sm text-center">
+            {error}
+          </div>
+        )}
+
+        {/* Фото бутылки */}
+        <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
+          <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-2">
+            📸 Фотографии бутылки (до 4 шт.)
+          </label>
+
+          {existingRound && existingRound.photos.length > 0 && photoPreviewUrls.length === 0 && (
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {existingRound.photos.map((photo, i) => (
+                <div
+                  key={photo.id}
+                  className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[var(--muted)]"
+                >
+                  <img
+                    src={photo.imageUrl}
+                    alt={`Фото ${i + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {photoPreviewUrls.length > 0 && (
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {photoPreviewUrls.map((url, i) => (
+                <div
+                  key={i}
+                  className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[var(--muted)]"
+                >
+                  <img src={url} alt={`Фото ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => removePhoto(i)}
+                    className="absolute top-1 right-1 w-6 h-6 bg-[var(--error)] text-white rounded-full text-xs flex items-center justify-center"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {selectedPhotos.length < 4 && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full p-4 border-2 border-dashed border-[var(--border)] rounded-xl text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
+            >
+              📷 Добавить фото
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handlePhotoSelect}
+            className="hidden"
+          />
+        </div>
+
+        {/* Карточки характеристик */}
+        <div>
+          <h2 className="text-lg font-bold mb-3">Параметры вина</h2>
+          <HostRoundCharacteristicCards
+            gameId={gameId}
+            roundNumber={roundNumber}
+            values={draft}
+          />
+        </div>
+
+        <button
+          onClick={handleSaveRound}
+          disabled={saving}
+          className="w-full px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-spin">⏳</span> Сохранение...
+            </span>
+          ) : existingRound ? (
+            "💾 Сохранить изменения"
+          ) : (
+            "💾 Сохранить раунд"
+          )}
+        </button>
+      </div>
+    </main>
+  );
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { HostRoundCharacteristicCards } from "@/components/game/host-round-characteristic-cards";
@@ -29,6 +29,7 @@ interface RoundData extends RoundDataForDraft {
 export default function LobbyRoundEditPage() {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
   const gameId = params.gameId as string;
   const roundNumber = Number(params.roundNumber);
   const { data: session } = useSession();
@@ -112,6 +113,7 @@ export default function LobbyRoundEditPage() {
   }, [gameId, roundNumber, loading, rounds]);
 
   // При возврате с страницы выбора — перечитать черновик из sessionStorage
+  // (pathname — чтобы при навигации edit → select → edit обновить draft, т.к. focus не срабатывает)
   useEffect(() => {
     const sync = () => {
       if (!gameId || !roundNumber) return;
@@ -121,7 +123,7 @@ export default function LobbyRoundEditPage() {
     sync();
     window.addEventListener("focus", sync);
     return () => window.removeEventListener("focus", sync);
-  }, [gameId, roundNumber]);
+  }, [gameId, roundNumber, pathname]);
 
   const existingRound = rounds.find((r) => r.roundNumber === roundNumber);
 

@@ -97,18 +97,23 @@ export default function LobbyRoundEditPage() {
   }, [gameId]);
 
   // Инициализация черновика из sessionStorage или из раунда (раундов может ещё не быть — новый раунд)
+  // Важно: не записывать пустой черновик в sessionStorage, пока не загрузились rounds — иначе
+  // при поздней загрузке раундов getDraft вернёт пустой объект и сохранённый цвет не подставится.
   useEffect(() => {
     if (!gameId || !roundNumber || loading) return;
 
+    const round = rounds.find((r) => r.roundNumber === roundNumber);
     const existing = getDraft(gameId, roundNumber);
     if (existing) {
+      // Есть черновик в sessionStorage — используем его (пользователь что-то менял)
       setDraftState(existing);
       return;
     }
 
-    const round = rounds.find((r) => r.roundNumber === roundNumber);
     const initial = roundToWineParams(round ?? null);
-    setDraft(gameId, roundNumber, initial);
+    if (round) {
+      setDraft(gameId, roundNumber, initial);
+    }
     setDraftState(initial);
   }, [gameId, roundNumber, loading, rounds]);
 

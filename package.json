@@ -13,6 +13,7 @@
     "db:seed": "npx prisma db seed",
     "db:studio": "npx prisma studio",
     "db:reset": "npx prisma migrate reset",
+    "db:clear-games": "npx tsx scripts/clear-games-data.ts",
     "socket": "npx tsx server/socket/index.ts",
     "dev:all": "npm run socket & npm run dev"
   },

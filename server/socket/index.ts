@@ -380,6 +380,18 @@ export function createSocketServer(httpServer?: HttpServer) {
       }
 
       room.lobbyOpen = true;
+
+      try {
+        await prisma.gameSession.update({
+          where: { id: room.gameId },
+          data: { status: "PLAYING" },
+        });
+      } catch (err) {
+        console.error("Ошибка обновления статуса игры:", err);
+        socket.emit("error", { message: "Не удалось сохранить статус игры" });
+        return;
+      }
+
       console.log(`🚀 Лобби ${code} открыто, игроки могут присоединяться`);
 
       io.to(code).emit("lobby_opened", {});

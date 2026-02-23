@@ -162,6 +162,7 @@ export default function LobbyPage() {
     const unsubLobbyOpened = on("lobby_opened", () => {
       setLobbyOpen(true);
       setGameStarting(false);
+      setGame((prev) => (prev ? { ...prev, status: "PLAYING" } : null));
     });
 
     const unsubGameFinished = on("game_finished", () => {

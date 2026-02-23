@@ -213,27 +213,7 @@ export function PlayerRoundsList({
             >
               <span className="text-xl">{roundStatus.icon}</span>
               <div className="flex-1 min-w-0">
-                <p className="font-medium">Раунд {num}</p>
-                {round && roundStatus.status === "active" && (
-                  <p className="text-xs text-[var(--muted-foreground)] truncate">
-                    {round.color === "RED"
-                      ? "🔴"
-                      : round.color === "WHITE"
-                      ? "⚪"
-                      : round.color === "ROSE"
-                      ? "🩷"
-                      : round.color === "ORANGE"
-                      ? "🟠"
-                      : ""}{" "}
-                    {round.country || "?"} · {round.vintageYear || "?"} ·{" "}
-                    {round.grapeVarieties?.join(", ") || "?"}
-                  </p>
-                )}
-                {(roundStatus.status === "pending" || roundStatus.status === "created") && (
-                  <p className="text-xs text-[var(--muted-foreground)]">
-                    {roundStatus.label}
-                  </p>
-                )}
+                <p className="font-medium text-white">Раунд {num}</p>
               </div>
               {isClickable && roundStatus.status !== "completed" && (
                 <span className="text-[var(--muted-foreground)]">→</span>

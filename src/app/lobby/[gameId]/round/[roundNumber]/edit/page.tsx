@@ -47,11 +47,18 @@ export default function LobbyRoundEditPage() {
   const userId = session?.user?.id;
   const isHost = game?.hostId === userId;
 
-  // Загрузка игры и раундов
+  // Загрузка игры и раундов (сначала игра — снимаем loading, потом раунды в фоне)
   useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     async function load() {
       try {
-        const gameRes = await fetch(`/api/games/${gameId}`);
+        const gameRes = await fetch(`/api/games/${gameId}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (cancelled) return;
         if (!gameRes.ok) {
           setError("Игра не найдена");
           setLoading(false);
@@ -64,24 +71,33 @@ export default function LobbyRoundEditPage() {
           code: g.code,
           hostId: g.hostId || g.host?.id,
         });
+        setLoading(false);
 
         const roundsRes = await fetch(`/api/rounds?gameId=${gameId}`);
+        if (cancelled) return;
         if (roundsRes.ok) {
           const roundsData = await roundsRes.json();
           setRounds(roundsData.rounds || []);
         }
-      } catch {
-        setError("Ошибка загрузки");
-      } finally {
-        setLoading(false);
+      } catch (e) {
+        clearTimeout(timeoutId);
+        if (!cancelled) {
+          setError(e instanceof Error && e.name === "AbortError" ? "Таймаут загрузки" : "Ошибка загрузки");
+          setLoading(false);
+        }
       }
     }
     load();
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [gameId]);
 
-  // Инициализация черновика из sessionStorage или из раунда
+  // Инициализация черновика из sessionStorage или из раунда (раундов может ещё не быть — новый раунд)
   useEffect(() => {
-    if (!gameId || !roundNumber || rounds.length === 0) return;
+    if (!gameId || !roundNumber || loading) return;
 
     const existing = getDraft(gameId, roundNumber);
     if (existing) {
@@ -93,7 +109,7 @@ export default function LobbyRoundEditPage() {
     const initial = roundToWineParams(round ?? null);
     setDraft(gameId, roundNumber, initial);
     setDraftState(initial);
-  }, [gameId, roundNumber, rounds]);
+  }, [gameId, roundNumber, loading, rounds]);
 
   // При возврате с страницы выбора — перечитать черновик из sessionStorage
   useEffect(() => {

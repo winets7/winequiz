@@ -41,6 +41,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
+  // Cache API поддерживает только http/https — не обрабатываем chrome-extension и др.
+  if (!request.url.startsWith('http')) return;
+
   // Пропускаем не-GET запросы и запросы к API
   if (request.method !== 'GET') return;
   if (request.url.includes('/api/')) return;

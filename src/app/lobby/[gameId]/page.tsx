@@ -272,12 +272,21 @@ export default function LobbyPage() {
     return rounds.find((r) => r.roundNumber === roundNumber);
   };
 
-  // Проверка заполненности раунда
+  // Раунд заполнен полностью: все поля заданы (фото не обязательно)
   const isRoundFilled = (roundNumber: number): boolean => {
     const round = getRoundData(roundNumber);
     if (!round) return false;
-    // Минимум: цвет вина должен быть указан
-    return !!round.color;
+    const has = (s: string | null) => s != null && String(s).trim() !== "";
+    return (
+      has(round.color) &&
+      has(round.country) &&
+      has(round.sweetness) &&
+      round.vintageYear != null &&
+      Array.isArray(round.grapeVarieties) &&
+      round.alcoholContent != null &&
+      round.isOakAged !== null &&
+      round.composition != null
+    );
   };
 
   // Все раунды заполнены?

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function Home() {
@@ -15,6 +16,7 @@ export default function Home() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [totalRounds, setTotalRounds] = useState(5);
   const [error, setError] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState(false);
 
   const isLoading = status === "loading";
   const isLoggedIn = !!session?.user;
@@ -101,7 +103,20 @@ export default function Home() {
 
       {/* Логотип / Заголовок */}
       <div className="text-center space-y-6">
-        <div className="text-7xl mb-4">🍷</div>
+        <div className="flex justify-center mb-4 min-h-[80px] items-center">
+          {logoError ? (
+            <span className="text-7xl">🍷</span>
+          ) : (
+            <Image
+              src="/logo.svg"
+              alt="Винная Викторина"
+              width={160}
+              height={80}
+              className="object-contain w-32 h-32 md:w-40 md:h-40"
+              onError={() => setLogoError(true)}
+            />
+          )}
+        </div>
         <h1 className="text-4xl md:text-6xl font-bold text-[var(--primary)]">
           Винная Викторина
         </h1>
@@ -266,17 +281,11 @@ export default function Home() {
 
       {/* Нижние ссылки */}
       <div className="mt-16 flex gap-6 text-sm text-[var(--muted-foreground)]">
-        <a href="/leaderboard" className="hover:text-[var(--primary)] transition-colors">
-          🏆 Рейтинг
-        </a>
         {isLoggedIn && (
           <a href="/profile" className="hover:text-[var(--primary)] transition-colors">
             👤 Профиль
           </a>
         )}
-        <a href="/achievements" className="hover:text-[var(--primary)] transition-colors">
-          ⭐ Достижения
-        </a>
       </div>
     </main>
   );

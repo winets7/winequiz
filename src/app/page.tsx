@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import Image from "next/image";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function Home() {
@@ -107,7 +106,7 @@ export default function Home() {
           {logoError ? (
             <span className="text-7xl">🍷</span>
           ) : (
-            <Image
+            <img
               src="/logo.svg"
               alt="Винная Викторина"
               width={160}

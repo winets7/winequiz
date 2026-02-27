@@ -109,7 +109,7 @@ export default function Home() {
             <img
               src="/logo.svg"
               alt="Винная Викторина"
-              className="w-full max-w-full h-auto object-contain max-h-24 sm:max-h-28 md:max-h-32"
+              className="w-full max-w-full h-auto object-contain max-h-[10rem] sm:max-h-[12rem] md:max-h-[14rem]"
               onError={() => setLogoError(true)}
             />
           )}

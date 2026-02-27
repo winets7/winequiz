@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { QRCodeSVG } from "qrcode.react";
@@ -55,6 +55,10 @@ export default function LobbyPage() {
   const [gameStarting, setGameStarting] = useState(false);
   const [lobbyOpen, setLobbyOpen] = useState(false);
   const [gameEnded, setGameEnded] = useState(false);
+
+  const gameRef = useRef(game);
+  gameRef.current = game;
+  const startGameTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const userId = session?.user?.id;
   const isHost = game?.hostId === userId || game?.host?.id === userId;
@@ -131,6 +135,15 @@ export default function LobbyPage() {
   }, [isConnected, game, userId, session, isHost, emit]);
 
   useEffect(() => {
+    return () => {
+      if (startGameTimeoutRef.current) {
+        clearTimeout(startGameTimeoutRef.current);
+        startGameTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isConnected) return;
 
     const unsubJoin = on("player_joined", (data: unknown) => {
@@ -144,8 +157,9 @@ export default function LobbyPage() {
     });
 
     const unsubStarted = on("game_started", () => {
-      if (game) {
-        setGame({ ...game, status: "PLAYING" });
+      const g = gameRef.current;
+      if (g) {
+        setGame({ ...g, status: "PLAYING" });
         fetch(`/api/rounds?gameId=${gameId}`)
           .then((res) => res.json())
           .then((data) => setRounds(data.rounds || []))
@@ -160,6 +174,10 @@ export default function LobbyPage() {
     });
 
     const unsubLobbyOpened = on("lobby_opened", () => {
+      if (startGameTimeoutRef.current) {
+        clearTimeout(startGameTimeoutRef.current);
+        startGameTimeoutRef.current = null;
+      }
       setLobbyOpen(true);
       setGameStarting(false);
       setGame((prev) => (prev ? { ...prev, status: "PLAYING" } : null));
@@ -186,6 +204,10 @@ export default function LobbyPage() {
     });
 
     const unsubError = on("error", (data: unknown) => {
+      if (startGameTimeoutRef.current) {
+        clearTimeout(startGameTimeoutRef.current);
+        startGameTimeoutRef.current = null;
+      }
       const { message } = data as { message: string };
       setError(message);
       setGameStarting(false);
@@ -202,7 +224,7 @@ export default function LobbyPage() {
       unsubRoundResults();
       unsubError();
     };
-  }, [isConnected, on, gameId, game]);
+  }, [isConnected, on, gameId]);
 
   // =============================================
   // Обработчики раундов
@@ -215,8 +237,24 @@ export default function LobbyPage() {
   // Открыть лобби (игроки могут присоединяться, доступны кнопки раундов)
   const handleStartGame = useCallback(() => {
     if (!game) return;
+    if (startGameTimeoutRef.current) {
+      clearTimeout(startGameTimeoutRef.current);
+      startGameTimeoutRef.current = null;
+    }
     setGameStarting(true);
+    setError(null);
     emit("start_game", { code: game.code });
+    // Таймаут: если сервер не ответил (lobby_opened/error), снимаем «Запуск...»
+    startGameTimeoutRef.current = setTimeout(() => {
+      setGameStarting((prev) => {
+        if (prev) {
+          setError("Не удалось начать игру. Проверьте подключение и попробуйте снова.");
+          return false;
+        }
+        return prev;
+      });
+      startGameTimeoutRef.current = null;
+    }, 10000);
   }, [game, emit]);
 
   // Завершить игру (присоединение и ответы становятся невозможны)

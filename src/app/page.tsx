@@ -102,14 +102,15 @@ export default function Home() {
 
       {/* Логотип / Заголовок — по ширине блока кнопок, адаптивно */}
       <div className="w-full max-w-md mx-auto text-center space-y-6 px-1">
-        <div className="w-full flex justify-center items-center mb-4">
+        <div className="w-full mb-4" style={{ minHeight: "80px" }}>
           {logoError ? (
-            <span className="text-7xl">🍷</span>
+            <span className="text-7xl block text-center">🍷</span>
           ) : (
             <img
               src="/logo.svg"
               alt="Винная Викторина"
-              className="w-full max-w-full h-auto object-contain max-h-[10rem] sm:max-h-[12rem] md:max-h-[14rem]"
+              className="block w-full h-auto object-contain"
+              style={{ width: "100%", minWidth: "100%" }}
               onError={() => setLogoError(true)}
             />
           )}

@@ -100,18 +100,16 @@ export default function Home() {
         </Link>
       )}
 
-      {/* Логотип / Заголовок */}
-      <div className="text-center space-y-6">
-        <div className="flex justify-center mb-4 min-h-[80px] items-center">
+      {/* Логотип / Заголовок — по ширине блока кнопок, адаптивно */}
+      <div className="w-full max-w-md mx-auto text-center space-y-6 px-1">
+        <div className="w-full flex justify-center items-center mb-4">
           {logoError ? (
             <span className="text-7xl">🍷</span>
           ) : (
             <img
               src="/logo.svg"
               alt="Винная Викторина"
-              width={160}
-              height={80}
-              className="object-contain w-32 h-32 md:w-40 md:h-40"
+              className="w-full max-w-full h-auto object-contain max-h-24 sm:max-h-28 md:max-h-32"
               onError={() => setLogoError(true)}
             />
           )}
@@ -141,7 +139,7 @@ export default function Home() {
       {/* Кнопки для залогиненного пользователя */}
       {!isLoading && isLoggedIn && (
         <>
-          <div className="mt-12 flex flex-col sm:flex-row gap-4">
+          <div className="mt-12 w-full max-w-md mx-auto flex flex-col sm:flex-row gap-4">
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="px-8 py-4 text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold transition-all shadow-lg"
@@ -261,7 +259,7 @@ export default function Home() {
 
       {/* Кнопки для незалогиненного пользователя */}
       {!isLoading && !isLoggedIn && (
-        <div className="mt-12 flex flex-col sm:flex-row gap-4">
+        <div className="mt-12 w-full max-w-md mx-auto flex flex-col sm:flex-row gap-4">
           <Link
             href="/login"
             className="px-8 py-4 text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold transition-all shadow-lg text-center"

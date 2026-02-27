@@ -25,9 +25,20 @@ const activeRooms = new Map<string, GameRoom>();
 export function createSocketServer(httpServer?: HttpServer) {
   const server = httpServer || createServer();
 
+  const corsOrigin = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const allowedOrigins = [
+    corsOrigin,
+    "https://vintaste.ru",
+    "https://www.vintaste.ru",
+    "http://localhost:3000",
+  ].filter((o, i, a) => a.indexOf(o) === i);
+
   const io = new SocketServer(server, {
     cors: {
-      origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+      origin: (origin, cb) => {
+        if (!origin || allowedOrigins.some((a) => a === origin)) return cb(null, true);
+        return cb(null, false);
+      },
       methods: ["GET", "POST"],
     },
     pingTimeout: 60000,

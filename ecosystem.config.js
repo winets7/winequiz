@@ -17,6 +17,7 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         SOCKET_PORT: 3001,
+        NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "https://www.vintaste.ru",
       },
     },
   ],

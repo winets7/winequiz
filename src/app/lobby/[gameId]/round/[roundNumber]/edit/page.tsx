@@ -33,7 +33,7 @@ export default function LobbyRoundEditPage() {
   const pathname = usePathname();
   const gameId = params.gameId as string;
   const roundNumber = Number(params.roundNumber);
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
 
   const [game, setGame] = useState<GameData | null>(null);
   const [rounds, setRounds] = useState<RoundData[]>([]);
@@ -48,9 +48,12 @@ export default function LobbyRoundEditPage() {
 
   const userId = session?.user?.id;
   const isHost = game?.hostId === userId;
+  const sessionReady = sessionStatus !== "loading";
 
-  // Загрузка игры и раундов (сначала игра — снимаем loading, потом раунды в фоне)
+  // Загрузка игры и раундов только после готовности сессии (избегаем редиректа до проверки хоста)
   useEffect(() => {
+    if (!sessionReady) return;
+
     let cancelled = false;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -95,7 +98,7 @@ export default function LobbyRoundEditPage() {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [gameId]);
+  }, [gameId, sessionReady]);
 
   // Инициализация черновика из sessionStorage или из раунда (раундов может ещё не быть — новый раунд)
   // Важно: не записывать пустой черновик в sessionStorage, пока не загрузились rounds — иначе
@@ -207,7 +210,8 @@ export default function LobbyRoundEditPage() {
     }
   };
 
-  if (loading) {
+  const isPageLoading = loading || !sessionReady;
+  if (isPageLoading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -216,6 +220,11 @@ export default function LobbyRoundEditPage() {
         </div>
       </main>
     );
+  }
+
+  if (sessionStatus === "unauthenticated") {
+    router.replace(`/lobby/${gameId}`);
+    return null;
   }
 
   if (error && !game) {

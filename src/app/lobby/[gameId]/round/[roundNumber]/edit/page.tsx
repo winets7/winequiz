@@ -115,9 +115,9 @@ export default function LobbyRoundEditPage() {
     }
 
     const initial = roundToWineParams(round ?? null);
-    if (round) {
-      setDraft(gameId, roundNumber, initial);
-    }
+    // Всегда записываем черновик в sessionStorage (в т.ч. для нового раунда),
+    // чтобы страница выбора параметра (select) могла его прочитать при первом клике.
+    setDraft(gameId, roundNumber, initial);
     setDraftState(initial);
   }, [gameId, roundNumber, loading, rounds]);
 

@@ -61,6 +61,7 @@ export default function LobbyRoundEditPage() {
       try {
         const gameRes = await fetch(`/api/games/${gameId}`, {
           signal: controller.signal,
+          cache: "no-store",
         });
         clearTimeout(timeoutId);
         if (cancelled) return;
@@ -78,7 +79,9 @@ export default function LobbyRoundEditPage() {
         });
         setLoading(false);
 
-        const roundsRes = await fetch(`/api/rounds?gameId=${gameId}`);
+        const roundsRes = await fetch(`/api/rounds?gameId=${gameId}`, {
+          cache: "no-store",
+        });
         if (cancelled) return;
         if (roundsRes.ok) {
           const roundsData = await roundsRes.json();

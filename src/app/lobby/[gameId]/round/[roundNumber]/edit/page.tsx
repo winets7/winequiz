@@ -169,7 +169,10 @@ export default function LobbyRoundEditPage() {
   };
 
   const handleSaveRound = async () => {
-    if (!game || !draft || isRoundLocked) return;
+    // Берём черновик из sessionStorage (актуальные выборы со страниц выбора параметра),
+    // иначе из state — иначе при быстром «Сохранить» после выбора параметров могли уйти пустые значения
+    const payloadDraft = getDraft(gameId, roundNumber) ?? draft;
+    if (!game || !payloadDraft || isRoundLocked) return;
     setSaving(true);
     setError(null);
 
@@ -180,9 +183,9 @@ export default function LobbyRoundEditPage() {
         body: JSON.stringify({
           gameId: game.id,
           roundNumber,
-          ...draft,
-          vintageYear: draft.vintageYear ? parseInt(draft.vintageYear) : null,
-          alcoholContent: draft.alcoholContent ? parseFloat(draft.alcoholContent) : null,
+          ...payloadDraft,
+          vintageYear: payloadDraft.vintageYear ? parseInt(payloadDraft.vintageYear) : null,
+          alcoholContent: payloadDraft.alcoholContent ? parseFloat(payloadDraft.alcoholContent) : null,
         }),
       });
 

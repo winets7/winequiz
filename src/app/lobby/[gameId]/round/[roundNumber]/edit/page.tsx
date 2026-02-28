@@ -77,8 +77,9 @@ export default function LobbyRoundEditPage() {
           code: g.code,
           hostId: g.hostId || g.host?.id,
         });
-        setLoading(false);
 
+        // Раунды загружаем ДО setLoading(false), иначе init-эффект черновика
+        // сработает с пустым rounds[] и запишет пустые параметры в sessionStorage.
         const roundsRes = await fetch(`/api/rounds?gameId=${gameId}`, {
           cache: "no-store",
         });
@@ -87,6 +88,8 @@ export default function LobbyRoundEditPage() {
           const roundsData = await roundsRes.json();
           setRounds(roundsData.rounds || []);
         }
+
+        setLoading(false);
       } catch (e) {
         clearTimeout(timeoutId);
         if (!cancelled) {

@@ -69,6 +69,10 @@ export default function HostRoundSelectCharacteristicPage() {
       ...updates,
     };
     setDraft(gameId, roundNumber, next);
+    // Чтобы с lobby «Назад» не вёл на edit, помечаем возврат из select (см. edit page + useHierarchicalBack).
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("hierarchical-back-from-select", "1");
+    }
     goBack();
   };
 

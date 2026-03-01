@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { logNavigation } from "@/lib/navigation-log";
 
+const COLLAPSE_FLAG = "hierarchical-back-collapse";
+
 /**
  * Обеспечивает иерархическую навигацию назад:
  * нативная кнопка «Назад» в браузере и свайп на мобильном
@@ -44,11 +46,26 @@ export function useHierarchicalBack(
 
     const handlePopState = () => {
       const path = parentPathRef.current;
-      const from = window.location.pathname + window.location.search;
+      const current = window.location.pathname + window.location.search;
+      // Уже на родителе (например после collapse): не делаем replace повторно.
+      if (current === path) {
+        try {
+          window.sessionStorage.removeItem(COLLAPSE_FLAG);
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+      const from = current;
       logNavigation({ type: "back_popstate", from, to: path });
       window.history.replaceState(null, "", path);
       try {
         router.replace(path);
+        // После возврата с дочерней страницы (select → edit) схлопываем дубликат родителя в стеке.
+        if (typeof window !== "undefined" && window.sessionStorage.getItem(COLLAPSE_FLAG) === "1") {
+          window.sessionStorage.removeItem(COLLAPSE_FLAG);
+          window.history.go(-1);
+        }
       } catch (err) {
         logNavigation({ type: "back_error", from, to: path, error: err });
         window.location.href = path;

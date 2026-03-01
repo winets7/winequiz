@@ -28,14 +28,28 @@ interface RoundData extends RoundDataForDraft {
   photos: { id: string; imageUrl: string }[];
 }
 
+const FROM_SELECT_KEY = "hierarchical-back-from-select";
+const COLLAPSE_KEY = "hierarchical-back-collapse";
+
 export default function LobbyRoundEditPage() {
   const params = useParams();
   const router = useRouter();
   const pathname = usePathname();
   const gameId = params.gameId as string;
   const roundNumber = Number(params.roundNumber);
-  const goBack = useHierarchicalBack(`/lobby/${gameId}`);
+  // Не добавляем lobby→edit в историю, если пришли с select (сохранение значения) — иначе с lobby «Назад» ведёт на edit.
+  const [skipHistoryWrite] = useState(() =>
+    typeof window !== "undefined" ? sessionStorage.getItem(FROM_SELECT_KEY) === "1" : false
+  );
+  const goBack = useHierarchicalBack(`/lobby/${gameId}`, { enabled: !skipHistoryWrite });
   const { data: session, status: sessionStatus } = useSession();
+
+  useEffect(() => {
+    if (skipHistoryWrite && typeof window !== "undefined") {
+      sessionStorage.removeItem(FROM_SELECT_KEY);
+      sessionStorage.setItem(COLLAPSE_KEY, "1");
+    }
+  }, [skipHistoryWrite]);
 
   const [game, setGame] = useState<GameData | null>(null);
   const [rounds, setRounds] = useState<RoundData[]>([]);

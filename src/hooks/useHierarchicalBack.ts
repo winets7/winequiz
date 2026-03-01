@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { logNavigation } from "@/lib/navigation-log";
 
 /**
  * Обеспечивает иерархическую навигацию назад:
@@ -43,8 +44,15 @@ export function useHierarchicalBack(
 
     const handlePopState = () => {
       const path = parentPathRef.current;
+      const from = window.location.pathname + window.location.search;
+      logNavigation({ type: "back_popstate", from, to: path });
       window.history.replaceState(null, "", path);
-      router.replace(path);
+      try {
+        router.replace(path);
+      } catch (err) {
+        logNavigation({ type: "back_error", from, to: path, error: err });
+        window.location.href = path;
+      }
     };
 
     window.addEventListener("popstate", handlePopState);
@@ -54,5 +62,10 @@ export function useHierarchicalBack(
     };
   }, [router, enabled]);
 
-  return () => window.history.back();
+  return () => {
+    const from = window.location.pathname + window.location.search;
+    const to = parentPathRef.current;
+    logNavigation({ type: "back_button", from, to });
+    window.history.back();
+  };
 }

@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { ServiceWorkerRegister } from "@/components/providers/sw-register";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { NavigationLogger } from "@/components/navigation-logger";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -66,6 +67,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
+        <NavigationLogger />
         <SessionProvider>
           <ThemeProvider
             attribute="class"

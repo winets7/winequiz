@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
+const GUARD_STATE = { hierarchicalGuard: true } as const;
+
 /**
  * Обеспечивает иерархическую навигацию назад:
  * нативная кнопка «Назад» в браузере и свайп на мобильном
@@ -11,37 +13,43 @@ import { useRouter } from "next/navigation";
  *
  * Возвращает функцию goBack, которую нужно вызывать вместо
  * router.push(parentPath), чтобы не накапливать лишние записи в истории.
+ *
+ * @param parentPath — путь родительской страницы (например /profile/[id] для /play/[gameId])
+ * @param options.enabled — если false, guard не добавляется (например пока страница в LOADING)
  */
-export function useHierarchicalBack(parentPath: string) {
+export function useHierarchicalBack(
+  parentPath: string,
+  options: { enabled?: boolean } = {}
+) {
+  const { enabled = true } = options;
   const router = useRouter();
   const parentPathRef = useRef(parentPath);
   parentPathRef.current = parentPath;
 
   useEffect(() => {
-    // Добавляем «страж»-запись поверх текущей позиции в истории.
-    // Благодаря этому нажатие «Назад» переместит указатель истории
-    // обратно на текущую страницу и сгенерирует событие popstate,
-    // которое мы перехватываем ниже.
-    window.history.pushState({ hierarchicalGuard: true }, "");
+    if (!enabled) return;
 
-    const handlePopState = () => {
+    const pushGuard = () => {
+      const url = window.location.pathname + window.location.search;
+      window.history.pushState(GUARD_STATE, "", url);
+    };
+
+    // Отложенная вставка guard: после того как Next.js завершит свою работу с историей,
+    // иначе клиентская навигация может перезаписать нашу запись.
+    const t = setTimeout(pushGuard, 0);
+
+    const handlePopState = (e: PopStateEvent) => {
       const path = parentPathRef.current;
-      // Сначала заменяем текущую запись в истории на родителя через History API,
-      // иначе Next.js router.replace() может добавить новую запись вместо замены.
       window.history.replaceState(null, "", path);
       router.replace(path);
     };
 
     window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-    // Не добавляем parentPath в зависимости: используем ref, чтобы при смене
-    // (например, когда подгрузился userId на /play/[gameId]) не перезапускать
-    // эффект. Иначе снимается слушатель popstate, и свайп ведёт на предыдущую
-    // запись в истории (например /play/[gameId]/select/...) вместо /profile/[id].
-  }, [router]);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [router, enabled]);
 
-  // При программном возврате (кнопка «←», выбор значения) вызываем
-  // history.back(), чтобы снять стража; сработает popstate, и handlePopState
-  // заменит уже саму страницу на родителя — в стеке не останется дочерней.
   return () => window.history.back();
 }

@@ -110,7 +110,9 @@ export default function PlayPage() {
   const userId = session?.user?.id;
   const isHost = game?.host?.id === userId;
   const profilePath = userId ? `/profile/${userId}` : "/profile";
-  const goBack = useHierarchicalBack(profilePath);
+  const goBack = useHierarchicalBack(profilePath, {
+    enabled: phase !== "LOADING",
+  });
 
   // =============================================
   // Загрузка сохраненных значений из localStorage

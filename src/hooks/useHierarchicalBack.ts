@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 /**
@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation";
  */
 export function useHierarchicalBack(parentPath: string) {
   const router = useRouter();
+  const parentPathRef = useRef(parentPath);
+  parentPathRef.current = parentPath;
 
   useEffect(() => {
     // Добавляем «страж»-запись поверх текущей позиции в истории.
@@ -23,15 +25,20 @@ export function useHierarchicalBack(parentPath: string) {
     window.history.pushState({ hierarchicalGuard: true }, "");
 
     const handlePopState = () => {
+      const path = parentPathRef.current;
       // Сначала заменяем текущую запись в истории на родителя через History API,
       // иначе Next.js router.replace() может добавить новую запись вместо замены.
-      window.history.replaceState(null, "", parentPath);
-      router.replace(parentPath);
+      window.history.replaceState(null, "", path);
+      router.replace(path);
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [parentPath, router]);
+    // Не добавляем parentPath в зависимости: используем ref, чтобы при смене
+    // (например, когда подгрузился userId на /play/[gameId]) не перезапускать
+    // эффект. Иначе снимается слушатель popstate, и свайп ведёт на предыдущую
+    // запись в истории (например /play/[gameId]/select/...) вместо /profile/[id].
+  }, [router]);
 
   // При программном возврате (кнопка «←», выбор значения) вызываем
   // history.back(), чтобы снять стража; сработает popstate, и handlePopState

@@ -30,7 +30,8 @@ export function useHierarchicalBack(parentPath: string) {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [parentPath, router]);
 
-  // Используем replace, а не push, чтобы дочерняя страница
-  // не оставалась в стеке истории после возврата к родителю.
-  return () => router.replace(parentPath);
+  // При программном возврате (кнопка «←», выбор значения) вызываем
+  // history.back(), чтобы снять стража; сработает popstate, и handlePopState
+  // заменит уже саму страницу на родителя — в стеке не останется дочерней.
+  return () => window.history.back();
 }

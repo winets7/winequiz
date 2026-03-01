@@ -1,0 +1,44 @@
+---
+description: Иерархическая навигация назад для дочерних страниц (Next.js App Router)
+globs: src/app/**/page.tsx
+alwaysApply: false
+---
+
+# Иерархическая навигация назад
+
+Любая **дочерняя страница** (страница выбора параметра, редактирования и т.п.) должна использовать хук `useHierarchicalBack`, чтобы нативная кнопка «Назад» в браузере и свайп на мобильных/планшетах всегда вели на иерархического родителя, а не на произвольную предыдущую запись в истории.
+
+## Иерархия маршрутов проекта
+
+| Дочерняя страница | Родитель |
+|---|---|
+| `play/[gameId]/select/*` | `/play/[gameId]` |
+| `lobby/[gameId]/round/[n]/select/[characteristic]` | `/lobby/[gameId]/round/[n]/edit` |
+| `lobby/[gameId]/round/[n]/edit` | `/lobby/[gameId]` |
+
+## Применение хука
+
+```tsx
+// ❌ ПЛОХО — накапливает записи в истории, свайп ведёт куда попало
+import { useRouter } from "next/navigation";
+const router = useRouter();
+// в обработчике:
+router.push(`/play/${gameId}`);
+// в кнопке «←»:
+onClick={() => router.push(`/play/${gameId}`)}
+
+// ✅ ХОРОШО — нативный back/свайп всегда ведёт на родителя
+import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
+const goBack = useHierarchicalBack(`/play/${gameId}`);
+// в обработчике после выбора:
+goBack();
+// в кнопке «←»:
+onClick={goBack}
+```
+
+## Правила
+
+- Вызывать хук **один раз** в теле компонента, передав путь родителя
+- Использовать возвращаемую функцию `goBack` **везде**, где раньше был `router.push(parentPath)` или `router.push(editUrl)`
+- Если страница использует `router` для других целей (редиректы, ошибки), `useRouter` оставлять — только навигацию к родителю заменять на `goBack`
+- Не применять хук на **родительских** страницах (`play/[gameId]`, `lobby/[gameId]` и т.д.)

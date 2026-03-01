@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
+import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
 import { useSession } from "next-auth/react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { HostRoundCharacteristicCards } from "@/components/game/host-round-characteristic-cards";
@@ -33,6 +34,7 @@ export default function LobbyRoundEditPage() {
   const pathname = usePathname();
   const gameId = params.gameId as string;
   const roundNumber = Number(params.roundNumber);
+  const goBack = useHierarchicalBack(`/lobby/${gameId}`);
   const { data: session, status: sessionStatus } = useSession();
 
   const [game, setGame] = useState<GameData | null>(null);
@@ -211,7 +213,7 @@ export default function LobbyRoundEditPage() {
       }
 
       clearDraft(gameId, roundNumber);
-      router.push(`/lobby/${gameId}`);
+      goBack();
     } catch {
       setError("Ошибка при сохранении раунда");
     } finally {
@@ -271,7 +273,7 @@ export default function LobbyRoundEditPage() {
       <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <button
-            onClick={() => router.push(`/lobby/${gameId}`)}
+            onClick={goBack}
             className="text-sm text-[var(--primary)] font-medium flex items-center gap-1"
           >
             ← Назад

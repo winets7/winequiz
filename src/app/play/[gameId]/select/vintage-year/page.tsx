@@ -1,13 +1,14 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { VINTAGE_YEARS } from "@/lib/wine-data";
+import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
 
 export default function SelectVintageYearPage() {
   const params = useParams();
-  const router = useRouter();
   const gameId = params.gameId as string;
+  const goBack = useHierarchicalBack(`/play/${gameId}`);
 
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,7 +28,7 @@ export default function SelectVintageYearPage() {
     // Отправляем кастомное событие для обновления состояния на странице раунда
     window.dispatchEvent(new CustomEvent("localStorageChange"));
     // Возвращаемся на страницу раунда
-    router.push(`/play/${gameId}`);
+    goBack();
   };
 
   const filteredYears = VINTAGE_YEARS.filter((year) =>
@@ -40,7 +41,7 @@ export default function SelectVintageYearPage() {
       <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <button
-            onClick={() => router.push(`/play/${gameId}`)}
+            onClick={goBack}
             className="text-[var(--foreground)] hover:opacity-70 transition-opacity"
           >
             ←

@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
 import {
   COLOR_LABELS,
   COLOR_ICONS,
@@ -36,6 +37,7 @@ export default function HostRoundSelectCharacteristicPage() {
   const characteristic = params.characteristic as string;
 
   const editUrl = `/lobby/${gameId}/round/${roundNumber}/edit`;
+  const goBack = useHierarchicalBack(editUrl);
 
   const [draft, setDraftFromStorage] = useState<WineParams | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -67,7 +69,7 @@ export default function HostRoundSelectCharacteristicPage() {
       ...updates,
     };
     setDraft(gameId, roundNumber, next);
-    router.push(editUrl);
+    goBack();
   };
 
   if (!VALID_CHARACTERISTICS.includes(characteristic as Characteristic)) {
@@ -87,7 +89,7 @@ export default function HostRoundSelectCharacteristicPage() {
     <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
       <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
         <button
-          onClick={() => router.push(editUrl)}
+          onClick={goBack}
           className="text-[var(--foreground)] hover:opacity-70 transition-opacity"
         >
           ←

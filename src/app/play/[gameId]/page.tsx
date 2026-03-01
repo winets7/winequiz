@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSocket } from "@/hooks/useSocket";
+import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WineForm, WineParams } from "@/components/game/wine-form";
 import { RoundResults } from "@/components/game/round-results";
@@ -108,6 +109,8 @@ export default function PlayPage() {
 
   const userId = session?.user?.id;
   const isHost = game?.host?.id === userId;
+  const profilePath = userId ? `/profile/${userId}` : "/";
+  const goBack = useHierarchicalBack(profilePath);
 
   // =============================================
   // Загрузка сохраненных значений из localStorage
@@ -458,10 +461,10 @@ export default function PlayPage() {
           <div className="text-5xl">😕</div>
           <p className="text-xl text-[var(--error)]">{error}</p>
           <button
-            onClick={() => router.push("/")}
+            onClick={goBack}
             className="px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl"
           >
-            На главную
+            В профиль
           </button>
         </div>
       </main>
@@ -474,6 +477,13 @@ export default function PlayPage() {
       <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
         <div className="max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <button
+              onClick={goBack}
+              className="text-[var(--foreground)] hover:opacity-70 transition-opacity p-1 -ml-1"
+              title="В профиль"
+            >
+              ←
+            </button>
             <span className="text-sm font-mono text-[var(--muted-foreground)]">
               {game?.code}
             </span>
@@ -722,10 +732,10 @@ export default function PlayPage() {
             )}
 
             <button
-              onClick={() => router.push("/")}
+              onClick={goBack}
               className="w-full px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg"
             >
-              🏠 На главную
+              👤 В профиль
             </button>
           </div>
         )}

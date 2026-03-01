@@ -12,6 +12,7 @@ alwaysApply: false
 
 | Дочерняя страница | Родитель |
 |---|---|
+| `play/[gameId]` | `/profile/[id]` (профиль текущего пользователя) |
 | `play/[gameId]/select/*` | `/play/[gameId]` |
 | `lobby/[gameId]/round/[n]/select/[characteristic]` | `/lobby/[gameId]/round/[n]/edit` |
 | `lobby/[gameId]/round/[n]/edit` | `/lobby/[gameId]` |
@@ -41,4 +42,4 @@ onClick={goBack}
 - Вызывать хук **один раз** в теле компонента, передав путь родителя
 - Использовать возвращаемую функцию `goBack` **везде**, где раньше был `router.push(parentPath)` или `router.push(editUrl)`
 - Если страница использует `router` для других целей (редиректы, ошибки), `useRouter` оставлять — только навигацию к родителю заменять на `goBack`
-- Не применять хук на **родительских** страницах (`play/[gameId]`, `lobby/[gameId]` и т.д.)
+- Не применять хук на страницах без иерархического родителя (например `lobby/[gameId]`). Со страницы `play/[gameId]` возврат всегда ведёт в `/profile/[id]`

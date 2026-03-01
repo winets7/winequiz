@@ -23,6 +23,9 @@ export function useHierarchicalBack(parentPath: string) {
     window.history.pushState({ hierarchicalGuard: true }, "");
 
     const handlePopState = () => {
+      // Сначала заменяем текущую запись в истории на родителя через History API,
+      // иначе Next.js router.replace() может добавить новую запись вместо замены.
+      window.history.replaceState(null, "", parentPath);
       router.replace(parentPath);
     };
 

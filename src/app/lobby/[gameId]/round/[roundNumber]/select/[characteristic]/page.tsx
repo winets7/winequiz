@@ -73,7 +73,8 @@ export default function HostRoundSelectCharacteristicPage() {
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("hierarchical-back-from-select", "1");
     }
-    goBack();
+    // router.replace вместо goBack() убирает двойную навигацию (history.back + popstate), первый тап срабатывает.
+    router.replace(editUrl);
   };
 
   if (!VALID_CHARACTERISTICS.includes(characteristic as Characteristic)) {

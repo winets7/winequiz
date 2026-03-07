@@ -93,6 +93,7 @@ export default function LobbyPage() {
           hostId: g.hostId || g.host?.id,
           host: g.host,
         });
+        if (g.status === "FINISHED") setGameEnded(true);
 
         if (g.players) {
           setPlayers(

@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import {
   SWEETNESS_LABELS,
   COLOR_LABELS,
   COLOR_ICONS,
   COMPOSITION_LABELS,
 } from "@/lib/wine-data";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 
 interface WineAnswer {
   grapeVarieties: string[];
@@ -35,6 +37,40 @@ interface RoundHistoryItemProps {
     score: number;
     submittedAt: string;
   } | null;
+}
+
+function RoundPhotosGrid({ photos }: { photos: string[] }) {
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  return (
+    <div>
+      <h4 className="text-sm font-medium text-[var(--muted-foreground)] mb-3">
+        📸 Бутылка
+      </h4>
+      <div className="grid grid-cols-2 gap-2">
+        {photos.map((url, i) => (
+          <button
+            key={i}
+            type="button"
+            className="aspect-[3/4] rounded-xl overflow-hidden bg-[var(--muted)] block w-full text-left focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+            onClick={() => setLightboxUrl(url)}
+          >
+            <img
+              src={url}
+              alt={`Фото ${i + 1}`}
+              className="w-full h-full object-cover"
+            />
+          </button>
+        ))}
+      </div>
+      {lightboxUrl && (
+        <ImageLightbox
+          src={lightboxUrl}
+          alt="Фото бутылки"
+          onClose={() => setLightboxUrl(null)}
+        />
+      )}
+    </div>
+  );
 }
 
 function ParamRow({
@@ -140,25 +176,7 @@ export function RoundHistoryItem({
       <div className="p-6 space-y-6">
         {/* Фотографии бутылки */}
         {photos.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium text-[var(--muted-foreground)] mb-3">
-              📸 Бутылка
-            </h4>
-            <div className="grid grid-cols-2 gap-2">
-              {photos.map((url, i) => (
-                <div
-                  key={i}
-                  className="aspect-[3/4] rounded-xl overflow-hidden bg-[var(--muted)]"
-                >
-                  <img
-                    src={url}
-                    alt={`Фото ${i + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          <RoundPhotosGrid photos={photos} />
         )}
 
         {/* Правильные ответы */}

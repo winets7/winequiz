@@ -5,6 +5,7 @@ import { useParams, useRouter, usePathname } from "next/navigation";
 import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
 import { useSession } from "next-auth/react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { HostRoundCharacteristicCards } from "@/components/game/host-round-characteristic-cards";
 import {
   getDraft,
@@ -63,6 +64,7 @@ export default function LobbyRoundEditPage() {
 
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userId = session?.user?.id;
@@ -205,9 +207,7 @@ export default function LobbyRoundEditPage() {
     }
     setError(null);
     setSelectedPhotos((prev) => [...prev, ...files]);
-    files.forEach((file) => {
-      setPhotoPreviewUrls((prev) => [...prev, URL.createObjectURL(file)]);
-    });
+    setPhotoPreviewUrls((prev) => [...prev, ...files.map((file) => URL.createObjectURL(file))]);
   };
 
   const removePhoto = (index: number) => {
@@ -374,16 +374,18 @@ export default function LobbyRoundEditPage() {
           {existingRound && existingRound.photos.length > 0 && photoPreviewUrls.length === 0 && (
             <div className="grid grid-cols-4 gap-2 mb-3">
               {existingRound.photos.map((photo, i) => (
-                <div
+                <button
                   key={photo.id}
-                  className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[var(--muted)]"
+                  type="button"
+                  className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[var(--muted)] block w-full text-left focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                  onClick={() => setLightboxUrl(photo.imageUrl)}
                 >
                   <img
                     src={photo.imageUrl}
                     alt={`Фото ${i + 1}`}
                     className="w-full h-full object-cover"
                   />
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -395,11 +397,18 @@ export default function LobbyRoundEditPage() {
                   key={i}
                   className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[var(--muted)]"
                 >
-                  <img src={url} alt={`Фото ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    className="absolute inset-0 w-full h-full block focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-inset"
+                    onClick={() => setLightboxUrl(url)}
+                  >
+                    <img src={url} alt={`Фото ${i + 1}`} className="w-full h-full object-cover" />
+                  </button>
                   {!isRoundLocked && (
                     <button
-                      onClick={() => removePhoto(i)}
-                      className="absolute top-1 right-1 w-6 h-6 bg-[var(--error)] text-white rounded-full text-xs flex items-center justify-center"
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removePhoto(i); }}
+                      className="absolute top-1 right-1 z-10 w-6 h-6 bg-[var(--error)] text-white rounded-full text-xs flex items-center justify-center"
                     >
                       ✕
                     </button>
@@ -407,6 +416,14 @@ export default function LobbyRoundEditPage() {
                 </div>
               ))}
             </div>
+          )}
+
+          {lightboxUrl && (
+            <ImageLightbox
+              src={lightboxUrl}
+              alt="Фото бутылки"
+              onClose={() => setLightboxUrl(null)}
+            />
           )}
 
           {selectedPhotos.length < 4 && (

@@ -52,8 +52,12 @@ export async function POST(
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
 
-      // Валидация типа файла
-      if (!file.type.startsWith("image/")) {
+      // Валидация: тип image/* или пустой тип (камера на части устройств)
+      const isImage =
+        file.type.startsWith("image/") ||
+        file.type === "" ||
+        /\.(jpe?g|png|gif|webp)$/i.test(file.name || "");
+      if (!isImage) {
         continue;
       }
 
@@ -83,6 +87,13 @@ export async function POST(
       });
 
       savedPhotos.push(photo);
+    }
+
+    if (savedPhotos.length === 0) {
+      return NextResponse.json(
+        { error: "Не удалось сохранить ни одного фото (проверьте формат и размер до 10 МБ)" },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json({

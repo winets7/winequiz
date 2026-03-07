@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { QRCodeSVG } from "qrcode.react";
 import { useSocket } from "@/hooks/useSocket";
@@ -41,6 +41,7 @@ interface RoundData {
 
 export default function LobbyPage() {
   const params = useParams();
+  const pathname = usePathname();
   const router = useRouter();
   const gameId = params.gameId as string;
   const { data: session } = useSession();
@@ -55,6 +56,7 @@ export default function LobbyPage() {
   const [gameStarting, setGameStarting] = useState(false);
   const [lobbyOpen, setLobbyOpen] = useState(false);
   const [gameEnded, setGameEnded] = useState(false);
+  const [addingRound, setAddingRound] = useState(false);
 
   const gameRef = useRef(game);
   gameRef.current = game;
@@ -127,7 +129,7 @@ export default function LobbyPage() {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [gameId]);
+  }, [gameId, pathname]);
 
   // =============================================
   // Socket.io
@@ -319,6 +321,34 @@ export default function LobbyPage() {
     navigator.clipboard.writeText(game.code);
   }, [game]);
 
+  // Добавить раунд (только WAITING, totalRounds < 20)
+  const handleAddRound = useCallback(async () => {
+    if (!game || game.status !== "WAITING" || game.totalRounds >= 20 || addingRound) return;
+    setAddingRound(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/games/${game.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ totalRounds: game.totalRounds + 1 }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Не удалось добавить раунд");
+        return;
+      }
+      const data = await res.json();
+      setGame((prev) => (prev ? { ...prev, totalRounds: data.game.totalRounds } : null));
+      const roundsRes = await fetch(`/api/rounds?gameId=${game.id}`, { cache: "no-store" });
+      if (roundsRes.ok) {
+        const roundsData = await roundsRes.json();
+        setRounds(roundsData.rounds || []);
+      }
+    } finally {
+      setAddingRound(false);
+    }
+  }, [game, addingRound]);
+
   // =============================================
   // Проверки
   // =============================================
@@ -455,26 +485,38 @@ export default function LobbyPage() {
           </div>
 
           {/* Раунды */}
-          <PlayerRoundsList
-            rounds={rounds.map((r) => ({
-              id: r.id,
-              roundNumber: r.roundNumber,
-              status: r.status,
-              color: r.color,
-              country: r.country,
-              vintageYear: r.vintageYear,
-              grapeVarieties: r.grapeVarieties,
-            }))}
-            totalRounds={game.totalRounds}
-            gameId={game.id}
-            gameStatus={game.status}
-            variant={isHost ? "host" : "player"}
-            allRoundsFilled={allRoundsFilled}
-            lobbyOpen={lobbyOpen}
-            onStartRound={isHost ? handleStartRound : undefined}
-            onCloseRound={isHost ? handleCloseRound : undefined}
-            onEditRound={isHost ? openRoundEditor : undefined}
-          />
+          <div className="space-y-2">
+            <PlayerRoundsList
+              rounds={rounds.map((r) => ({
+                id: r.id,
+                roundNumber: r.roundNumber,
+                status: r.status,
+                color: r.color,
+                country: r.country,
+                vintageYear: r.vintageYear,
+                grapeVarieties: r.grapeVarieties,
+              }))}
+              totalRounds={game.totalRounds}
+              gameId={game.id}
+              gameStatus={game.status}
+              variant={isHost ? "host" : "player"}
+              allRoundsFilled={allRoundsFilled}
+              lobbyOpen={lobbyOpen}
+              onStartRound={isHost ? handleStartRound : undefined}
+              onCloseRound={isHost ? handleCloseRound : undefined}
+              onEditRound={isHost ? openRoundEditor : undefined}
+            />
+            {isHost && game.status === "WAITING" && game.totalRounds < 20 && (
+              <button
+                type="button"
+                onClick={handleAddRound}
+                disabled={addingRound}
+                className="w-full py-2.5 text-sm font-medium text-[var(--primary)] border border-[var(--primary)] rounded-xl hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] transition-colors disabled:opacity-50"
+              >
+                {addingRound ? "⏳ Добавление..." : "➕ Добавить раунд"}
+              </button>
+            )}
+          </div>
 
           {/* Настройки игры */}
           <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">

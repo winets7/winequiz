@@ -19,6 +19,7 @@ interface GameData {
   id: string;
   code: string;
   hostId: string;
+  status?: string;
 }
 
 interface RoundData extends RoundDataForDraft {
@@ -57,6 +58,7 @@ export default function LobbyRoundEditPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
@@ -92,6 +94,7 @@ export default function LobbyRoundEditPage() {
           id: g.id,
           code: g.code,
           hostId: g.hostId || g.host?.id,
+          status: g.status,
         });
 
         // Раунды загружаем ДО setLoading(false), иначе init-эффект черновика
@@ -159,6 +162,31 @@ export default function LobbyRoundEditPage() {
   const existingRound = rounds.find((r) => r.roundNumber === roundNumber);
   const isRoundLocked =
     existingRound?.status === "ACTIVE" || existingRound?.status === "CLOSED";
+  const canDeleteRound =
+    isHost &&
+    game?.status === "WAITING" &&
+    existingRound != null &&
+    existingRound.status === "CREATED";
+
+  const handleDeleteRound = async () => {
+    if (!existingRound || !canDeleteRound || deleting) return;
+    if (!confirm("Удалить этот раунд? Слот раунда будет освобождён.")) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/rounds/${existingRound.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Не удалось удалить раунд");
+        return;
+      }
+      clearDraft(gameId, roundNumber);
+      router.replace(`/lobby/${gameId}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const lockReason =
     existingRound?.status === "ACTIVE"
       ? "Раунд уже начат, редактирование недоступно."
@@ -415,21 +443,33 @@ export default function LobbyRoundEditPage() {
           />
         </div>
 
-        <button
-          onClick={handleSaveRound}
-          disabled={saving || isRoundLocked}
-          className="w-full px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="animate-spin">⏳</span> Сохранение...
-            </span>
-          ) : existingRound ? (
-            "💾 Сохранить изменения"
-          ) : (
-            "💾 Сохранить раунд"
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={handleSaveRound}
+            disabled={saving || isRoundLocked}
+            className="w-full px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="animate-spin">⏳</span> Сохранение...
+              </span>
+            ) : existingRound ? (
+              "💾 Сохранить изменения"
+            ) : (
+              "💾 Сохранить раунд"
+            )}
+          </button>
+          {canDeleteRound && (
+            <button
+              type="button"
+              onClick={handleDeleteRound}
+              disabled={deleting}
+              className="w-full py-3 text-sm font-medium text-[var(--error)] border border-[var(--error)] rounded-2xl hover:bg-[var(--error)] hover:text-white transition-colors disabled:opacity-50"
+            >
+              {deleting ? "⏳ Удаление..." : "🗑 Удалить раунд"}
+            </button>
           )}
-        </button>
+        </div>
       </div>
     </main>
   );

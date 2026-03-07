@@ -74,3 +74,9 @@
 | `play/[gameId]/select/*` | `/play/[gameId]` |
 | `lobby/[gameId]/round/[n]/select/[characteristic]` | `/lobby/[gameId]/round/[n]/edit` |
 | `lobby/[gameId]/round/[n]/edit` | `/lobby/[gameId]` |
+
+---
+
+## Правила лобби (хост)
+
+**Изменение количества раундов** (добавление или удаление раунда) разрешено **только пока игра в статусе WAITING**. После старта игры (`PLAYING`) число раундов менять нельзя.

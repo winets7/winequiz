@@ -573,10 +573,18 @@ export default function LobbyPage() {
             </div>
           )}
 
-          {/* Участники ожидают */}
+          {/* Участники ожидают / игра завершена */}
           {!isHost && (
-            <div className="text-center py-4 text-[var(--muted-foreground)]">
-              <span className="animate-pulse">⏳</span> Ожидайте, пока хост начнёт игру
+            <div className="space-y-2">
+              {gameEnded ? (
+                <div className="w-full px-8 py-4 bg-[var(--muted)] text-[var(--muted-foreground)] rounded-2xl text-lg font-bold text-center cursor-default">
+                  Игра завершена
+                </div>
+              ) : (
+                <div className="text-center py-4 text-[var(--muted-foreground)]">
+                  <span className="animate-pulse">⏳</span> Ожидайте, пока хост начнёт игру
+                </div>
+              )}
             </div>
           )}
         </div>

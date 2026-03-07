@@ -67,10 +67,16 @@ export default function LobbyPage() {
   // Загрузка данных
   // =============================================
   useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     async function fetchData() {
       try {
         // Загружаем игру
-        const gameRes = await fetch(`/api/games/${gameId}`);
+        const gameRes = await fetch(`/api/games/${gameId}`, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
         if (!gameRes.ok) {
           setError("Игра не найдена");
           return;
@@ -97,18 +103,28 @@ export default function LobbyPage() {
         }
 
         // Загружаем существующие раунды
-        const roundsRes = await fetch(`/api/rounds?gameId=${gameId}`);
+        const roundsRes = await fetch(`/api/rounds?gameId=${gameId}`, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
         if (roundsRes.ok) {
           const roundsData = await roundsRes.json();
           setRounds(roundsData.rounds || []);
         }
-      } catch {
-        setError("Ошибка загрузки игры");
+      } catch (e) {
+        setError(
+          e instanceof Error && e.name === "AbortError" ? "Таймаут загрузки" : "Ошибка загрузки игры"
+        );
       } finally {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     }
     fetchData();
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [gameId]);
 
   // =============================================

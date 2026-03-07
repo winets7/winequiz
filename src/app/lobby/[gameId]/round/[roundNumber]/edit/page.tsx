@@ -223,7 +223,31 @@ export default function LobbyRoundEditPage() {
       if (selectedPhotos.length > 0) {
         const formData = new FormData();
         selectedPhotos.forEach((photo) => formData.append("photos", photo));
-        await fetch(`/api/rounds/${round.id}/photos`, { method: "POST", body: formData });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        try {
+          const photosRes = await fetch(`/api/rounds/${round.id}/photos`, {
+            method: "POST",
+            body: formData,
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+          if (!photosRes.ok) {
+            const data = await photosRes.json().catch(() => ({}));
+            setError(data.error || "Ошибка загрузки фотографий");
+            setSaving(false);
+            return;
+          }
+        } catch (photoErr) {
+          clearTimeout(timeoutId);
+          setError(
+            photoErr instanceof Error && photoErr.name === "AbortError"
+              ? "Таймаут загрузки фото. Раунд сохранён, добавьте фото позже."
+              : "Ошибка загрузки фотографий"
+          );
+          setSaving(false);
+          return;
+        }
       }
 
       clearDraft(gameId, roundNumber);
@@ -235,7 +259,8 @@ export default function LobbyRoundEditPage() {
     }
   };
 
-  const isPageLoading = loading || !sessionReady;
+  // Во время сохранения не показывать полный экран «Загрузка» (сессия может перейти в loading при refetch)
+  const isPageLoading = (loading || !sessionReady) && !saving;
   if (isPageLoading) {
     return (
       <main className="min-h-screen flex items-center justify-center">

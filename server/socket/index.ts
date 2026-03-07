@@ -79,6 +79,7 @@ export function createSocketServer(httpServer?: HttpServer) {
           where: { id: gameId },
           select: { status: true, currentRound: true, totalRounds: true },
         });
+        if (gameFromDb?.status === "FINISHED") existingRoom.gameEnded = true;
 
         socket.emit("game_created", {
           gameId,
@@ -160,7 +161,8 @@ export function createSocketServer(httpServer?: HttpServer) {
         where: { id: gameId },
       });
 
-      // Создаём комнату
+      // Создаём комнату (если игра уже завершена в БД — восстанавливаем состояние)
+      const gameEndedFromDb = game?.status === "FINISHED";
       const room: GameRoom = {
         gameId,
         code,
@@ -170,7 +172,7 @@ export function createSocketServer(httpServer?: HttpServer) {
         totalRounds: game?.totalRounds || 0,
         currentRoundId: null,
         lobbyOpen: false,
-        gameEnded: false,
+        gameEnded: gameEndedFromDb,
       };
       room.players.set(userId, { userId, name, socketId: socket.id });
 
@@ -438,6 +440,19 @@ export function createSocketServer(httpServer?: HttpServer) {
       }
 
       room.gameEnded = true;
+
+      try {
+        await prisma.gameSession.update({
+          where: { id: room.gameId },
+          data: { status: "FINISHED", finishedAt: new Date() },
+        });
+      } catch (err) {
+        console.error("Ошибка сохранения завершения игры:", err);
+        socket.emit("error", { message: "Не удалось сохранить завершение игры" });
+        room.gameEnded = false;
+        return;
+      }
+
       console.log(`🏁 Игра ${code} завершена`);
 
       io.to(code).emit("game_finished", {});

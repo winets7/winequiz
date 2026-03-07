@@ -28,6 +28,14 @@ export function clearDraft(gameId: string, roundNumber: number): void {
   sessionStorage.removeItem(getDraftKey(gameId, roundNumber));
 }
 
+/** Очистить черновики всех раундов игры (после удаления раунда и перенумерации) */
+export function clearAllDraftsForGame(gameId: string): void {
+  if (typeof window === "undefined") return;
+  for (let n = 1; n <= 20; n++) {
+    sessionStorage.removeItem(getDraftKey(gameId, n));
+  }
+}
+
 const emptyParams: WineParams = {
   grapeVarieties: [],
   sweetness: "",

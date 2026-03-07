@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 
 /**
  * DELETE /api/rounds/[roundId] — Удаление раунда (только хост, только WAITING, только CREATED)
- * Если удаляемый раунд — последний по номеру, totalRounds игры уменьшается на 1.
+ * Удаляет раунд, уменьшает totalRounds на 1 и сдвигает номера всех последующих раундов.
  */
 export async function DELETE(
   request: NextRequest,
@@ -59,17 +59,29 @@ export async function DELETE(
       );
     }
 
-    await prisma.round.delete({
-      where: { id: roundId },
-    });
+    const gameId = round.game.id;
+    const deletedNumber = round.roundNumber;
+    const newTotalRounds = Math.max(1, round.game.totalRounds - 1);
 
-    const isLastSlot = round.roundNumber === round.game.totalRounds;
-    if (isLastSlot && round.game.totalRounds > 1) {
-      await prisma.gameSession.update({
-        where: { id: round.game.id },
-        data: { totalRounds: round.game.totalRounds - 1 },
+    await prisma.$transaction(async (tx) => {
+      await tx.round.delete({ where: { id: roundId } });
+
+      const following = await tx.round.findMany({
+        where: { gameId, roundNumber: { gt: deletedNumber } },
+        orderBy: { roundNumber: "asc" },
       });
-    }
+      for (const r of following) {
+        await tx.round.update({
+          where: { id: r.id },
+          data: { roundNumber: r.roundNumber - 1 },
+        });
+      }
+
+      await tx.gameSession.update({
+        where: { id: gameId },
+        data: { totalRounds: newTotalRounds },
+      });
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

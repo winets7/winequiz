@@ -10,6 +10,7 @@ import {
   getDraft,
   setDraft,
   clearDraft,
+  clearAllDraftsForGame,
   roundToWineParams,
   type RoundDataForDraft,
 } from "@/lib/lobby-round-draft";
@@ -180,7 +181,7 @@ export default function LobbyRoundEditPage() {
         setError(data.error || "Не удалось удалить раунд");
         return;
       }
-      clearDraft(gameId, roundNumber);
+      clearAllDraftsForGame(gameId);
       router.replace(`/lobby/${gameId}`);
     } finally {
       setDeleting(false);

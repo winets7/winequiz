@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir } from "fs/promises";
+import { mkdir } from "fs/promises";
 import path from "path";
+import sharp from "sharp";
+
+/** Максимальная сторона в пикселях; фото больше — уменьшаются с сохранением пропорций */
+const MAX_SIDE = 1920;
+/** Качество JPEG при сохранении (1–100) */
+const JPEG_QUALITY = 85;
 
 /**
  * POST /api/rounds/[roundId]/photos — Загрузка фотографий бутылки
@@ -66,13 +72,16 @@ export async function POST(
         continue;
       }
 
-      const ext = file.name.split(".").pop() || "jpg";
-      const fileName = `photo-${i + 1}-${Date.now()}.${ext}`;
+      const bytes = await file.arrayBuffer();
+      const fileName = `photo-${i + 1}-${Date.now()}.jpg`;
       const filePath = path.join(uploadDir, fileName);
 
-      // Сохраняем файл
-      const bytes = await file.arrayBuffer();
-      await writeFile(filePath, Buffer.from(bytes));
+      // Уменьшаем и сжимаем: макс. сторона MAX_SIDE px, без увеличения маленьких
+      const pipeline = sharp(Buffer.from(bytes))
+        .resize(MAX_SIDE, MAX_SIDE, { fit: "inside", withoutEnlargement: true });
+      await pipeline
+        .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
+        .toFile(filePath);
 
       // URL для доступа через API
       const imageUrl = `/api/uploads/rounds/${roundId}/${fileName}`;

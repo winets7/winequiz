@@ -47,13 +47,14 @@ export function useHierarchicalBack(
     const handlePopState = () => {
       const path = parentPathRef.current;
       const current = window.location.pathname + window.location.search;
-      // Уже на родителе (например после collapse): не делаем replace повторно.
+      // Уже на родителе (например после goBack() или collapse): синхронизируем Next.js с URL и выходим.
       if (current === path) {
         try {
           window.sessionStorage.removeItem(COLLAPSE_FLAG);
         } catch {
           /* ignore */
         }
+        router.replace(path);
         return;
       }
       const from = current;

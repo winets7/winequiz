@@ -79,6 +79,7 @@ export default function LobbyPage() {
         });
         if (!gameRes.ok) {
           setError("Игра не найдена");
+          setLoading(false);
           return;
         }
         const gameData = await gameRes.json();

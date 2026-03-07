@@ -251,7 +251,8 @@ export default function LobbyRoundEditPage() {
       }
 
       clearDraft(gameId, roundNumber);
-      goBack();
+      // Прямой переход без history.back() — избегаем зависания «Загрузка» при возврате в лобби
+      router.replace(`/lobby/${gameId}`);
     } catch {
       setError("Ошибка при сохранении раунда");
     } finally {

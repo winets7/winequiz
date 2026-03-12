@@ -138,7 +138,7 @@ distwinegame/
 │   ├── seed.ts                   # Начальные данные (достижения и т.д.)
 │   └── migrations/
 ├── public/                       # Статика, PWA (manifest, icons)
-├── docs/                         # PAGES.md, NAVIGATION.md (открытие страниц и возвраты)
+├── docs/                         # PAGES.md, NAVIGATION.md (открытие страниц и возвраты; кнопка «Назад» с edit → диалог «Сохранить?»)
 ├── package.json
 └── .env.example
 ```

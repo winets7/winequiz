@@ -16,8 +16,7 @@
     "db:clear-games": "npx tsx scripts/clear-games-data.ts",
     "socket": "npx tsx server/socket/index.ts",
     "dev:all": "npm run socket & npm run dev",
-    "test:navigation": "node scripts/test-navigation-routes.mjs",
-    "test:e2e-back-nav": "node scripts/e2e-back-navigation.mjs"
+    "test:navigation": "node scripts/test-navigation-routes.mjs"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -44,7 +43,6 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^11.0.0",
-    "@playwright/test": "^1.49.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",

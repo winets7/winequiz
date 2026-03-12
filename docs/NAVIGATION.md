@@ -71,6 +71,18 @@
 - **Edit**: при «Назад» не уходим сразу в лобби, а показываем диалог; при выходе — переход в лобби (`router.replace(target)`).
 - **Select (хост)**: после сохранения значения — `router.replace(editUrl)`, без лишней записи в history; флаг `hierarchical-back-from-select` обрабатывается в edit для `history.go(-1)` при необходимости.
 
+### Кнопка «Назад» со страницы редактирования раунда (edit)
+
+Роутер Next.js переключает маршрут на лобби **до** срабатывания события `popstate`, поэтому обработчик `popstate` на странице edit часто не вызывается (страница размонтируется, в логах видно `popstate listener removed` → `navigate` edit→lobby).
+
+**Реализованный сценарий:**
+
+1. **Лобби как fallback:** при монтировании лобби `useLayoutEffect` проверяет `sessionStorage` ключ `lobby-edit-page-url`. Если там URL страницы edit для этого лобби, лобби выставляет флаг `lobby-edit-show-save-dialog`, делает `router.replace(editUrl)` и пользователь снова попадает на edit.
+2. **Флаг диалога при размонтировании edit:** в cleanup эффекта с `popstate` на странице edit проверяется, совпадает ли текущий `window.location.pathname` с путём лобби (`parentPath`). Если да (значит уход по «Назад»), в `sessionStorage` пишется `lobby-edit-show-save-dialog = "1"`. Так флаг гарантированно установлен до монтирования лобби.
+3. При открытии edit (в т.ч. после редиректа с лобби) эффект читает этот флаг и при значении `"1"` показывает диалог «Сохранить внесённые изменения?».
+
+Ключи sessionStorage: `lobby-edit-page-url` (URL страницы edit, пишется на edit), `lobby-edit-show-save-dialog` (показать диалог при следующем открытии edit).
+
 ---
 
 ## 3. Действия по страницам (краткая таблица)
@@ -119,3 +131,5 @@
 | Лог навигации | `src/lib/navigation-log.ts` |
 | Правила навигации | `.cursor/rules/hierarchical-navigation.mdc` |
 | Дерево маршрутов | `docs/PAGES.md` |
+| Страница edit (диалог «Назад») | `src/app/lobby/[gameId]/round/[roundNumber]/edit/page.tsx` |
+| Лобби (редирект с edit + флаг диалога) | `src/app/lobby/[gameId]/page.tsx` (useLayoutEffect, ключи sessionStorage) |

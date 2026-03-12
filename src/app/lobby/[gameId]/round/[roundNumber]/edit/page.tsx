@@ -543,7 +543,7 @@ export default function LobbyRoundEditPage() {
 
         <div className="flex flex-col gap-3">
           <button
-            onClick={handleSaveRound}
+            onClick={() => handleSaveRound()}
             disabled={saving || isRoundLocked}
             className="w-full px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >

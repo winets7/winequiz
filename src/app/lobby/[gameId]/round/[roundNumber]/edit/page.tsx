@@ -65,16 +65,18 @@ export default function LobbyRoundEditPage() {
   }, [gameId, gamePath]);
 
   // При браузерной «Назад» — возвращаемся на edit и показываем диалог «Сохранить?»
+  // Важно: после pushState(editUrl) синхронизируем Next.js с URL, иначе роутер остаётся на play и последующий router.replace(gamePath) не выполняет переход.
   useEffect(() => {
     const handlePopState = () => {
       const current = window.location.pathname + window.location.search;
       if (current !== gamePath) return;
       window.history.pushState(null, "", editUrl);
+      router.replace(editUrl);
       setShowSaveConfirmDialog(true);
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [gamePath, editUrl]);
+  }, [gamePath, editUrl, router]);
 
   const [game, setGame] = useState<GameData | null>(null);
   const [rounds, setRounds] = useState<RoundData[]>([]);

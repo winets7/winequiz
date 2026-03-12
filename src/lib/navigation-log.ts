@@ -1,10 +1,20 @@
 /**
  * Логирование переходов и возвратов для отладки и аналитики.
- * Все события пишутся в console; позже можно добавить отправку на бэкенд.
+ * Все события пишутся в console с префиксом [navigation].
+ * В DevTools: фильтр по "navigation" или "history_write" — увидите, какая страница записалась в историю.
  */
 
 export type NavigationLogEvent =
   | { type: "navigate"; from: string; to: string }
+  | {
+      type: "history_write";
+      /** Путь родителя, записанный в историю перед текущей страницей */
+      parentPath: string;
+      /** Текущий URL, записанный в историю (дочерняя страница) */
+      currentUrl: string;
+      /** Длина стека истории после записи (для отладки) */
+      historyLength: number;
+    }
   | {
       type: "back_popstate";
       from: string;

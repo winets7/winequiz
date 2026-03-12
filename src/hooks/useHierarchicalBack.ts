@@ -35,10 +35,17 @@ export function useHierarchicalBack(
 
     const writeParentIntoHistory = () => {
       const currentUrl = window.location.pathname + window.location.search;
+      const parentPath = parentPathRef.current;
       // Подменяем текущую запись на родителя, затем снова пушим текущую страницу —
       // в стеке получается [..., parentPath, currentUrl], свайп назад ведёт на parentPath.
-      window.history.replaceState(null, "", parentPathRef.current);
+      window.history.replaceState(null, "", parentPath);
       window.history.pushState(null, "", currentUrl);
+      logNavigation({
+        type: "history_write",
+        parentPath,
+        currentUrl,
+        historyLength: window.history.length,
+      });
     };
 
     // Отложенно, чтобы Next.js успел завершить работу с историей.

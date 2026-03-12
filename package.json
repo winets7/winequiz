@@ -15,7 +15,8 @@
     "db:reset": "npx prisma migrate reset",
     "db:clear-games": "npx tsx scripts/clear-games-data.ts",
     "socket": "npx tsx server/socket/index.ts",
-    "dev:all": "npm run socket & npm run dev"
+    "dev:all": "npm run socket & npm run dev",
+    "test:navigation": "node scripts/test-navigation-routes.mjs"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

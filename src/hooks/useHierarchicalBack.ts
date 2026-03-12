@@ -36,6 +36,8 @@ export function useHierarchicalBack(
     const writeParentIntoHistory = () => {
       const currentUrl = window.location.pathname + window.location.search;
       const parentPath = parentPathRef.current;
+      // Не писать, если уже на родителе (например навигация select→edit уже сменила URL, а таймер сработал позже).
+      if (currentUrl === parentPath) return;
       // Подменяем текущую запись на родителя, затем снова пушим текущую страницу —
       // в стеке получается [..., parentPath, currentUrl], свайп назад ведёт на parentPath.
       window.history.replaceState(null, "", parentPath);

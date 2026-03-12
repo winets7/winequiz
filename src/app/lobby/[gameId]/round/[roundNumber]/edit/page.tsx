@@ -36,6 +36,7 @@ const lobbyPath = (gameId: string) => `/lobby/${gameId}`;
 const EDIT_PAGE_URL_KEY = "lobby-edit-page-url";
 const EDIT_SHOW_SAVE_DIALOG_KEY = "lobby-edit-show-save-dialog";
 const EDIT_CAME_VIA_BACK_KEY = "lobby-edit-came-via-back";
+const EDIT_LEFT_VIA_BUTTON_KEY = "lobby-edit-left-via-button";
 
 export default function LobbyRoundEditPage() {
   const params = useParams();
@@ -136,13 +137,19 @@ export default function LobbyRoundEditPage() {
     };
     window.addEventListener("popstate", handlePopState, true);
     return () => {
+      window.removeEventListener("popstate", handlePopState, true);
       console.log("[navigation][edit-debug] popstate listener removed", {
         parentPath,
         editUrl,
       });
-      // Next.js переключает маршрут до popstate, edit размонтируется. Если URL уже лобби — ставим флаги,
-      // чтобы после редиректа с лобби обратно на edit диалог «Сохранить?» точно открылся (и лобби знало, что пришли по Назад).
+      // Next.js переключает маршрут до popstate, edit размонтируется. Если URL уже лобби — ставим флаги только если ушли по браузерному Назад,
+      // а не по кнопке (goToLobbyPage выставляет EDIT_LEFT_VIA_BUTTON_KEY, тогда диалог при следующем заходе не показываем).
       try {
+        const leftViaButton = window.sessionStorage.getItem(EDIT_LEFT_VIA_BUTTON_KEY) === "1";
+        if (leftViaButton) {
+          window.sessionStorage.removeItem(EDIT_LEFT_VIA_BUTTON_KEY);
+          return;
+        }
         const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
         if (currentPath === parentPath) {
           window.sessionStorage.setItem(EDIT_SHOW_SAVE_DIALOG_KEY, "1");
@@ -152,7 +159,6 @@ export default function LobbyRoundEditPage() {
       } catch {
         /* ignore */
       }
-      window.removeEventListener("popstate", handlePopState, true);
     };
   }, [parentPath, editUrl, router]);
 
@@ -392,7 +398,12 @@ export default function LobbyRoundEditPage() {
   // replace + refresh: без refresh() App Router может не перерисовать страницу лобби при переходе с вложенного маршрута
   const goToLobbyPage = (path?: string) => {
     try {
-      if (typeof window !== "undefined") window.sessionStorage.removeItem(EDIT_PAGE_URL_KEY);
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem(EDIT_PAGE_URL_KEY);
+        window.sessionStorage.removeItem(EDIT_SHOW_SAVE_DIALOG_KEY);
+        window.sessionStorage.removeItem(EDIT_CAME_VIA_BACK_KEY);
+        window.sessionStorage.setItem(EDIT_LEFT_VIA_BUTTON_KEY, "1");
+      }
     } catch {
       /* ignore */
     }

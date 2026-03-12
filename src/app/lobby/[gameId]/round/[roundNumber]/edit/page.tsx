@@ -137,6 +137,17 @@ export default function LobbyRoundEditPage() {
         parentPath,
         editUrl,
       });
+      // Next.js переключает маршрут до popstate, edit размонтируется. Если URL уже лобби — ставим флаг,
+      // чтобы после редиректа с лобби обратно на edit диалог «Сохранить?» точно открылся.
+      try {
+        const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+        if (currentPath === parentPath) {
+          window.sessionStorage.setItem(EDIT_SHOW_SAVE_DIALOG_KEY, "1");
+          console.log("[navigation][edit-debug] set dialog flag in cleanup (back to lobby)");
+        }
+      } catch {
+        /* ignore */
+      }
       window.removeEventListener("popstate", handlePopState, true);
     };
   }, [parentPath, editUrl, router]);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { QRCodeSVG } from "qrcode.react";
@@ -69,6 +69,24 @@ export default function LobbyPage() {
   // Иерархия: лобби открывают из профиля или с главной — «Назад» ведём в профиль.
   const profilePath = userId ? `/profile/${userId}` : "/profile";
   const goBack = useHierarchicalBack(profilePath, { enabled: !!game });
+
+  // Если открылись после браузерного «Назад» со страницы редактирования раунда — возвращаем на edit и просим показать диалог «Сохранить?»
+  const EDIT_PAGE_URL_KEY = "lobby-edit-page-url";
+  const EDIT_SHOW_SAVE_DIALOG_KEY = "lobby-edit-show-save-dialog";
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const editUrl = window.sessionStorage.getItem(EDIT_PAGE_URL_KEY);
+      if (!editUrl || !pathname) return;
+      if (editUrl.startsWith(pathname + "/round/") && editUrl.endsWith("/edit")) {
+        window.sessionStorage.removeItem(EDIT_PAGE_URL_KEY);
+        window.sessionStorage.setItem(EDIT_SHOW_SAVE_DIALOG_KEY, "1");
+        router.replace(editUrl);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [pathname, router]);
 
   // =============================================
   // Загрузка данных

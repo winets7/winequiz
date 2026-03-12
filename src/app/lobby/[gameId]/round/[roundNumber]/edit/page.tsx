@@ -33,6 +33,9 @@ interface RoundData extends RoundDataForDraft {
 
 const lobbyPath = (gameId: string) => `/lobby/${gameId}`;
 
+const EDIT_PAGE_URL_KEY = "lobby-edit-page-url";
+const EDIT_SHOW_SAVE_DIALOG_KEY = "lobby-edit-show-save-dialog";
+
 export default function LobbyRoundEditPage() {
   const params = useParams();
   const router = useRouter();
@@ -44,6 +47,26 @@ export default function LobbyRoundEditPage() {
 
   const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false);
   const { data: session, status: sessionStatus } = useSession();
+
+  // Флаг «мы на странице редактирования» — лобби при открытии после браузерного Назад вернёт сюда и покажет диалог.
+  // Не очищаем ключ при unmount: при Назад мы размонтируемся до перехода, лобби должен увидеть ключ и сделать redirect.
+  useEffect(() => {
+    if (!gameId || typeof window === "undefined") return;
+    window.sessionStorage.setItem(EDIT_PAGE_URL_KEY, editUrl);
+  }, [gameId, editUrl]);
+
+  // При открытии edit с флагом «показать диалог» (возврат с лобби после браузерного Назад) — показываем диалог.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (window.sessionStorage.getItem(EDIT_SHOW_SAVE_DIALOG_KEY) === "1") {
+        window.sessionStorage.removeItem(EDIT_SHOW_SAVE_DIALOG_KEY);
+        setShowSaveConfirmDialog(true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   // Родитель — страница Лобби. Запись в историю при каждом открытии edit (в т.ч. после возврата с select), чтобы «Назад» вёл в лобби.
   useEffect(() => {
@@ -317,6 +340,11 @@ export default function LobbyRoundEditPage() {
 
   // replace + refresh: без refresh() App Router может не перерисовать страницу лобби при переходе с вложенного маршрута
   const goToLobbyPage = (path?: string) => {
+    try {
+      if (typeof window !== "undefined") window.sessionStorage.removeItem(EDIT_PAGE_URL_KEY);
+    } catch {
+      /* ignore */
+    }
     const target = path ?? parentPath;
     router.replace(target);
     setTimeout(() => router.refresh(), 0);

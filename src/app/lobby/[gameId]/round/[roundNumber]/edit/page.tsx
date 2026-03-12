@@ -100,6 +100,12 @@ export default function LobbyRoundEditPage() {
         to: parentPath,
       });
       e.stopImmediatePropagation();
+      // Флаг нужен на случай, если Next.js уже размонтировал edit: при remount после router.replace диалог откроется по флагу.
+      try {
+        window.sessionStorage.setItem(EDIT_SHOW_SAVE_DIALOG_KEY, "1");
+      } catch {
+        /* ignore */
+      }
       window.history.replaceState(null, "", editUrl);
       router.replace(editUrl);
       setShowSaveConfirmDialog(true);

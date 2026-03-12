@@ -5,6 +5,7 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { QRCodeSVG } from "qrcode.react";
 import { useSocket } from "@/hooks/useSocket";
+import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
 import { getJoinUrl } from "@/lib/game-code";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { PlayerRoundsList } from "@/components/game/player-rounds-list";
@@ -64,6 +65,10 @@ export default function LobbyPage() {
 
   const userId = session?.user?.id;
   const isHost = game?.hostId === userId || game?.host?.id === userId;
+
+  // Иерархия: лобби открывают из профиля или с главной — «Назад» ведём в профиль.
+  const profilePath = userId ? `/profile/${userId}` : "/profile";
+  const goBack = useHierarchicalBack(profilePath, { enabled: !!game });
 
   // =============================================
   // Загрузка данных

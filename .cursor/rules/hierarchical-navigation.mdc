@@ -12,6 +12,7 @@ alwaysApply: false
 
 | Дочерняя страница | Родитель |
 |---|---|
+| `lobby/[gameId]` | `/profile/[id]` или `/profile` |
 | `play/[gameId]` | `/profile/[id]` (профиль текущего пользователя) |
 | `play/[gameId]/select/*` | `/play/[gameId]` |
 | `lobby/[gameId]/round/[n]/select/[characteristic]` | `/lobby/[gameId]/round/[n]/edit` |

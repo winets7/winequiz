@@ -209,7 +209,7 @@ export default function LobbyRoundEditPage() {
         return;
       }
       clearAllDraftsForGame(gameId);
-      router.replace(`/lobby/${gameId}`);
+      goToLobbyPage(`/lobby/${gameId}`);
     } finally {
       setDeleting(false);
     }
@@ -304,7 +304,7 @@ export default function LobbyRoundEditPage() {
       }
 
       clearDraft(gameId, roundNumber);
-      router.replace(redirectTo);
+      goToLobbyPage(redirectTo);
     } catch {
       setError("Ошибка при сохранении раунда");
     } finally {
@@ -312,7 +312,12 @@ export default function LobbyRoundEditPage() {
     }
   };
 
-  const goToLobbyPage = () => router.replace(parentPath);
+  // replace + refresh: без refresh() App Router может не перерисовать страницу лобби при переходе с вложенного маршрута
+  const goToLobbyPage = (path?: string) => {
+    const target = path ?? parentPath;
+    router.replace(target);
+    setTimeout(() => router.refresh(), 0);
+  };
 
   const handleBackWithConfirm = () => setShowSaveConfirmDialog(true);
 
@@ -340,7 +345,7 @@ export default function LobbyRoundEditPage() {
   }
 
   if (sessionStatus === "unauthenticated") {
-    router.replace(`/lobby/${gameId}`);
+    goToLobbyPage(`/lobby/${gameId}`);
     return null;
   }
 
@@ -362,7 +367,7 @@ export default function LobbyRoundEditPage() {
   }
 
   if (!game || !isHost) {
-    router.replace(`/lobby/${gameId}`);
+    goToLobbyPage(`/lobby/${gameId}`);
     return null;
   }
 

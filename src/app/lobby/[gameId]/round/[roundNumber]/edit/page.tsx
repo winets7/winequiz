@@ -35,6 +35,7 @@ const lobbyPath = (gameId: string) => `/lobby/${gameId}`;
 
 const EDIT_PAGE_URL_KEY = "lobby-edit-page-url";
 const EDIT_SHOW_SAVE_DIALOG_KEY = "lobby-edit-show-save-dialog";
+const EDIT_CAME_VIA_BACK_KEY = "lobby-edit-came-via-back";
 
 export default function LobbyRoundEditPage() {
   const params = useParams();
@@ -67,6 +68,7 @@ export default function LobbyRoundEditPage() {
       });
       if (flag === "1") {
         window.sessionStorage.removeItem(EDIT_SHOW_SAVE_DIALOG_KEY);
+        window.sessionStorage.removeItem(EDIT_CAME_VIA_BACK_KEY);
         setShowSaveConfirmDialog(true);
         console.log("[navigation][edit-debug] dialog state set to true from flag");
       }
@@ -121,6 +123,7 @@ export default function LobbyRoundEditPage() {
       // Флаг нужен на случай, если Next.js уже размонтировал edit: при remount после router.replace диалог откроется по флагу.
       try {
         window.sessionStorage.setItem(EDIT_SHOW_SAVE_DIALOG_KEY, "1");
+        window.sessionStorage.setItem(EDIT_CAME_VIA_BACK_KEY, "1");
       } catch (error) {
         console.error("[navigation][edit-debug] set EDIT_SHOW_SAVE_DIALOG_KEY error", error);
       }
@@ -137,12 +140,13 @@ export default function LobbyRoundEditPage() {
         parentPath,
         editUrl,
       });
-      // Next.js переключает маршрут до popstate, edit размонтируется. Если URL уже лобби — ставим флаг,
-      // чтобы после редиректа с лобби обратно на edit диалог «Сохранить?» точно открылся.
+      // Next.js переключает маршрут до popstate, edit размонтируется. Если URL уже лобби — ставим флаги,
+      // чтобы после редиректа с лобби обратно на edit диалог «Сохранить?» точно открылся (и лобби знало, что пришли по Назад).
       try {
         const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
         if (currentPath === parentPath) {
           window.sessionStorage.setItem(EDIT_SHOW_SAVE_DIALOG_KEY, "1");
+          window.sessionStorage.setItem(EDIT_CAME_VIA_BACK_KEY, "1");
           console.log("[navigation][edit-debug] set dialog flag in cleanup (back to lobby)");
         }
       } catch {

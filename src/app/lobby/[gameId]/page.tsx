@@ -71,22 +71,28 @@ export default function LobbyPage() {
   const goBack = useHierarchicalBack(profilePath, { enabled: !!game });
 
   // Если открылись после браузерного «Назад» со страницы редактирования раунда — возвращаем на edit и просим показать диалог «Сохранить?»
+  // Редирект только если выставлен EDIT_CAME_VIA_BACK_KEY (ушли с edit по Назад), иначе при переходе игра → лобби диалог не показываем.
   const EDIT_PAGE_URL_KEY = "lobby-edit-page-url";
   const EDIT_SHOW_SAVE_DIALOG_KEY = "lobby-edit-show-save-dialog";
+  const EDIT_CAME_VIA_BACK_KEY = "lobby-edit-came-via-back";
   useLayoutEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const editUrl = window.sessionStorage.getItem(EDIT_PAGE_URL_KEY);
+      const cameViaBack = window.sessionStorage.getItem(EDIT_CAME_VIA_BACK_KEY) === "1";
       const willRedirect =
         !!editUrl &&
         !!pathname &&
+        cameViaBack &&
         editUrl.startsWith(pathname + "/round/") &&
         editUrl.endsWith("/edit");
       console.log("[navigation][lobby-debug] back-from-edit check", {
         pathname,
         editUrl,
+        cameViaBack,
         willRedirect,
       });
+      window.sessionStorage.removeItem(EDIT_CAME_VIA_BACK_KEY);
       if (!editUrl || !pathname) return;
       if (willRedirect) {
         window.sessionStorage.removeItem(EDIT_PAGE_URL_KEY);

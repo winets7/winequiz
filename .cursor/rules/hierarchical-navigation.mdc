@@ -16,7 +16,7 @@ alwaysApply: false
 | `play/[gameId]` | `/profile/[id]` (профиль текущего пользователя) |
 | `play/[gameId]/select/*` | `/play/[gameId]` |
 | `lobby/[gameId]/round/[n]/select/[characteristic]` | `/lobby/[gameId]/round/[n]/edit` |
-| `lobby/[gameId]/round/[n]/edit` | `/play/[gameId]` (страница Игры) |
+| `lobby/[gameId]/round/[n]/edit` | `/lobby/[gameId]` |
 
 ## Применение хука
 

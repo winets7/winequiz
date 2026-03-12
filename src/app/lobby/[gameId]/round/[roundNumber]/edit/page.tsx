@@ -31,7 +31,7 @@ interface RoundData extends RoundDataForDraft {
   photos: { id: string; imageUrl: string }[];
 }
 
-const playPath = (gameId: string) => `/play/${gameId}`;
+const lobbyPath = (gameId: string) => `/lobby/${gameId}`;
 
 export default function LobbyRoundEditPage() {
   const params = useParams();
@@ -39,44 +39,44 @@ export default function LobbyRoundEditPage() {
   const pathname = usePathname();
   const gameId = params.gameId as string;
   const roundNumber = Number(params.roundNumber);
-  const gamePath = playPath(gameId);
+  const parentPath = lobbyPath(gameId);
   const editUrl = pathname ?? `/lobby/${gameId}/round/${roundNumber}/edit`;
 
   const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false);
   const { data: session, status: sessionStatus } = useSession();
 
-  // Родитель — страница Игры. Запись в историю при каждом открытии edit (в т.ч. после возврата с select), чтобы «Назад» вёл на страницу Игры.
+  // Родитель — страница Лобби. Запись в историю при каждом открытии edit (в т.ч. после возврата с select), чтобы «Назад» вёл в лобби.
   useEffect(() => {
     if (!gameId) return;
     if (typeof window !== "undefined") window.sessionStorage.removeItem("hierarchical-back-from-select");
     const t = setTimeout(() => {
       const currentUrl = window.location.pathname + window.location.search;
-      if (currentUrl === gamePath) return;
-      window.history.replaceState(null, "", gamePath);
+      if (currentUrl === parentPath) return;
+      window.history.replaceState(null, "", parentPath);
       window.history.pushState(null, "", currentUrl);
       logNavigation({
         type: "history_write",
-        parentPath: gamePath,
+        parentPath,
         currentUrl,
         historyLength: window.history.length,
       });
     }, 0);
     return () => clearTimeout(t);
-  }, [gameId, gamePath]);
+  }, [gameId, parentPath]);
 
   // При браузерной «Назад» — возвращаемся на edit и показываем диалог «Сохранить?»
-  // Важно: после pushState(editUrl) синхронизируем Next.js с URL, иначе роутер остаётся на play и последующий router.replace(gamePath) не выполняет переход.
+  // Важно: после pushState(editUrl) синхронизируем Next.js с URL, иначе роутер не совпадает и последующий router.replace(parentPath) не выполняет переход.
   useEffect(() => {
     const handlePopState = () => {
       const current = window.location.pathname + window.location.search;
-      if (current !== gamePath) return;
+      if (current !== parentPath) return;
       window.history.pushState(null, "", editUrl);
       router.replace(editUrl);
       setShowSaveConfirmDialog(true);
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [gamePath, editUrl, router]);
+  }, [parentPath, editUrl, router]);
 
   const [game, setGame] = useState<GameData | null>(null);
   const [rounds, setRounds] = useState<RoundData[]>([]);
@@ -311,18 +311,18 @@ export default function LobbyRoundEditPage() {
     }
   };
 
-  const goToGamePage = () => router.replace(gamePath);
+  const goToLobbyPage = () => router.replace(parentPath);
 
   const handleBackWithConfirm = () => setShowSaveConfirmDialog(true);
 
   const handleConfirmSave = async () => {
     setShowSaveConfirmDialog(false);
-    await handleSaveRound(gamePath);
+    await handleSaveRound(parentPath);
   };
 
   const handleConfirmDontSave = () => {
     setShowSaveConfirmDialog(false);
-    goToGamePage();
+    goToLobbyPage();
   };
 
   // Во время сохранения не показывать полный экран «Загрузка» (сессия может перейти в loading при refetch)

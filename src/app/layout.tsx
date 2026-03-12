@@ -61,9 +61,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" suppressHydrationWarning>
-      <head>
-        <link rel="preload" href="/logo.svg" as="image" />
-      </head>
+      <head />
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >

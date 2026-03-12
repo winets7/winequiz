@@ -94,6 +94,11 @@ export default function LobbyRoundEditPage() {
     const handlePopState = (e: PopStateEvent) => {
       const current = window.location.pathname + window.location.search;
       if (current !== parentPath) return;
+      logNavigation({
+        type: "back_popstate",
+        from: editUrl,
+        to: parentPath,
+      });
       e.stopImmediatePropagation();
       window.history.replaceState(null, "", editUrl);
       router.replace(editUrl);

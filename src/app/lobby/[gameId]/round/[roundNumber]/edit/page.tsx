@@ -31,9 +31,6 @@ interface RoundData extends RoundDataForDraft {
   photos: { id: string; imageUrl: string }[];
 }
 
-const FROM_SELECT_KEY = "hierarchical-back-from-select";
-const COLLAPSE_KEY = "hierarchical-back-collapse";
-
 const playPath = (gameId: string) => `/play/${gameId}`;
 
 export default function LobbyRoundEditPage() {
@@ -45,37 +42,27 @@ export default function LobbyRoundEditPage() {
   const gamePath = playPath(gameId);
   const editUrl = pathname ?? `/lobby/${gameId}/round/${roundNumber}/edit`;
 
-  // Не добавляем в историю, если пришли с select (сохранение значения) — иначе «Назад» ведёт на edit.
-  const [skipHistoryWrite] = useState(() =>
-    typeof window !== "undefined" ? sessionStorage.getItem(FROM_SELECT_KEY) === "1" : false
-  );
   const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false);
   const { data: session, status: sessionStatus } = useSession();
 
+  // Родитель — страница Игры. Запись в историю при каждом открытии edit (в т.ч. после возврата с select), чтобы «Назад» вёл на страницу Игры.
   useEffect(() => {
-    if (skipHistoryWrite && typeof window !== "undefined") {
-      sessionStorage.removeItem(FROM_SELECT_KEY);
-      sessionStorage.setItem(COLLAPSE_KEY, "1");
-    }
-  }, [skipHistoryWrite]);
-
-  // Родитель страницы редактирования — страница Игры (/play/[gameId]). Запись в историю вручную, т.к. при «Назад» показываем диалог.
-  useEffect(() => {
-    if (!skipHistoryWrite && gameId) {
-      const t = setTimeout(() => {
-        const currentUrl = window.location.pathname + window.location.search;
-        window.history.replaceState(null, "", gamePath);
-        window.history.pushState(null, "", currentUrl);
-        logNavigation({
-          type: "history_write",
-          parentPath: gamePath,
-          currentUrl,
-          historyLength: window.history.length,
-        });
-      }, 0);
-      return () => clearTimeout(t);
-    }
-  }, [skipHistoryWrite, gameId, gamePath]);
+    if (!gameId) return;
+    if (typeof window !== "undefined") window.sessionStorage.removeItem("hierarchical-back-from-select");
+    const t = setTimeout(() => {
+      const currentUrl = window.location.pathname + window.location.search;
+      if (currentUrl === gamePath) return;
+      window.history.replaceState(null, "", gamePath);
+      window.history.pushState(null, "", currentUrl);
+      logNavigation({
+        type: "history_write",
+        parentPath: gamePath,
+        currentUrl,
+        historyLength: window.history.length,
+      });
+    }, 0);
+    return () => clearTimeout(t);
+  }, [gameId, gamePath]);
 
   // При браузерной «Назад» — возвращаемся на edit и показываем диалог «Сохранить?»
   useEffect(() => {

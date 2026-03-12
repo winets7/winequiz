@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
-import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
 import { useSession } from "next-auth/react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
@@ -15,6 +14,7 @@ import {
   roundToWineParams,
   type RoundDataForDraft,
 } from "@/lib/lobby-round-draft";
+import { logNavigation } from "@/lib/navigation-log";
 import type { WineParams } from "@/components/game/wine-form";
 
 interface GameData {
@@ -34,17 +34,22 @@ interface RoundData extends RoundDataForDraft {
 const FROM_SELECT_KEY = "hierarchical-back-from-select";
 const COLLAPSE_KEY = "hierarchical-back-collapse";
 
+const playPath = (gameId: string) => `/play/${gameId}`;
+
 export default function LobbyRoundEditPage() {
   const params = useParams();
   const router = useRouter();
   const pathname = usePathname();
   const gameId = params.gameId as string;
   const roundNumber = Number(params.roundNumber);
-  // Не добавляем lobby→edit в историю, если пришли с select (сохранение значения) — иначе с lobby «Назад» ведёт на edit.
+  const gamePath = playPath(gameId);
+  const editUrl = pathname ?? `/lobby/${gameId}/round/${roundNumber}/edit`;
+
+  // Не добавляем в историю, если пришли с select (сохранение значения) — иначе «Назад» ведёт на edit.
   const [skipHistoryWrite] = useState(() =>
     typeof window !== "undefined" ? sessionStorage.getItem(FROM_SELECT_KEY) === "1" : false
   );
-  const goBack = useHierarchicalBack(`/lobby/${gameId}`, { enabled: !skipHistoryWrite });
+  const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false);
   const { data: session, status: sessionStatus } = useSession();
 
   useEffect(() => {
@@ -53,6 +58,36 @@ export default function LobbyRoundEditPage() {
       sessionStorage.setItem(COLLAPSE_KEY, "1");
     }
   }, [skipHistoryWrite]);
+
+  // Родитель страницы редактирования — страница Игры (/play/[gameId]). Запись в историю вручную, т.к. при «Назад» показываем диалог.
+  useEffect(() => {
+    if (!skipHistoryWrite && gameId) {
+      const t = setTimeout(() => {
+        const currentUrl = window.location.pathname + window.location.search;
+        window.history.replaceState(null, "", gamePath);
+        window.history.pushState(null, "", currentUrl);
+        logNavigation({
+          type: "history_write",
+          parentPath: gamePath,
+          currentUrl,
+          historyLength: window.history.length,
+        });
+      }, 0);
+      return () => clearTimeout(t);
+    }
+  }, [skipHistoryWrite, gameId, gamePath]);
+
+  // При браузерной «Назад» — возвращаемся на edit и показываем диалог «Сохранить?»
+  useEffect(() => {
+    const handlePopState = () => {
+      const current = window.location.pathname + window.location.search;
+      if (current !== gamePath) return;
+      window.history.pushState(null, "", editUrl);
+      setShowSaveConfirmDialog(true);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [gamePath, editUrl]);
 
   const [game, setGame] = useState<GameData | null>(null);
   const [rounds, setRounds] = useState<RoundData[]>([]);
@@ -219,13 +254,12 @@ export default function LobbyRoundEditPage() {
     });
   };
 
-  const handleSaveRound = async () => {
-    // Берём черновик из sessionStorage (актуальные выборы со страниц выбора параметра),
-    // иначе из state — иначе при быстром «Сохранить» после выбора параметров могли уйти пустые значения
+  const handleSaveRound = async (redirectAfterSave?: string) => {
     const payloadDraft = getDraft(gameId, roundNumber) ?? draft;
     if (!game || !payloadDraft || isRoundLocked) return;
     setSaving(true);
     setError(null);
+    const redirectTo = redirectAfterSave ?? `/lobby/${gameId}`;
 
     try {
       const roundRes = await fetch("/api/rounds", {
@@ -280,13 +314,26 @@ export default function LobbyRoundEditPage() {
       }
 
       clearDraft(gameId, roundNumber);
-      // Прямой переход без history.back() — избегаем зависания «Загрузка» при возврате в лобби
-      router.replace(`/lobby/${gameId}`);
+      router.replace(redirectTo);
     } catch {
       setError("Ошибка при сохранении раунда");
     } finally {
       setSaving(false);
     }
+  };
+
+  const goToGamePage = () => router.replace(gamePath);
+
+  const handleBackWithConfirm = () => setShowSaveConfirmDialog(true);
+
+  const handleConfirmSave = async () => {
+    setShowSaveConfirmDialog(false);
+    await handleSaveRound(gamePath);
+  };
+
+  const handleConfirmDontSave = () => {
+    setShowSaveConfirmDialog(false);
+    goToGamePage();
   };
 
   // Во время сохранения не показывать полный экран «Загрузка» (сессия может перейти в loading при refetch)
@@ -339,10 +386,43 @@ export default function LobbyRoundEditPage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center pb-8">
+      {/* Диалог «Сохранить внесённые изменения?» при нажатии Назад */}
+      {showSaveConfirmDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-[var(--background)] border border-[var(--border)] rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
+            <p className="text-lg font-medium text-center">Сохранить внесённые изменения?</p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleConfirmSave}
+                disabled={saving}
+                className="w-full py-3 px-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                {saving ? "Сохранение..." : "Сохранить"}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDontSave}
+                className="w-full py-3 px-4 border border-[var(--border)] rounded-xl font-medium hover:bg-[var(--muted)]"
+              >
+                Не сохранять
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSaveConfirmDialog(false)}
+                className="w-full py-3 px-4 text-[var(--muted-foreground)] rounded-xl font-medium hover:bg-[var(--muted)]"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <button
-            onClick={goBack}
+            onClick={handleBackWithConfirm}
             className="text-sm text-[var(--primary)] font-medium flex items-center gap-1"
           >
             ← Назад

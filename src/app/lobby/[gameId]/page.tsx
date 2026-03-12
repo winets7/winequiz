@@ -77,14 +77,24 @@ export default function LobbyPage() {
     if (typeof window === "undefined") return;
     try {
       const editUrl = window.sessionStorage.getItem(EDIT_PAGE_URL_KEY);
+      const willRedirect =
+        !!editUrl &&
+        !!pathname &&
+        editUrl.startsWith(pathname + "/round/") &&
+        editUrl.endsWith("/edit");
+      console.log("[navigation][lobby-debug] back-from-edit check", {
+        pathname,
+        editUrl,
+        willRedirect,
+      });
       if (!editUrl || !pathname) return;
-      if (editUrl.startsWith(pathname + "/round/") && editUrl.endsWith("/edit")) {
+      if (willRedirect) {
         window.sessionStorage.removeItem(EDIT_PAGE_URL_KEY);
         window.sessionStorage.setItem(EDIT_SHOW_SAVE_DIALOG_KEY, "1");
         router.replace(editUrl);
       }
-    } catch {
-      /* ignore */
+    } catch (error) {
+      console.error("[navigation][lobby-debug] back-from-edit error", error);
     }
   }, [pathname, router]);
 

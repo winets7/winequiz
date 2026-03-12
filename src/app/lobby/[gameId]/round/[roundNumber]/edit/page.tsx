@@ -59,14 +59,21 @@ export default function LobbyRoundEditPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      if (window.sessionStorage.getItem(EDIT_SHOW_SAVE_DIALOG_KEY) === "1") {
+      const flag = window.sessionStorage.getItem(EDIT_SHOW_SAVE_DIALOG_KEY);
+      console.log("[navigation][edit-debug] mount dialog check", {
+        flag,
+        pathname,
+        editUrl,
+      });
+      if (flag === "1") {
         window.sessionStorage.removeItem(EDIT_SHOW_SAVE_DIALOG_KEY);
         setShowSaveConfirmDialog(true);
+        console.log("[navigation][edit-debug] dialog state set to true from flag");
       }
-    } catch {
-      /* ignore */
+    } catch (error) {
+      console.error("[navigation][edit-debug] mount dialog check error", error);
     }
-  }, []);
+  }, [pathname, editUrl]);
 
   // Родитель — страница Лобби. Запись в историю при каждом открытии edit (в т.ч. после возврата с select), чтобы «Назад» вёл в лобби.
   useEffect(() => {
@@ -91,9 +98,20 @@ export default function LobbyRoundEditPage() {
   // Слушатель в фазе захвата (capture), чтобы сработать ДО роутера Next.js: иначе роутер размонтирует страницу и диалог не покажется.
   // После router.replace(editUrl) Next.js может перезаписать адресную строку своим состоянием (lobby), поэтому явно синхронизируем URL в следующем тике.
   useEffect(() => {
+    console.log("[navigation][edit-debug] popstate listener registered", {
+      parentPath,
+      editUrl,
+    });
     const handlePopState = (e: PopStateEvent) => {
       const current = window.location.pathname + window.location.search;
-      if (current !== parentPath) return;
+      const match = current === parentPath;
+      console.log("[navigation][edit-debug] popstate event", {
+        current,
+        parentPath,
+        editUrl,
+        match,
+      });
+      if (!match) return;
       logNavigation({
         type: "back_popstate",
         from: editUrl,
@@ -103,17 +121,24 @@ export default function LobbyRoundEditPage() {
       // Флаг нужен на случай, если Next.js уже размонтировал edit: при remount после router.replace диалог откроется по флагу.
       try {
         window.sessionStorage.setItem(EDIT_SHOW_SAVE_DIALOG_KEY, "1");
-      } catch {
-        /* ignore */
+      } catch (error) {
+        console.error("[navigation][edit-debug] set EDIT_SHOW_SAVE_DIALOG_KEY error", error);
       }
       window.history.replaceState(null, "", editUrl);
       router.replace(editUrl);
       setShowSaveConfirmDialog(true);
+      console.log("[navigation][edit-debug] dialog state set to true from popstate");
       // Синхронизация адресной строки после того как Next.js обновит состояние (иначе URL остаётся lobby при контенте edit).
       setTimeout(() => window.history.replaceState(null, "", editUrl), 0);
     };
     window.addEventListener("popstate", handlePopState, true);
-    return () => window.removeEventListener("popstate", handlePopState, true);
+    return () => {
+      console.log("[navigation][edit-debug] popstate listener removed", {
+        parentPath,
+        editUrl,
+      });
+      window.removeEventListener("popstate", handlePopState, true);
+    };
   }, [parentPath, editUrl, router]);
 
   const [game, setGame] = useState<GameData | null>(null);

@@ -66,14 +66,17 @@ export default function LobbyRoundEditPage() {
 
   // При браузерной «Назад» или свайпе — возвращаемся на edit и показываем диалог «Сохранить?»
   // Слушатель в фазе захвата (capture), чтобы сработать ДО роутера Next.js: иначе роутер размонтирует страницу и диалог не покажется.
+  // После router.replace(editUrl) Next.js может перезаписать адресную строку своим состоянием (lobby), поэтому явно синхронизируем URL в следующем тике.
   useEffect(() => {
     const handlePopState = (e: PopStateEvent) => {
       const current = window.location.pathname + window.location.search;
       if (current !== parentPath) return;
       e.stopImmediatePropagation();
-      window.history.pushState(null, "", editUrl);
+      window.history.replaceState(null, "", editUrl);
       router.replace(editUrl);
       setShowSaveConfirmDialog(true);
+      // Синхронизация адресной строки после того как Next.js обновит состояние (иначе URL остаётся lobby при контенте edit).
+      setTimeout(() => window.history.replaceState(null, "", editUrl), 0);
     };
     window.addEventListener("popstate", handlePopState, true);
     return () => window.removeEventListener("popstate", handlePopState, true);

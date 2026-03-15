@@ -229,7 +229,14 @@ export default function LobbyPage() {
 
     const unsubGameCreated = on("game_created", (data: unknown) => {
       const payload = data as { lobbyOpen?: boolean; gameEnded?: boolean };
-      if (payload.lobbyOpen !== undefined) setLobbyOpen(payload.lobbyOpen);
+      // Не сбрасываем lobbyOpen в false, если игра уже идёт по данным из API (хост переподключился после рестарта)
+      if (payload.lobbyOpen !== undefined) {
+        setLobbyOpen((prev) => {
+          if (payload.lobbyOpen === true) return true;
+          if (gameRef.current?.status === "PLAYING") return true;
+          return payload.lobbyOpen === false ? false : prev;
+        });
+      }
       if (payload.gameEnded !== undefined) setGameEnded(payload.gameEnded);
     });
 

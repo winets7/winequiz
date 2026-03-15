@@ -161,8 +161,9 @@ export function createSocketServer(httpServer?: HttpServer) {
         where: { id: gameId },
       });
 
-      // Создаём комнату (если игра уже завершена в БД — восстанавливаем состояние)
+      // Создаём комнату (если игра уже PLAYING/FINISHED в БД — восстанавливаем состояние)
       const gameEndedFromDb = game?.status === "FINISHED";
+      const lobbyOpenFromDb = game?.status === "PLAYING";
       const room: GameRoom = {
         gameId,
         code,
@@ -171,7 +172,7 @@ export function createSocketServer(httpServer?: HttpServer) {
         currentRound: game?.currentRound || 0,
         totalRounds: game?.totalRounds || 0,
         currentRoundId: null,
-        lobbyOpen: false,
+        lobbyOpen: lobbyOpenFromDb,
         gameEnded: gameEndedFromDb,
       };
       room.players.set(userId, { userId, name, socketId: socket.id });
@@ -234,8 +235,8 @@ export function createSocketServer(httpServer?: HttpServer) {
             console.error("Ошибка поиска активного раунда при восстановлении:", err);
           }
 
-          // Восстанавливаем lobbyOpen/gameEnded по раундам (храним только в памяти)
-          let lobbyOpen = false;
+          // Восстанавливаем lobbyOpen/gameEnded: игра уже идёт, если статус PLAYING или есть раунды ACTIVE/CLOSED
+          let lobbyOpen = game.status === "PLAYING";
           let gameEnded = false;
           try {
             const roundsList = await prisma.round.findMany({
@@ -244,9 +245,9 @@ export function createSocketServer(httpServer?: HttpServer) {
             });
             const totalRounds = game.totalRounds || 0;
             if (roundsList.length === totalRounds && roundsList.every((r) => r.status === "CLOSED")) {
-              lobbyOpen = true;
               gameEnded = true;
-            } else if (roundsList.some((r) => r.status === "ACTIVE" || r.status === "CLOSED")) {
+            }
+            if (!lobbyOpen && roundsList.some((r) => r.status === "ACTIVE" || r.status === "CLOSED")) {
               lobbyOpen = true;
             }
           } catch (err) {

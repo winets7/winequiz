@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSocket } from "@/hooks/useSocket";
@@ -106,6 +106,9 @@ export default function PlayPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [guessValues, setGuessValues] = useState<Partial<WineParams>>({});
+
+  const gameRef = useRef(game);
+  gameRef.current = game;
 
   const userId = session?.user?.id;
   const isHost = game?.host?.id === userId;
@@ -332,10 +335,17 @@ export default function PlayPage() {
       setError(null);
     });
 
-    // Ошибки
+    // Ошибки (не показываем «Ожидайте, пока хост начнёт игру», если игра уже идёт по данным API)
     const unsubError = on("error", (data: unknown) => {
       const { message } = data as { message: string };
-      setError(message);
+      if (
+        message === "Ожидайте, пока хост начнёт игру" &&
+        gameRef.current?.status === "PLAYING"
+      ) {
+        setError(null);
+      } else {
+        setError(message);
+      }
       setSubmitting(false);
     });
 

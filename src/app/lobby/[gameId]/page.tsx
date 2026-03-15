@@ -135,6 +135,7 @@ export default function LobbyPage() {
           host: g.host,
         });
         if (g.status === "FINISHED") setGameEnded(true);
+        if (g.status === "PLAYING") setLobbyOpen(true);
 
         if (g.players) {
           setPlayers(
@@ -661,6 +662,10 @@ export default function LobbyPage() {
               {gameEnded ? (
                 <div className="w-full px-8 py-4 bg-[var(--muted)] text-[var(--muted-foreground)] rounded-2xl text-lg font-bold text-center cursor-default">
                   Игра завершена
+                </div>
+              ) : lobbyOpen || game.status === "PLAYING" ? (
+                <div className="w-full px-8 py-4 bg-[var(--muted)] text-[var(--muted-foreground)] rounded-2xl text-lg font-bold text-center cursor-default">
+                  Идёт игра
                 </div>
               ) : (
                 <div className="text-center py-4 text-[var(--muted-foreground)]">

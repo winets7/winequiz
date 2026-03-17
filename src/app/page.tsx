@@ -67,19 +67,6 @@ export default function Home() {
             />
           )}
         </div>
-
-        {/* Для гостей — заголовок и описание */}
-        {!isLoggedIn && (
-          <>
-            <h1 className="text-4xl md:text-6xl font-bold text-[var(--primary)]">
-              Винная Викторина
-            </h1>
-            <p className="text-lg md:text-xl text-[var(--muted-foreground)] max-w-md mx-auto mt-6">
-              Проверь свои знания о вине в увлекательной мультиплеерной
-              викторине!
-            </p>
-          </>
-        )}
       </div>
 
       {isLoading && (

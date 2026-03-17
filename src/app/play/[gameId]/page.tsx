@@ -112,9 +112,8 @@ export default function PlayPage() {
 
   const userId = session?.user?.id;
   const isHost = game?.host?.id === userId;
-  const profilePath = userId ? `/profile/${userId}` : "/profile";
-  // Всегда подменяем историю на профиль, иначе при «Назад» во время LOADING уйдём на предыдущую запись (например настройки раунда).
-  const goBack = useHierarchicalBack(profilePath);
+  // «Назад» ведёт на главную викторины; подмена истории нужна, чтобы при «Назад» во время LOADING не уйти на предыдущую запись.
+  const goBack = useHierarchicalBack("/games/wine-quiz");
 
   // =============================================
   // Загрузка сохраненных значений из localStorage

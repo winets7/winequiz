@@ -66,9 +66,8 @@ export default function LobbyPage() {
   const userId = session?.user?.id;
   const isHost = game?.hostId === userId || game?.host?.id === userId;
 
-  // Иерархия: лобби открывают из профиля или с главной — «Назад» ведём в профиль.
-  const profilePath = userId ? `/profile/${userId}` : "/profile";
-  const goBack = useHierarchicalBack(profilePath, { enabled: !!game });
+  // Иерархия: лобби открывают с главной викторины — «Назад» ведём на /games/wine-quiz.
+  const goBack = useHierarchicalBack("/games/wine-quiz", { enabled: !!game });
 
   // Если открылись после браузерного «Назад» со страницы редактирования раунда — возвращаем на edit и просим показать диалог «Сохранить?»
   // Редирект только если выставлен EDIT_CAME_VIA_BACK_KEY (ушли с edit по Назад), иначе при переходе игра → лобби диалог не показываем.

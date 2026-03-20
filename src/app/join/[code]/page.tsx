@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSocket } from "@/hooks/useSocket";
@@ -34,7 +34,7 @@ interface RoundData {
 export default function JoinPage() {
   const params = useParams();
   const code = params.code as string;
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
 
   const { isConnected, emit, on } = useSocket();
 
@@ -70,16 +70,17 @@ export default function JoinPage() {
     }
   }, [code]);
 
-  // Уже в игре в БД — сразу лобби (возврат по /join/... без кнопки)
-  useEffect(() => {
+  // Уже в игре в БД — сразу лобби (возврат по /join/... без кнопки).
+  // useLayoutEffect: помечаем «проверку» до paint — без мигания карточки «Присоединиться».
+  useLayoutEffect(() => {
     if (!userId || !code || !isValidGameCode(code)) return;
     if (autoRejoinLookupDone.current || autoRejoinInFlight.current) return;
 
     let cancelled = false;
     autoRejoinInFlight.current = true;
+    setCheckingExistingPlayer(true);
 
     async function tryAutoRejoin() {
-      setCheckingExistingPlayer(true);
       try {
         const res = await fetch(`/api/games?code=${encodeURIComponent(code)}`);
         if (!res.ok || cancelled) {
@@ -151,6 +152,12 @@ export default function JoinPage() {
       cancelled = true;
     };
   }, [userId, code]);
+
+  useEffect(() => {
+    if (sessionStatus === "unauthenticated") {
+      setCheckingExistingPlayer(false);
+    }
+  }, [sessionStatus]);
 
   // После автозахода подключаем сокет к комнате (отдельно от ручного «Присоединиться»)
   useEffect(() => {
@@ -440,6 +447,24 @@ export default function JoinPage() {
               </div>
             )}
           </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Пока сессия грузится — одна плашка ожидания вместо мигания «Присоединиться»
+  if (sessionStatus === "loading") {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center p-4">
+        <div className="fixed top-4 right-4">
+          <ThemeToggle />
+        </div>
+        <div className="bg-[var(--card)] rounded-3xl p-8 shadow-lg border border-[var(--border)] text-center max-w-sm w-full">
+          <div className="text-5xl mb-4">🍷</div>
+          <p className="text-lg font-medium text-[var(--foreground)] mb-2">Винная Викторина</p>
+          <p className="flex items-center justify-center gap-2 text-[var(--muted-foreground)]">
+            <span className="animate-spin">⏳</span> Загрузка профиля...
+          </p>
         </div>
       </main>
     );

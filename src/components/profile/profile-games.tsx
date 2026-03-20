@@ -208,14 +208,13 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
   const isHosted = game._type === "hosted";
   const pGame = game as ParticipatedGame;
 
-  // Определяем ссылку в зависимости от статуса и роли пользователя
-  // При WAITING все идут в лобби. При PLAYING все (и хост, и игроки) идут в лобби (страница настройки игры).
-  const gameLink =
-    game.status === "WAITING"
+  // Созданная игра → лобби по id; игра из вкладки «Участвовал» → join по коду комнаты.
+  const canEnterActiveGame = game.status === "WAITING" || game.status === "PLAYING";
+  const gameLink = canEnterActiveGame
+    ? game._type === "hosted"
       ? `/lobby/${game.id}`
-      : game.status === "PLAYING"
-      ? `/lobby/${game.id}` // Хост и игроки — в лобби (настройка/обзор раундов)
-      : null;
+      : `/join/${game.code}`
+    : null;
 
   // Проверяем завершённость игры: либо статус FINISHED, либо есть finishedAt
   const isFinished = game.status === "FINISHED" || !!game.finishedAt;
@@ -365,7 +364,13 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
               onClick={handleGoToGame}
               className="w-full px-6 py-3 bg-[var(--secondary)] text-[var(--secondary-foreground)] rounded-2xl text-sm font-bold hover:opacity-90 transition-opacity"
             >
-              {game.status === "WAITING" ? "🚀 Перейти в лобби" : "🎮 Перейти к игре"}
+              {game._type === "hosted"
+                ? game.status === "WAITING"
+                  ? "🚀 Перейти в лобби"
+                  : "🎮 Перейти в лобби"
+                : game.status === "WAITING"
+                  ? "🚀 Перейти в комнату"
+                  : "🎮 Перейти в комнату"}
             </button>
           )}
           {!isFinished && !gameLink && (

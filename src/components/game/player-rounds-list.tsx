@@ -214,6 +214,12 @@ export function PlayerRoundsList({
               <span className="text-xl">{roundStatus.icon}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-white">Раунд {num}</p>
+                {(roundStatus.status === "created" ||
+                  roundStatus.status === "pending") && (
+                  <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
+                    Раунд не начат
+                  </p>
+                )}
               </div>
               {isClickable && roundStatus.status !== "completed" && (
                 <span className="text-[var(--muted-foreground)]">→</span>

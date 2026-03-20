@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSocket } from "@/hooks/useSocket";
 import { isValidGameCode } from "@/lib/game-code";
@@ -33,7 +33,6 @@ interface RoundData {
 
 export default function JoinPage() {
   const params = useParams();
-  const router = useRouter();
   const code = params.code as string;
   const { data: session } = useSession();
 
@@ -135,7 +134,7 @@ export default function JoinPage() {
       unsubHostDisconnected();
       unsubError();
     };
-  }, [isConnected, on, gameId, router]);
+  }, [isConnected, on, gameId]);
 
   // Загрузка данных игры
   const loadGameData = async (gId: string) => {
@@ -330,14 +329,10 @@ export default function JoinPage() {
               </div>
             )}
 
-            {/* Кнопка перехода к игре, если игра уже идёт */}
             {game && game.status === "PLAYING" && (
-              <button
-                onClick={() => router.push(`/play/${gameId}`)}
-                className="w-full px-8 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg"
-              >
-                🎮 Перейти к игре
-              </button>
+              <div className="text-center py-4 text-[var(--primary)] font-semibold text-lg">
+                Идет игра
+              </div>
             )}
           </div>
         </div>

@@ -47,9 +47,21 @@ export default function JoinPage() {
   const [game, setGame] = useState<GameData | null>(null);
   const [rounds, setRounds] = useState<RoundData[]>([]);
   const [loadingRounds, setLoadingRounds] = useState(false);
+  const [checkingExistingPlayer, setCheckingExistingPlayer] = useState(false);
 
   const userId = session?.user?.id ?? null;
   const userName = session?.user?.name ?? "Игрок";
+
+  const autoRejoinLookupDone = useRef(false);
+  const pendingAutoSocketJoin = useRef(false);
+  const autoRejoinInFlight = useRef(false);
+
+  // Повторная проверка при смене комнаты или пользователя
+  useEffect(() => {
+    autoRejoinLookupDone.current = false;
+    pendingAutoSocketJoin.current = false;
+    autoRejoinInFlight.current = false;
+  }, [code, userId]);
 
   // Валидация кода при загрузке
   useEffect(() => {
@@ -57,6 +69,99 @@ export default function JoinPage() {
       setError("Неверный код комнаты");
     }
   }, [code]);
+
+  // Уже в игре в БД — сразу лобби (возврат по /join/... без кнопки)
+  useEffect(() => {
+    if (!userId || !code || !isValidGameCode(code)) return;
+    if (autoRejoinLookupDone.current || autoRejoinInFlight.current) return;
+
+    let cancelled = false;
+    autoRejoinInFlight.current = true;
+
+    async function tryAutoRejoin() {
+      setCheckingExistingPlayer(true);
+      try {
+        const res = await fetch(`/api/games?code=${encodeURIComponent(code)}`);
+        if (!res.ok || cancelled) {
+          if (!cancelled) autoRejoinLookupDone.current = true;
+          return;
+        }
+        const data = await res.json();
+        const g = data.game as {
+          id: string;
+          players?: Array<{ userId: string; user?: { name?: string | null } }>;
+        };
+        if (!g?.id || cancelled) {
+          if (!cancelled) autoRejoinLookupDone.current = true;
+          return;
+        }
+
+        const isPlayer = (g.players ?? []).some((p) => p.userId === userId);
+        if (!isPlayer) {
+          autoRejoinLookupDone.current = true;
+          return;
+        }
+
+        if (cancelled) return;
+        autoRejoinLookupDone.current = true;
+
+        const mapped: Player[] = (g.players ?? []).map((p) => ({
+          userId: p.userId,
+          name: p.user?.name ?? "Игрок",
+        }));
+
+        setGameId(g.id);
+        gameIdRef.current = g.id;
+        setPlayers(mapped);
+        setJoined(true);
+        pendingAutoSocketJoin.current = true;
+
+        const gameRes = await fetch(`/api/games/${g.id}`);
+        if (gameRes.ok && !cancelled) {
+          const gameData = await gameRes.json();
+          const gm = gameData.game;
+          setGame({
+            id: gm.id,
+            code: gm.code,
+            status: gm.status,
+            totalRounds: gm.totalRounds,
+            maxPlayers: gm.maxPlayers,
+          });
+          setLoadingRounds(true);
+          try {
+            const roundsRes = await fetch(`/api/rounds?gameId=${g.id}`);
+            if (roundsRes.ok && !cancelled) {
+              const roundsData = await roundsRes.json();
+              setRounds(roundsData.rounds || []);
+            }
+          } finally {
+            if (!cancelled) setLoadingRounds(false);
+          }
+        }
+      } catch {
+        if (!cancelled) autoRejoinLookupDone.current = true;
+      } finally {
+        autoRejoinInFlight.current = false;
+        setCheckingExistingPlayer(false);
+      }
+    }
+
+    tryAutoRejoin();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, code]);
+
+  // После автозахода подключаем сокет к комнате (отдельно от ручного «Присоединиться»)
+  useEffect(() => {
+    if (!pendingAutoSocketJoin.current || !isConnected || !userId) return;
+    pendingAutoSocketJoin.current = false;
+    emit("join_game", {
+      code,
+      userId,
+      name: userName,
+    });
+  }, [isConnected, userId, code, userName, emit]);
 
   // Слушаем события Socket.io
   useEffect(() => {
@@ -369,10 +474,14 @@ export default function JoinPage() {
 
         <button
           onClick={handleJoin}
-          disabled={loading || !isConnected || !userId}
+          disabled={loading || !isConnected || !userId || checkingExistingPlayer}
           className="w-full px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl text-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? (
+          {checkingExistingPlayer ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-spin">⏳</span> Проверка комнаты...
+            </span>
+          ) : loading ? (
             <span className="flex items-center justify-center gap-2">
               <span className="animate-spin">⏳</span> Подключение...
             </span>

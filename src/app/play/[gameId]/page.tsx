@@ -631,12 +631,14 @@ export default function PlayPage() {
             <p className="text-[var(--muted-foreground)]">
               Ожидайте, пока хост закроет раунд...
             </p>
-            <Link
-              href={`/play/${gameId}`}
-              className="inline-flex w-full max-w-sm mx-auto justify-center px-6 py-4 rounded-2xl border-2 border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] font-bold hover:bg-[var(--muted)] transition-colors"
-            >
-              Вернуться к игре
-            </Link>
+            {game?.code && (
+              <Link
+                href={`/join/${game.code}`}
+                className="inline-flex w-full max-w-sm mx-auto justify-center px-6 py-4 rounded-2xl border-2 border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] font-bold hover:bg-[var(--muted)] transition-colors"
+              >
+                Вернуться к игре
+              </Link>
+            )}
           </div>
         )}
 

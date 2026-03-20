@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSocket } from "@/hooks/useSocket";
@@ -624,12 +625,18 @@ export default function PlayPage() {
 
         {/* ──────────── GUESS_SUBMITTED ──────────── */}
         {phase === "GUESS_SUBMITTED" && (
-          <div className="text-center py-16">
+          <div className="text-center py-16 space-y-6">
             <div className="text-6xl mb-4">✅</div>
             <h2 className="text-xl font-bold mb-2">Ответ отправлен!</h2>
             <p className="text-[var(--muted-foreground)]">
               Ожидайте, пока хост закроет раунд...
             </p>
+            <Link
+              href={`/play/${gameId}`}
+              className="inline-flex w-full max-w-sm mx-auto justify-center px-6 py-4 rounded-2xl border-2 border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] font-bold hover:bg-[var(--muted)] transition-colors"
+            >
+              Вернуться к игре
+            </Link>
           </div>
         )}
 

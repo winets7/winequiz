@@ -1,0 +1,24 @@
+# SSH-доступ к серверу деплоя
+
+## Параметры сервера
+- **Хост:** 85.239.48.51
+- **Пользователь:** root
+- **Путь к проекту на сервере:** /var/www/winequiz
+
+## Как подключаться
+- Полная команда: `ssh root@85.239.48.51`
+- Если настроен алиас в `~/.ssh/config` (Host vintaste): `ssh vintaste`
+
+## Типичные команды на сервере
+- Перейти в проект: `cd /var/www/winequiz`
+- Обновить код: `git pull`
+- Сборка: `npm run build`
+- Перезапуск: `pm2 restart winequiz-web` и `pm2 restart winequiz-socket`
+
+## Выполнение одной команды без интерактивного входа
+```bash
+ssh root@85.239.48.51 "cd /var/www/winequiz && git pull && npm run build && pm2 restart winequiz-web winequiz-socket"
+```
+
+## Требование
+Вход без пароля должен быть настроен по ключу (см. `docs/SSH-KEY-SETUP.md`). Иначе SSH-команды из агента будут запрашивать пароль и зависнуть.

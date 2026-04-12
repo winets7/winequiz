@@ -1,33 +1,63 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useRouter } from "next/navigation";
 import { COLOR_LABELS, COLOR_ICONS, SWEETNESS_LABELS, COMPOSITION_LABELS } from "@/lib/wine-data";
 import { WineParams } from "./wine-form";
 
+/** Слова для замера ширины: пробелы, запятые, точки с запятой — границы; без разрыва внутри токена. */
+function extractWordsFromValueStrings(strings: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const s of strings) {
+    const trimmed = s.trim();
+    if (!trimmed) continue;
+    const parts = trimmed.split(/[\s,;]+/).filter(Boolean);
+    for (const p of parts) {
+      const w = p.trim();
+      if (!w || seen.has(w)) continue;
+      seen.add(w);
+      out.push(w);
+    }
+  }
+  return out;
+}
+
 /**
- * Максимальный кегль для textEl, чтобы текст помещался в прямоугольник container
- * (учёт области под заголовком и линией — это размеры flex-области значения).
+ * Один кегль для всех значений: максимальный размер, при котором каждое слово
+ * в одну строку не шире maxWidth (ширина области значения в ячейке).
  */
-function fitFontToBox(
-  container: HTMLElement,
-  textEl: HTMLElement,
+function fitMaxFontAllWordsFitWidth(
+  words: string[],
+  maxWidth: number,
+  probe: HTMLElement,
   minPx: number,
   maxPx: number,
-): { px: number; overflows: boolean } {
+): number {
+  if (words.length === 0) return minPx;
   if (maxPx < minPx) maxPx = minPx;
+
+  const cs = getComputedStyle(probe);
+  probe.style.whiteSpace = "nowrap";
+  probe.style.fontFamily = cs.fontFamily;
+  probe.style.fontWeight = cs.fontWeight;
+  probe.style.letterSpacing = cs.letterSpacing;
+
   let lo = minPx;
   let hi = maxPx;
   let best = minPx;
-  const eps = 1;
-  const cw = container.clientWidth;
-  const ch = container.clientHeight;
 
   for (let i = 0; i < 28; i++) {
     const mid = (lo + hi) / 2;
-    textEl.style.fontSize = `${mid}px`;
-    const ok =
-      textEl.scrollHeight <= ch + eps && textEl.scrollWidth <= cw + eps;
+    let ok = true;
+    for (const word of words) {
+      probe.textContent = word;
+      probe.style.fontSize = `${mid}px`;
+      if (probe.offsetWidth > maxWidth + 1) {
+        ok = false;
+        break;
+      }
+    }
     if (ok) {
       best = mid;
       lo = mid;
@@ -36,10 +66,8 @@ function fitFontToBox(
     }
   }
 
-  textEl.style.fontSize = `${best}px`;
-  const overflows =
-    textEl.scrollHeight > ch + eps || textEl.scrollWidth > cw + eps;
-  return { px: best, overflows };
+  probe.textContent = "";
+  return best;
 }
 
 /** Самая длинная подпись — по ширине ячейки под неё вычисляется общий кегль для всех заголовков. */
@@ -68,42 +96,43 @@ function fitFontToLabelWidth(probe: HTMLElement, wrapWidth: number): number {
   return best;
 }
 
-function CharacteristicValueFit({ text }: { text: string }) {
+function CharacteristicValueBlock({
+  text,
+  fontSizePx,
+  widthMeasureRef,
+}: {
+  text: string;
+  fontSizePx: number;
+  widthMeasureRef?: MutableRefObject<HTMLDivElement | null>;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
 
+  const setContainerRef = (el: HTMLDivElement | null) => {
+    containerRef.current = el;
+    if (widthMeasureRef) widthMeasureRef.current = el;
+  };
+
   useLayoutEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const fit = () => {
-      const c = containerRef.current;
-      const node = textRef.current;
-      if (!c || !node) return;
-      const w = c.clientWidth;
-      const h = c.clientHeight;
-      if (w < 6 || h < 6) return;
-
-      const minPx = 9;
-      const maxPx = Math.max(minPx, Math.min(160, Math.min(w, h) * 0.58));
-      const { overflows } = fitFontToBox(c, node, minPx, maxPx);
-      node.style.overflow = overflows ? "auto" : "hidden";
-    };
-
-    fit();
-    const ro = new ResizeObserver(() => requestAnimationFrame(fit));
-    ro.observe(container);
-    return () => ro.disconnect();
-  }, [text]);
+    const c = containerRef.current;
+    const t = textRef.current;
+    if (!c || !t) return;
+    const eps = 1;
+    const overY = t.scrollHeight > c.clientHeight + eps;
+    const overX = t.scrollWidth > c.clientWidth + eps;
+    t.style.overflowY = overY ? "auto" : "hidden";
+    t.style.overflowX = overX ? "auto" : "hidden";
+  }, [text, fontSizePx]);
 
   return (
     <div
-      ref={containerRef}
+      ref={setContainerRef}
       className="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center overflow-hidden"
     >
       <div
         ref={textRef}
-        className="w-full min-w-0 text-center break-words font-bold leading-[1.12] text-[var(--foreground)] [overflow-wrap:anywhere]"
+        className="max-h-full w-full min-w-0 text-center font-bold leading-[1.12] text-[var(--foreground)] [hyphens:none] [overflow-wrap:normal] [word-break:normal]"
+        style={{ fontSize: `${fontSizePx}px` }}
       >
         {text}
       </div>
@@ -128,7 +157,70 @@ export function CharacteristicCards({
   const router = useRouter();
   const labelMeasureWrapRef = useRef<HTMLDivElement>(null);
   const labelProbeRef = useRef<HTMLSpanElement>(null);
+  const valueWidthRef = useRef<HTMLDivElement>(null);
+  const valueFontProbeRef = useRef<HTMLSpanElement>(null);
   const [unifiedLabelFontPx, setUnifiedLabelFontPx] = useState(11);
+  const [unifiedValueFontPx, setUnifiedValueFontPx] = useState(12);
+
+  const cards = useMemo(() => {
+    const colorDisplay = !values.color
+      ? "Не выбрано"
+      : `${COLOR_ICONS[values.color] || ""} ${COLOR_LABELS[values.color] || values.color}`.trim();
+    const sweetnessDisplay = !values.sweetness
+      ? "Не выбрано"
+      : SWEETNESS_LABELS[values.sweetness] || values.sweetness;
+    const compositionDisplay = !values.composition
+      ? "Не выбрано"
+      : COMPOSITION_LABELS[values.composition] || values.composition;
+    const grapeDisplay =
+      !values.grapeVarieties || values.grapeVarieties.length === 0
+        ? "Не выбрано"
+        : values.grapeVarieties.join(", ");
+    const countryDisplay = !values.country ? "Не выбрано" : values.country;
+    const vintageDisplay = !values.vintageYear ? "Не выбрано" : values.vintageYear;
+    const alcoholDisplay = !values.alcoholContent ? "Не выбрано" : `${values.alcoholContent}%`;
+    const oakDisplay =
+      values.isOakAged === null || values.isOakAged === undefined
+        ? "Не выбрано"
+        : values.isOakAged
+          ? "Да"
+          : "Нет";
+
+    return [
+      { icon: "🎨", label: "Цвет вина", value: colorDisplay, field: "color" as const, path: "color" },
+      { icon: "🍬", label: "Сладость", value: sweetnessDisplay, field: "sweetness" as const, path: "sweetness" },
+      { icon: "🔀", label: "Состав", value: compositionDisplay, field: "composition" as const, path: "composition" },
+      {
+        icon: "🍇",
+        label: "Сорта винограда",
+        value: grapeDisplay,
+        field: "grapeVarieties" as const,
+        path: "grape-varieties",
+      },
+      { icon: "🌍", label: "Страна", value: countryDisplay, field: "country" as const, path: "country" },
+      {
+        icon: "📅",
+        label: "Год урожая",
+        value: vintageDisplay,
+        field: "vintageYear" as const,
+        path: "vintage-year",
+      },
+      {
+        icon: "🥃",
+        label: "Крепость (%)",
+        value: alcoholDisplay,
+        field: "alcoholContent" as const,
+        path: "alcohol-content",
+      },
+      {
+        icon: "🪵",
+        label: REFERENCE_LABEL_TEXT,
+        value: oakDisplay,
+        field: "isOakAged" as const,
+        path: "oak-aged",
+      },
+    ];
+  }, [values]);
 
   useLayoutEffect(() => {
     const wrap = labelMeasureWrapRef.current;
@@ -148,6 +240,32 @@ export function CharacteristicCards({
     return () => ro.disconnect();
   }, []);
 
+  useLayoutEffect(() => {
+    const wrap = valueWidthRef.current;
+    const probe = valueFontProbeRef.current;
+    if (!wrap || !probe) return;
+
+    const valueStrings = cards.map((c) => c.value);
+    const words = extractWordsFromValueStrings(valueStrings);
+
+    const fit = () => {
+      const w = wrap.clientWidth;
+      if (w < 6) return;
+      const minPx = 9;
+      const maxPx = Math.max(minPx, Math.min(160, w));
+      const px =
+        words.length === 0
+          ? 12
+          : fitMaxFontAllWordsFitWidth(words, w, probe, minPx, maxPx);
+      setUnifiedValueFontPx(px);
+    };
+
+    fit();
+    const ro = new ResizeObserver(() => requestAnimationFrame(fit));
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, [cards]);
+
   const handleCardClick = (field: keyof WineParams, path: string) => {
     if (onValueChange) {
       // Если есть обработчик, используем его (для inline редактирования)
@@ -157,109 +275,14 @@ export function CharacteristicCards({
     router.push(`/play/${gameId}/select/${path}`);
   };
 
-  const getColorDisplay = () => {
-    if (!values.color) return "Не выбрано";
-    return `${COLOR_ICONS[values.color] || ""} ${COLOR_LABELS[values.color] || values.color}`;
-  };
-
-  const getSweetnessDisplay = () => {
-    if (!values.sweetness) return "Не выбрано";
-    return SWEETNESS_LABELS[values.sweetness] || values.sweetness;
-  };
-
-  const getCompositionDisplay = () => {
-    if (!values.composition) return "Не выбрано";
-    return COMPOSITION_LABELS[values.composition] || values.composition;
-  };
-
-  const getGrapeVarietiesDisplay = () => {
-    if (!values.grapeVarieties || values.grapeVarieties.length === 0) return "Не выбрано";
-    return values.grapeVarieties.join(", ");
-  };
-
-  const getCountryDisplay = () => {
-    if (!values.country) return "Не выбрано";
-    return values.country;
-  };
-
-  const getVintageYearDisplay = () => {
-    if (!values.vintageYear) return "Не выбрано";
-    return values.vintageYear;
-  };
-
-  const getAlcoholContentDisplay = () => {
-    if (!values.alcoholContent) return "Не выбрано";
-    return `${values.alcoholContent}%`;
-  };
-
-  const getOakAgedDisplay = () => {
-    if (values.isOakAged === null || values.isOakAged === undefined) return "Не выбрано";
-    return values.isOakAged ? "Да" : "Нет";
-  };
-
-  const cards = [
-    {
-      icon: "🎨",
-      label: "Цвет вина",
-      value: getColorDisplay(),
-      field: "color" as keyof WineParams,
-      path: "color",
-    },
-    {
-      icon: "🍬",
-      label: "Сладость",
-      value: getSweetnessDisplay(),
-      field: "sweetness" as keyof WineParams,
-      path: "sweetness",
-    },
-    {
-      icon: "🔀",
-      label: "Состав",
-      value: getCompositionDisplay(),
-      field: "composition" as keyof WineParams,
-      path: "composition",
-    },
-    {
-      icon: "🍇",
-      label: "Сорта винограда",
-      value: getGrapeVarietiesDisplay(),
-      field: "grapeVarieties" as keyof WineParams,
-      path: "grape-varieties",
-    },
-    {
-      icon: "🌍",
-      label: "Страна",
-      value: getCountryDisplay(),
-      field: "country" as keyof WineParams,
-      path: "country",
-    },
-    {
-      icon: "📅",
-      label: "Год урожая",
-      value: getVintageYearDisplay(),
-      field: "vintageYear" as keyof WineParams,
-      path: "vintage-year",
-    },
-    {
-      icon: "🥃",
-      label: "Крепость (%)",
-      value: getAlcoholContentDisplay(),
-      field: "alcoholContent" as keyof WineParams,
-      path: "alcohol-content",
-    },
-    {
-      icon: "🪵",
-      label: REFERENCE_LABEL_TEXT,
-      value: getOakAgedDisplay(),
-      field: "isOakAged" as keyof WineParams,
-      path: "oak-aged",
-    },
-  ];
-
   return (
-    <div
-      className={`grid h-full min-h-[220px] grid-cols-2 grid-rows-[repeat(4,minmax(0,1fr))] gap-3 sm:gap-4 ${className}`.trim()}
-    >
+    <div className={`relative min-h-[220px] ${className}`.trim()}>
+      <span
+        ref={valueFontProbeRef}
+        aria-hidden
+        className="pointer-events-none fixed top-0 left-[-10000px] z-[-1] whitespace-nowrap font-bold text-[var(--foreground)]"
+      />
+      <div className="grid h-full min-h-[220px] grid-cols-2 grid-rows-[repeat(4,minmax(0,1fr))] gap-3 sm:gap-4">
       {cards.map((card, index) => (
         <button
           key={card.field}
@@ -287,9 +310,14 @@ export function CharacteristicCards({
               {card.label}
             </span>
           </div>
-          <CharacteristicValueFit text={card.value} />
+          <CharacteristicValueBlock
+            text={card.value}
+            fontSizePx={unifiedValueFontPx}
+            widthMeasureRef={index === 0 ? valueWidthRef : undefined}
+          />
         </button>
       ))}
+      </div>
     </div>
   );
 }

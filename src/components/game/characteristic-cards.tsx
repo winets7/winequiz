@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { COLOR_LABELS, COLOR_ICONS, SWEETNESS_LABELS, COMPOSITION_LABELS } from "@/lib/wine-data";
 import { WineParams } from "./wine-form";
@@ -33,59 +33,30 @@ function fitFontToBox(el: HTMLElement, minPx: number, maxPx: number): { px: numb
   return { px: best, overflows };
 }
 
-function CharacteristicLabelFit({ text }: { text: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
+/** Самая длинная подпись — по ширине ячейки под неё вычисляется общий кегль для всех заголовков. */
+const REFERENCE_LABEL_TEXT = "Выдержка в бочке";
 
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const parent = el.parentElement;
-    if (!parent) return;
+function fitFontToLabelWidth(probe: HTMLElement, wrapWidth: number): number {
+  const minPx = 7;
+  const maxPx = Math.max(minPx, Math.min(56, wrapWidth * 0.28));
+  let lo = minPx;
+  let hi = maxPx;
+  let best = minPx;
+  probe.style.whiteSpace = "nowrap";
+  probe.style.display = "block";
 
-    const fit = () => {
-      const node = ref.current;
-      const wrap = node?.parentElement;
-      if (!node || !wrap) return;
-      const w = wrap.clientWidth;
-      if (w < 6) return;
-
-      const minPx = 7;
-      const maxPx = Math.max(minPx, Math.min(22, w * 0.15));
-      node.style.whiteSpace = "nowrap";
-      node.style.display = "block";
-      node.style.overflow = "hidden";
-      node.style.textOverflow = "ellipsis";
-
-      let lo = minPx;
-      let hi = maxPx;
-      let best = minPx;
-      for (let i = 0; i < 24; i++) {
-        const mid = (lo + hi) / 2;
-        node.style.fontSize = `${mid}px`;
-        if (node.scrollWidth <= w + 1) {
-          best = mid;
-          lo = mid;
-        } else {
-          hi = mid;
-        }
-      }
-      node.style.fontSize = `${best}px`;
-    };
-
-    fit();
-    const ro = new ResizeObserver(() => requestAnimationFrame(fit));
-    ro.observe(parent);
-    return () => ro.disconnect();
-  }, [text]);
-
-  return (
-    <span
-      ref={ref}
-      className="block min-w-0 uppercase tracking-wide text-[var(--muted-foreground)]"
-    >
-      {text}
-    </span>
-  );
+  for (let i = 0; i < 28; i++) {
+    const mid = (lo + hi) / 2;
+    probe.style.fontSize = `${mid}px`;
+    if (probe.scrollWidth <= wrapWidth + 1) {
+      best = mid;
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  probe.style.fontSize = `${best}px`;
+  return best;
 }
 
 function CharacteristicValueFit({ text }: { text: string }) {
@@ -139,6 +110,27 @@ export function CharacteristicCards({
   className = "",
 }: CharacteristicCardsProps) {
   const router = useRouter();
+  const labelMeasureWrapRef = useRef<HTMLDivElement>(null);
+  const labelProbeRef = useRef<HTMLSpanElement>(null);
+  const [unifiedLabelFontPx, setUnifiedLabelFontPx] = useState(11);
+
+  useLayoutEffect(() => {
+    const wrap = labelMeasureWrapRef.current;
+    const probe = labelProbeRef.current;
+    if (!wrap || !probe) return;
+
+    const fit = () => {
+      const w = wrap.clientWidth;
+      if (w < 6) return;
+      const px = fitFontToLabelWidth(probe, w);
+      setUnifiedLabelFontPx(px);
+    };
+
+    fit();
+    const ro = new ResizeObserver(() => requestAnimationFrame(fit));
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, []);
 
   const handleCardClick = (field: keyof WineParams, path: string) => {
     if (onValueChange) {
@@ -241,7 +233,7 @@ export function CharacteristicCards({
     },
     {
       icon: "🪵",
-      label: "Выдержка в бочке",
+      label: REFERENCE_LABEL_TEXT,
       value: getOakAgedDisplay(),
       field: "isOakAged" as keyof WineParams,
       path: "oak-aged",
@@ -252,15 +244,32 @@ export function CharacteristicCards({
     <div
       className={`grid h-full min-h-[220px] grid-cols-2 grid-rows-[repeat(4,minmax(0,1fr))] gap-3 sm:gap-4 ${className}`.trim()}
     >
-      {cards.map((card) => (
+      {cards.map((card, index) => (
         <button
           key={card.field}
           type="button"
           onClick={() => handleCardClick(card.field, card.path)}
           className="flex min-h-0 min-w-0 flex-col bg-[var(--card)] border border-[var(--border)] rounded-xl text-left hover:bg-[var(--muted)] transition-all card-shadow [container-type:size] [padding:clamp(0.5rem,3cqmin,1rem)]"
         >
-          <div className="min-w-0 shrink-0 border-b border-[var(--border)] [margin-bottom:clamp(0.25rem,1.2cqmin,0.5rem)] [padding-bottom:clamp(0.25rem,1.2cqmin,0.5rem)]">
-            <CharacteristicLabelFit text={card.label} />
+          <div
+            ref={index === 0 ? labelMeasureWrapRef : undefined}
+            className="relative min-w-0 shrink-0 border-b border-[var(--border)] [margin-bottom:clamp(0.25rem,1.2cqmin,0.5rem)] [padding-bottom:clamp(0.25rem,1.2cqmin,0.5rem)]"
+          >
+            {index === 0 && (
+              <span
+                ref={labelProbeRef}
+                className="pointer-events-none absolute left-0 top-0 block w-full select-none whitespace-nowrap uppercase tracking-wide text-[var(--muted-foreground)] opacity-0"
+                aria-hidden
+              >
+                {REFERENCE_LABEL_TEXT}
+              </span>
+            )}
+            <span
+              className="relative z-[1] block min-w-0 whitespace-nowrap uppercase tracking-wide text-[var(--muted-foreground)]"
+              style={{ fontSize: `${unifiedLabelFontPx}px` }}
+            >
+              {card.label}
+            </span>
           </div>
           <CharacteristicValueFit text={card.value} />
         </button>

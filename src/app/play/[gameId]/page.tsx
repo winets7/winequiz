@@ -483,7 +483,7 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center pb-8">
+    <main className="flex h-dvh min-h-0 flex-col items-center overflow-y-auto pb-8">
       {/* === Верхняя панель === */}
       <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
         <div className="max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-3 flex items-center justify-between">
@@ -539,7 +539,7 @@ export default function PlayPage() {
       )}
 
       {/* === Основной контент === */}
-      <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 mt-4">
+      <div className="flex min-h-0 w-full max-w-lg flex-1 flex-col sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 mt-4">
         {/* ──────────── ROUND_READY (Хост) ──────────── */}
         {phase === "ROUND_READY" && isHost && (
           <div className="text-center py-8 space-y-6">
@@ -597,20 +597,22 @@ export default function PlayPage() {
 
         {/* ROUND_ACTIVE (Участник заполняет форму) */}
         {phase === "ROUND_ACTIVE" && !isHost && (
-          <div className="space-y-4">
-            <div className="text-center">
+          <div className="flex min-h-0 flex-1 flex-col gap-4">
+            <div className="shrink-0 text-center">
               <h2 className="text-xl font-bold">🤔 Угадайте вино!</h2>
               <p className="text-sm text-[var(--muted-foreground)] mt-1">
                 Раунд {currentRound}/{game?.totalRounds}
               </p>
             </div>
 
-            <CharacteristicCards gameId={gameId} values={guessValues} />
-            
+            <div className="min-h-0 flex-1">
+              <CharacteristicCards gameId={gameId} values={guessValues} className="h-full" />
+            </div>
+
             <button
               onClick={handleSubmitGuess}
               disabled={submitting}
-              className="w-full mt-6 px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full shrink-0 px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <span className="flex items-center justify-center gap-2">

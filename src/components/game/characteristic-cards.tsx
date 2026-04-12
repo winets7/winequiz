@@ -8,9 +8,16 @@ interface CharacteristicCardsProps {
   gameId: string;
   values: Partial<WineParams>;
   onValueChange?: (field: keyof WineParams, value: unknown) => void;
+  /** Доп. классы корневого контейнера (например `h-full` для сетки 2×4 на всю высоту родителя). */
+  className?: string;
 }
 
-export function CharacteristicCards({ gameId, values, onValueChange }: CharacteristicCardsProps) {
+export function CharacteristicCards({
+  gameId,
+  values,
+  onValueChange,
+  className = "",
+}: CharacteristicCardsProps) {
   const router = useRouter();
 
   const handleCardClick = (field: keyof WineParams, path: string) => {
@@ -122,20 +129,24 @@ export function CharacteristicCards({ gameId, values, onValueChange }: Character
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div
+      className={`grid h-full min-h-[220px] grid-cols-2 grid-rows-[repeat(4,minmax(0,1fr))] gap-3 sm:gap-4 ${className}`.trim()}
+    >
       {cards.map((card) => (
         <button
           key={card.field}
           type="button"
           onClick={() => handleCardClick(card.field, card.path)}
-          className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 text-left hover:bg-[var(--muted)] transition-all card-shadow"
+          className="flex min-h-0 min-w-0 flex-col bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 sm:p-4 text-left hover:bg-[var(--muted)] transition-all card-shadow"
         >
-          <div className="mb-2 pb-2 border-b border-[var(--border)]">
+          <div className="mb-2 shrink-0 border-b border-[var(--border)] pb-2">
             <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               {card.label}
             </span>
           </div>
-          <div className="text-base font-bold text-[var(--foreground)]">{card.value}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto text-sm font-bold text-[var(--foreground)] sm:text-base leading-tight">
+            {card.value}
+          </div>
         </button>
       ))}
     </div>

@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { applyPhoneMask, normalizePhone, isValidPhone } from "@/lib/phone";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -84,13 +82,11 @@ export default function RegisterPage() {
       });
 
       if (signInResult?.error) {
-        // Регистрация прошла, но вход не удался — отправляем на страницу входа
-        router.push("/login");
+        window.location.assign("/login");
         return;
       }
 
-      router.push("/");
-      router.refresh();
+      window.location.assign("/");
     } catch {
       setError("Ошибка подключения к серверу");
       setLoading(false);

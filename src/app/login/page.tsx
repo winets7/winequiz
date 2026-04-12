@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { applyPhoneMask, normalizePhone, isValidPhone } from "@/lib/phone";
+import { sanitizeAuthCallbackUrl } from "@/lib/auth-callback";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -50,8 +49,11 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
-      router.refresh();
+      // Полная перезагрузка: cookie сессии из ответа signIn гарантированно подхватывается
+      // (router.push + refresh часто оставляют клиент без обновлённой сессии).
+      const params = new URLSearchParams(window.location.search);
+      const next = sanitizeAuthCallbackUrl(params.get("callbackUrl"));
+      window.location.assign(next);
     } catch {
       setError("Ошибка подключения к серверу");
       setLoading(false);

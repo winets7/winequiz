@@ -1,24 +1,94 @@
-# SSH-доступ к серверу деплоя
+---
+description: SSH, продакшен vintaste.ru, nginx, NextAuth, проверки доступа и деплой
+alwaysApply: true
+---
 
-## Параметры сервера
-- **Хост:** 85.239.48.51
-- **Пользователь:** root
-- **Путь к проекту на сервере:** /var/www/winequiz
+# Сервер, nginx, Auth и проверки (vintaste.ru / winequiz)
 
-## Как подключаться
-- Полная команда: `ssh root@85.239.48.51`
-- Если настроен алиас в `~/.ssh/config` (Host vintaste): `ssh vintaste`
+## SSH и пути
 
-## Типичные команды на сервере
-- Перейти в проект: `cd /var/www/winequiz`
-- Обновить код: `git pull`
-- Сборка: `npm run build`
-- Перезапуск: `pm2 restart winequiz-web` и `pm2 restart winequiz-socket`
+- **Хост:** `85.239.48.51`, пользователь **`root`**, проект: **`/var/www/winequiz`**
+- Подключение: `ssh root@85.239.48.51` (ключ без пароля — см. `docs/SSH-KEY-SETUP.md`)
+- Деплой одной строкой (как в `scripts/deploy.ps1`):
 
-## Выполнение одной команды без интерактивного входа
 ```bash
-ssh root@85.239.48.51 "cd /var/www/winequiz && git pull && npm run build && pm2 restart winequiz-web winequiz-socket"
+ssh root@85.239.48.51 "cd /var/www/winequiz && git pull && npm install && npm run build && pm2 restart winequiz-web winequiz-socket"
 ```
 
-## Требование
-Вход без пароля должен быть настроен по ключу (см. `docs/SSH-KEY-SETUP.md`). Иначе SSH-команды из агента будут запрашивать пароль и зависнуть.
+## Переменные окружения на сервере (`/var/www/winequiz/.env`)
+
+Обязательно согласовать **публичный URL** (схема + хост, без лишнего порта):
+
+- **`NEXTAUTH_URL`** и **`AUTH_URL`** — `https://vintaste.ru` (Auth.js v5 читает `AUTH_*`)
+- **`NEXT_PUBLIC_APP_URL`** — `https://vintaste.ru`
+- **`NEXT_PUBLIC_SOCKET_URL`** — `https://vintaste.ru` (Socket.io через тот же хост и nginx)
+- **`AUTH_TRUST_HOST=true`** за прокси
+- **`NEXTAUTH_SECRET`** — стабильный секрет в продакшене
+
+Cookie сессии выдаются с флагом **Secure** — без рабочего **HTTPS** вход «не прилипает» (после сабмита снова гость).
+
+После правок `.env`: **`pm2 restart winequiz-web winequiz-socket`** (при необходимости **`pm2 restart winequiz-web --update-env`**).
+
+## Nginx (критично для сайта и входа)
+
+- Основной прокси на Next.js: Fastpanel **`/etc/nginx/fastpanel2-available/vintaste_ru_usr/vintaste.ru.conf`** → `127.0.0.1:3000`; Socket.io — **`/etc/nginx/fastpanel2-sites/vintaste_ru_usr/vintaste.ru.includes`** → порт **3001**
+- Дополнительно может быть **`/etc/nginx/sites-enabled/winequiz`** (Let’s Encrypt, редирект 80→443)
+- **`/etc/nginx/proxy_params`** должен отдавать **`X-Forwarded-Proto $scheme`** (нужно NextAuth за прокси)
+
+Если **`systemctl is-active nginx`** = **`failed`**, сайт по **80/443** не слушается — проверить:
+
+```bash
+nginx -t
+journalctl -u nginx -n 50 --no-pager
+ss -tlnp | grep -E ':80|:443'
+```
+
+Типичные причины падения при старте:
+
+- **`/etc/nginx/conf.d/reuseport.conf`**: `listen [2a03:6f00:…]:443 quic` — ошибка **`Cannot assign requested address`**, если IPv6 ещё не поднят при старте nginx. Решение: закомментировать эту строку (иметь бэкап файла) или обеспечить поздний старт сети.
+- Юнит nginx: drop-in **`/etc/systemd/system/nginx.service.d/network-online.conf`** с **`After=network-online.target`** и **`Wants=network-online.target`**, затем **`systemctl daemon-reload`**.
+
+После правок: **`nginx -t && systemctl reload nginx`**. Автозапуск: **`systemctl enable nginx`**.
+
+Подробности панели: **`docs/fastpanel-installation.md`**.
+
+## PM2
+
+- **`winequiz-web`** — `next start -p 3000`, cwd `/var/www/winequiz`
+- **`winequiz-socket`** — сокет **3001**
+- Логи: **`pm2 logs winequiz-web`**, перезапуск после билда: **`pm2 restart winequiz-web winequiz-socket`**, сохранение списка: **`pm2 save`**
+
+## Клиент: вход после `signIn` (Next.js App Router)
+
+Не полагаться только на **`router.push` + `router.refresh`** после **`signIn(..., { redirect: false })`** — сессия в браузере может не обновиться. Использовать **полную перезагрузку** и безопасный **`callbackUrl`**:
+
+- Утилита **`src/lib/auth-callback.ts`**: **`sanitizeAuthCallbackUrl`** (только относительный путь, защита от open redirect)
+- **`src/app/login/page.tsx`**: после успеха — **`window.location.assign(sanitizeAuthCallbackUrl(params.get("callbackUrl")))`**
+- **`src/app/register/page.tsx`**: после успешного входа — **`window.location.assign("/")`** (или `/login` при ошибке signIn)
+
+## Проверки доступа
+
+**С Windows (PowerShell):**
+
+```powershell
+Test-NetConnection vintaste.ru -Port 443
+Invoke-WebRequest 'https://vintaste.ru/' -UseBasicParsing
+Invoke-WebRequest 'https://vintaste.ru/api/auth/session' -UseBasicParsing
+```
+
+Скрипт в репозитории: **`scripts/check-site-http.ps1`**.
+
+**По SSH (приложение и nginx):**
+
+```bash
+curl -sI http://127.0.0.1:3000 | head -5
+curl -s https://vintaste.ru/api/auth/session
+systemctl is-active nginx
+```
+
+Если с ПК **443 недоступен**, а с сервера HTTPS отвечает — искать файрвол/хостера; если нигде нет слушателей **80/443** — сначала поднять **nginx**.
+
+## Прочее
+
+- Вход по **телефону** (11 цифр, нормализация в коде) и паролю; гости без `passwordHash` не входят по credentials (см. `docs/fastpanel-installation.md`).
+- Устаревший билд после деплоя: **`Failed to find Server Action`** — пересобрать и перезапустить PM2 (команда выше).

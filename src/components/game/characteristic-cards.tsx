@@ -5,20 +5,29 @@ import { useRouter } from "next/navigation";
 import { COLOR_LABELS, COLOR_ICONS, SWEETNESS_LABELS, COMPOSITION_LABELS } from "@/lib/wine-data";
 import { WineParams } from "./wine-form";
 
-/** Максимальный кегль, вписывающий текст в clientWidth × clientHeight (учёт паддингов — снаружи). */
-function fitFontToBox(el: HTMLElement, minPx: number, maxPx: number): { px: number; overflows: boolean } {
+/**
+ * Максимальный кегль для textEl, чтобы текст помещался в прямоугольник container
+ * (учёт области под заголовком и линией — это размеры flex-области значения).
+ */
+function fitFontToBox(
+  container: HTMLElement,
+  textEl: HTMLElement,
+  minPx: number,
+  maxPx: number,
+): { px: number; overflows: boolean } {
   if (maxPx < minPx) maxPx = minPx;
   let lo = minPx;
   let hi = maxPx;
   let best = minPx;
   const eps = 1;
+  const cw = container.clientWidth;
+  const ch = container.clientHeight;
 
   for (let i = 0; i < 28; i++) {
     const mid = (lo + hi) / 2;
-    el.style.fontSize = `${mid}px`;
-    const w = el.clientWidth;
-    const h = el.clientHeight;
-    const ok = el.scrollHeight <= h + eps && el.scrollWidth <= w + eps;
+    textEl.style.fontSize = `${mid}px`;
+    const ok =
+      textEl.scrollHeight <= ch + eps && textEl.scrollWidth <= cw + eps;
     if (ok) {
       best = mid;
       lo = mid;
@@ -27,9 +36,9 @@ function fitFontToBox(el: HTMLElement, minPx: number, maxPx: number): { px: numb
     }
   }
 
-  el.style.fontSize = `${best}px`;
+  textEl.style.fontSize = `${best}px`;
   const overflows =
-    el.scrollHeight > el.clientHeight + eps || el.scrollWidth > el.clientWidth + eps;
+    textEl.scrollHeight > ch + eps || textEl.scrollWidth > cw + eps;
   return { px: best, overflows };
 }
 
@@ -60,37 +69,44 @@ function fitFontToLabelWidth(probe: HTMLElement, wrapWidth: number): number {
 }
 
 function CharacteristicValueFit({ text }: { text: string }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const container = containerRef.current;
+    if (!container) return;
 
     const fit = () => {
-      const node = ref.current;
-      if (!node) return;
-      const w = node.clientWidth;
-      const h = node.clientHeight;
+      const c = containerRef.current;
+      const node = textRef.current;
+      if (!c || !node) return;
+      const w = c.clientWidth;
+      const h = c.clientHeight;
       if (w < 6 || h < 6) return;
 
       const minPx = 9;
       const maxPx = Math.max(minPx, Math.min(160, Math.min(w, h) * 0.58));
-      const { overflows } = fitFontToBox(node, minPx, maxPx);
+      const { overflows } = fitFontToBox(c, node, minPx, maxPx);
       node.style.overflow = overflows ? "auto" : "hidden";
     };
 
     fit();
     const ro = new ResizeObserver(() => requestAnimationFrame(fit));
-    ro.observe(el);
+    ro.observe(container);
     return () => ro.disconnect();
   }, [text]);
 
   return (
     <div
-      ref={ref}
-      className="min-h-0 min-w-0 flex-1 overflow-hidden break-words font-bold leading-[1.12] text-[var(--foreground)] [overflow-wrap:anywhere]"
+      ref={containerRef}
+      className="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center overflow-hidden"
     >
-      {text}
+      <div
+        ref={textRef}
+        className="w-full min-w-0 text-center break-words font-bold leading-[1.12] text-[var(--foreground)] [overflow-wrap:anywhere]"
+      >
+        {text}
+      </div>
     </div>
   );
 }

@@ -137,14 +137,14 @@ export function CharacteristicCards({
           key={card.field}
           type="button"
           onClick={() => handleCardClick(card.field, card.path)}
-          className="flex min-h-0 min-w-0 flex-col bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 sm:p-4 text-left hover:bg-[var(--muted)] transition-all card-shadow"
+          className="flex min-h-0 min-w-0 flex-col bg-[var(--card)] border border-[var(--border)] rounded-xl text-left hover:bg-[var(--muted)] transition-all card-shadow [container-type:size] [padding:clamp(0.5rem,3cqmin,1rem)]"
         >
-          <div className="mb-2 shrink-0 border-b border-[var(--border)] pb-2">
-            <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
+          <div className="shrink-0 border-b border-[var(--border)] [margin-bottom:clamp(0.25rem,1.2cqmin,0.5rem)] [padding-bottom:clamp(0.25rem,1.2cqmin,0.5rem)]">
+            <span className="block text-xs uppercase tracking-wide text-[var(--muted-foreground)] [font-size:clamp(0.5625rem,3.8cqmin,0.8125rem)]">
               {card.label}
             </span>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto text-sm font-bold text-[var(--foreground)] sm:text-base leading-tight">
+          <div className="min-h-0 flex-1 overflow-y-auto text-sm font-bold leading-tight text-[var(--foreground)] [font-size:clamp(0.6875rem,9.5cqmin,1.3125rem)]">
             {card.value}
           </div>
         </button>

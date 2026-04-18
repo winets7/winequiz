@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { COLOR_LABELS, COLOR_ICONS, SWEETNESS_LABELS, COMPOSITION_LABELS } from "@/lib/wine-data";
 import type { WineParams } from "./wine-form";
+import { CountryValueBlock } from "./country-value-block";
 
 interface HostRoundCharacteristicCardsProps {
   gameId: string;
@@ -80,18 +81,26 @@ export function HostRoundCharacteristicCards({
           type="button"
           disabled={disabled}
           onClick={() => !disabled && router.push(`${basePath}/${card.path}`)}
-          className={`bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 text-left transition-all card-shadow ${
+          className={`flex min-h-[140px] min-w-0 flex-col bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 text-left transition-all card-shadow [container-type:size] ${
             disabled
               ? "opacity-60 cursor-not-allowed"
               : "hover:bg-[var(--muted)]"
           }`}
         >
-          <div className="mb-2 pb-2 border-b border-[var(--border)]">
+          <div className="mb-2 shrink-0 border-b border-[var(--border)] pb-2">
             <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               {card.label}
             </span>
           </div>
-          <div className="text-base font-bold text-[var(--foreground)]">{card.value}</div>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            {card.path === "country" && values.country ? (
+              <CountryValueBlock countryName={values.country} />
+            ) : (
+              <div className="flex min-h-0 flex-1 items-center justify-center text-center text-base font-bold text-[var(--foreground)]">
+                {card.value}
+              </div>
+            )}
+          </div>
         </button>
       ))}
     </div>

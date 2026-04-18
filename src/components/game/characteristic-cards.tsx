@@ -4,6 +4,7 @@ import { useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } fro
 import { useRouter } from "next/navigation";
 import { COLOR_LABELS, COLOR_ICONS, SWEETNESS_LABELS, COMPOSITION_LABELS } from "@/lib/wine-data";
 import { WineParams } from "./wine-form";
+import { CountryValueBlock } from "./country-value-block";
 
 /** Слова для замера ширины: пробелы, запятые, точки с запятой — границы; без разрыва внутри токена. */
 function extractWordsFromValueStrings(strings: string[]): string[] {
@@ -245,7 +246,9 @@ export function CharacteristicCards({
     const probe = valueFontProbeRef.current;
     if (!wrap || !probe) return;
 
-    const valueStrings = cards.map((c) => c.value);
+    const valueStrings = cards.map((c) =>
+      c.field === "country" && values.country ? "" : c.value,
+    );
     const words = extractWordsFromValueStrings(valueStrings);
 
     const fit = () => {
@@ -264,7 +267,7 @@ export function CharacteristicCards({
     const ro = new ResizeObserver(() => requestAnimationFrame(fit));
     ro.observe(wrap);
     return () => ro.disconnect();
-  }, [cards]);
+  }, [cards, values.country]);
 
   const handleCardClick = (field: keyof WineParams, path: string) => {
     if (onValueChange) {
@@ -310,11 +313,15 @@ export function CharacteristicCards({
               {card.label}
             </span>
           </div>
-          <CharacteristicValueBlock
-            text={card.value}
-            fontSizePx={unifiedValueFontPx}
-            widthMeasureRef={index === 0 ? valueWidthRef : undefined}
-          />
+          {card.field === "country" && values.country ? (
+            <CountryValueBlock countryName={values.country} />
+          ) : (
+            <CharacteristicValueBlock
+              text={card.value}
+              fontSizePx={unifiedValueFontPx}
+              widthMeasureRef={index === 0 ? valueWidthRef : undefined}
+            />
+          )}
         </button>
       ))}
       </div>

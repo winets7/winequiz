@@ -9,6 +9,7 @@
 ### Главная `/`
 - **Прямой заход** по URL или по корню сайта.
 - **После логина/регистрации**: `register` → `router.push("/")` или `router.push("/login")`; `login` → `router.push("/")`.
+- **Залогиненный пользователь**: хаб игр — ссылки на `/games/wine-quiz`, `/games/barramundi`, `/games/wine-nose`; в шапке — `Link href="/profile"`.
 
 ### Логин `/login`
 - **С главной**: `Link href="/login"` (незалогиненный пользователь).
@@ -17,11 +18,19 @@
 ### Регистрация `/register`
 - **С главной**: `Link href="/register"`.
 
+### Винная викторина `/games/wine-quiz`
+- **С главной**: `Link href="/games/wine-quiz"` (залогиненный пользователь).
+- **Создать игру**: POST `/api/games` → `router.push(\`/lobby/${game.id}\`)`.
+- **Присоединиться по коду**: ввод кода → `router.push(\`/join/${fullCode}\`)` (например `WN-482917`).
+
 ### Присоединение по коду `/join/[code]`
-- **С главной**: ввод кода → `router.push(\`/join/${fullCode}\`)` (например `WN-482917`).
+- **Со страницы викторины** `/games/wine-quiz`: после ввода кода и подтверждения.
+
+### Другие направления `/games/barramundi`, `/games/wine-nose`
+- **С главной** `/`: `Link` на соответствующий маршрут (страницы-заглушки, возврат ссылкой «К выбору игр» на `/`).
 
 ### Профиль `/profile`, `/profile/[id]`
-- **Свой профиль**: `Link href="/profile"` с главной (аватар слева вверху и ссылка «Профиль» внизу).
+- **Свой профиль**: `Link href="/profile"` с главной `/` или со страницы `/games/wine-quiz` (аватар в шапке; на `/` также ссылка «Профиль» внизу).
 - **Чужой профиль**: `profile-games.tsx` → `router.push(\`/profile/${player.user.id}\`)` (из списка игр в профиле); `player-rounds-list.tsx` — переход в профиль по клику на игрока (если есть).
 
 ### Игра (игрок) `/play/[gameId]`
@@ -34,7 +43,7 @@
 - **Со страницы игры** `/play/[gameId]`: клик по карточке характеристики в `CharacteristicCards` → `router.push(\`/play/${gameId}/select/${path}\`)`. Порядок характеристик: color → sweetness → composition → grape-varieties → country → vintage-year → alcohol-content → oak-aged.
 
 ### Лобби (хост) `/lobby/[gameId]`
-- **С главной**: после «Создать игру» (POST `/api/games`) → `router.push(\`/lobby/${game.id}\`)`.
+- **Со страницы викторины** `/games/wine-quiz`: после «Создать игру» (POST `/api/games`) → `router.push(\`/lobby/${game.id}\`)`.
 
 ### Редактирование раунда (хост) `/lobby/[gameId]/round/[roundNumber]/edit`
 - **Из лобби**: клик по раунду или кнопка «Редактировать» → `router.push(\`/lobby/${gameId}/round/${roundNum}/edit\`)`.
@@ -60,9 +69,9 @@
 
 | Страница | Родитель (возврат ведёт на) | Как реализовано |
 |----------|-----------------------------|------------------|
-| `/play/[gameId]` | `/profile/[id]` или `/profile` | `useHierarchicalBack(profilePath)` |
+| `/play/[gameId]` | `/games/wine-quiz` | `useHierarchicalBack("/games/wine-quiz")` |
 | `/play/[gameId]/select/*` | `/play/[gameId]` | `useHierarchicalBack(\`/play/${gameId}\`)` |
-| `/lobby/[gameId]` | `/profile/[id]` или `/profile` | `useHierarchicalBack(profilePath, { enabled: !!game })` |
+| `/lobby/[gameId]` | `/games/wine-quiz` | `useHierarchicalBack("/games/wine-quiz", { enabled: !!game })` |
 | `/lobby/[gameId]/round/[n]/edit` | `/lobby/[gameId]` | Ручная запись в history (parentPath = lobby) + свой `popstate`: при «Назад» остаёмся на edit и показываем диалог «Сохранить?»; при подтверждении выхода — переход в лобби |
 | `/lobby/[gameId]/round/[n]/select/[characteristic]` | `/lobby/[gameId]/round/[n]/edit` | `useHierarchicalBack(editUrl)`; после выбора значения — `router.replace(editUrl)` + sessionStorage `hierarchical-back-from-select` для схлопывания истории |
 
@@ -93,19 +102,20 @@
 | Зарегистрироваться | `/` | `/register` (Link) |
 | После входа | `/login` | `/` |
 | После регистрации | `/register` | `/` или `/login` |
-| Создать игру | `/` | `/lobby/[gameId]` (router.push) |
-| Присоединиться по коду | `/` | `/join/[code]` (router.push) |
+| Винная викторина (хаб игры) | `/` | `/games/wine-quiz` (Link) |
+| Создать игру | `/games/wine-quiz` | `/lobby/[gameId]` (router.push после POST) |
+| Присоединиться по коду | `/games/wine-quiz` | `/join/[code]` (router.push) |
 | В игру после join | `/join/[code]` | `/play/[gameId]` (router.push) |
-| Профиль | `/` | `/profile` (Link) |
+| Профиль | `/`, `/games/wine-quiz` | `/profile` (Link) |
 | Профиль игрока | профиль (список игр) | `/profile/[id]` (router.push) |
 | История игры | профиль / игра | `/history/[gameId]` (router.push) |
 | В игру из истории/профиля | профиль | `/play/[gameId]` или `/history/[gameId]` |
 | Выбор характеристики (игрок) | `/play/[gameId]` | `/play/[gameId]/select/[characteristic]` (router.push из CharacteristicCards) |
 | Редактировать раунд | `/lobby/[gameId]` | `/lobby/[gameId]/round/[n]/edit` (router.push) |
 | Выбор характеристики (хост) | edit раунда | `/lobby/.../round/[n]/select/[characteristic]` (router.push из HostRoundCharacteristicCards) |
-| Назад (игрок, экран игры) | `/play/[gameId]` | `/profile/[id]` (goBack) |
+| Назад (игрок, экран игры) | `/play/[gameId]` | `/games/wine-quiz` (goBack) |
 | Назад (игрок, выбор характеристики) | `/play/.../select/*` | `/play/[gameId]` (goBack) |
-| Назад (хост, лобби) | `/lobby/[gameId]` | `/profile/[id]` (goBack) |
+| Назад (хост, лобби) | `/lobby/[gameId]` | `/games/wine-quiz` (goBack) |
 | Назад (хост, edit раунда) | edit | диалог «Сохранить?», затем при выходе → лобби |
 | Назад (хост, select характеристики) | select | `/lobby/.../round/[n]/edit` (goBack или replace) |
 

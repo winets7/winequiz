@@ -5,6 +5,7 @@ import { SessionProvider } from "@/components/providers/session-provider";
 import { ServiceWorkerRegister } from "@/components/providers/sw-register";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { NavigationLogger } from "@/components/navigation-logger";
+import { PageNavMenu } from "@/components/navigation/page-nav-menu";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -74,6 +75,7 @@ export default function RootLayout({
             disableTransitionOnChange={false}
           >
             {children}
+            <PageNavMenu />
           </ThemeProvider>
         </SessionProvider>
         <ServiceWorkerRegister />

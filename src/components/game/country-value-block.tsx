@@ -10,12 +10,10 @@ export function CountryValueBlock({ countryName }: { countryName: string }) {
       <div className="flex min-h-0 w-full flex-1 items-center justify-center px-0.5">
         {iso ? (
           <img
-            src={`https://flagcdn.com/w160/${iso}.png`}
-            srcSet={`https://flagcdn.com/w80/${iso}.png 80w, https://flagcdn.com/w160/${iso}.png 160w, https://flagcdn.com/w320/${iso}.png 320w`}
-            sizes="(max-width: 640px) 45vw, 200px"
+            src={`/flags/${iso}.png`}
             alt=""
             className="max-h-full max-w-full object-contain object-center"
-            loading="lazy"
+            loading="eager"
             decoding="async"
           />
         ) : (

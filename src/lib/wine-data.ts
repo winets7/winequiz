@@ -79,7 +79,7 @@ export const WINE_COUNTRIES = [
 ].sort((a, b) => a.localeCompare(b, "ru"));
 
 /**
- * ISO 3166-1 alpha-2 для флагов (flagcdn).
+ * ISO 3166-1 alpha-2 для локальных флагов (`/public/flags/{iso}.png`).
  * «Другая» без кода — в UI показываем нейтральную иконку.
  */
 export const WINE_COUNTRY_TO_ISO: Partial<Record<string, string>> = {

@@ -22,7 +22,7 @@ export function CountryValueBlock({ countryName }: { countryName: string }) {
           </span>
         )}
       </div>
-      <div className="line-clamp-2 w-full shrink-0 px-0.5 text-center font-bold leading-[1.15] text-[var(--foreground)] [font-size:clamp(0.5rem,3.2cqmin,0.8125rem)]">
+      <div className="line-clamp-2 w-full shrink-0 px-0.5 text-center font-bold leading-[1.15] text-[var(--foreground)] [font-size:clamp(1.5rem,9.6cqmin,2.4375rem)]">
         {countryName}
       </div>
     </div>

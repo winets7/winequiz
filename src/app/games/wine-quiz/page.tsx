@@ -122,9 +122,6 @@ export default function WineQuizPage() {
         <h1 className="text-4xl md:text-6xl font-bold text-[var(--primary)]">
           Винная Викторина
         </h1>
-        <p className="text-lg md:text-xl text-[var(--muted-foreground)] max-w-md mx-auto">
-          Проверь свои знания о вине в увлекательной мультиплеерной викторине!
-        </p>
       </div>
 
       {error && (

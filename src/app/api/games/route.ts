@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateGameCode } from "@/lib/game-code";
+import { filterPlayersExcludingHost } from "@/lib/game-host";
 
 /**
  * POST /api/games — Создание новой игровой сессии
@@ -83,13 +84,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Автоматически добавляем хоста как игрока
-    await prisma.gamePlayer.create({
-      data: {
-        gameId: game.id,
-        userId: hostId,
-      },
-    });
+    // Хост — организатор, не участник; в game_players не добавляем
 
     return NextResponse.json({
       game: {
@@ -149,7 +144,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ game });
+    return NextResponse.json({
+      game: {
+        ...game,
+        players: filterPlayersExcludingHost(game.players, game.hostId),
+      },
+    });
   } catch (error) {
     console.error("Ошибка получения игры:", error);
     return NextResponse.json(

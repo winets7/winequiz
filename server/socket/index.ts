@@ -8,6 +8,8 @@ const prisma = new PrismaClient();
 interface GameRoom {
   gameId: string;
   code: string;
+  /** Организатор не в `players` — только участники */
+  hostId: string;
   hostSocketId: string;
   players: Map<string, { userId: string; name: string; socketId: string }>;
   currentRound: number;
@@ -62,9 +64,15 @@ export function createSocketServer(httpServer?: HttpServer) {
         if (existingRoom.lobbyOpen === undefined) existingRoom.lobbyOpen = false;
         if (existingRoom.gameEnded === undefined) existingRoom.gameEnded = false;
 
-        // Обновляем hostSocketId и добавляем хоста обратно
+        // Обновляем hostSocketId (хост не в списке игроков)
         existingRoom.hostSocketId = socket.id;
-        existingRoom.players.set(userId, { userId, name, socketId: socket.id });
+        if (!existingRoom.hostId) {
+          const g = await prisma.gameSession.findUnique({
+            where: { id: gameId },
+            select: { hostId: true },
+          });
+          existingRoom.hostId = g?.hostId || userId;
+        }
         socket.join(roomKey);
 
         const playersList = Array.from(existingRoom.players.values()).map((p) => ({
@@ -159,6 +167,12 @@ export function createSocketServer(httpServer?: HttpServer) {
       // Получаем данные из БД
       const game = await prisma.gameSession.findUnique({
         where: { id: gameId },
+        select: {
+          status: true,
+          currentRound: true,
+          totalRounds: true,
+          hostId: true,
+        },
       });
 
       // Создаём комнату (если игра уже PLAYING/FINISHED в БД — восстанавливаем состояние)
@@ -167,6 +181,7 @@ export function createSocketServer(httpServer?: HttpServer) {
       const room: GameRoom = {
         gameId,
         code,
+        hostId: game?.hostId || userId,
         hostSocketId: socket.id,
         players: new Map(),
         currentRound: game?.currentRound || 0,
@@ -175,7 +190,6 @@ export function createSocketServer(httpServer?: HttpServer) {
         lobbyOpen: lobbyOpenFromDb,
         gameEnded: gameEndedFromDb,
       };
-      room.players.set(userId, { userId, name, socketId: socket.id });
 
       activeRooms.set(roomKey, room);
       socket.join(roomKey);
@@ -185,7 +199,7 @@ export function createSocketServer(httpServer?: HttpServer) {
       socket.emit("game_created", {
         gameId,
         code,
-        players: [{ userId, name }],
+        players: [],
         lobbyOpen: room.lobbyOpen,
         gameEnded: room.gameEnded,
       });
@@ -257,6 +271,7 @@ export function createSocketServer(httpServer?: HttpServer) {
           room = {
             gameId: game.id,
             code,
+            hostId: game.hostId,
             hostSocketId: isHost ? socket.id : "",
             players: new Map(),
             currentRound: activeRoundNumber,
@@ -294,52 +309,20 @@ export function createSocketServer(httpServer?: HttpServer) {
         return;
       }
 
-      // Если это хост — обновляем его socketId
-      if (gameForHost?.hostId === userId) {
-        room.hostSocketId = socket.id;
-      }
-
-      // Добавляем или обновляем игрока (переподключение)
-      const existingPlayer = room.players.get(userId);
-      room.players.set(userId, { userId, name, socketId: socket.id });
-      socket.join(code);
-
-      const playersList = Array.from(room.players.values()).map((p) => ({
-        userId: p.userId,
-        name: p.name,
-      }));
-
-      if (existingPlayer) {
-        console.log(`🔄 ${name} переподключился к ${code} (${room.players.size} игроков)`);
-      } else {
-        console.log(`👤 ${name} присоединился к ${code} (${room.players.size} игроков)`);
-      }
-
-      // Уведомляем всех в комнате
-      io.to(code).emit("player_joined", {
-        player: { userId, name },
-        players: playersList,
-        count: room.players.size,
-      });
-
       const gameStatus = gameForHost?.status || "WAITING";
 
-      // Подтверждение игроку
-      socket.emit("joined_game", {
-        gameId: room.gameId,
-        code,
-        players: playersList,
-        status: gameStatus,
-      });
+      const buildPlayersList = () =>
+        Array.from(room.players.values()).map((p) => ({
+          userId: p.userId,
+          name: p.name,
+        }));
 
-      // Если игра уже идёт — сразу уведомляем игрока
-      if (gameStatus === "PLAYING") {
+      const sendPlayingStateToSocket = async () => {
+        if (gameStatus !== "PLAYING") return;
         socket.emit("game_started", {
           totalRounds: room.totalRounds,
           playersCount: room.players.size,
         });
-
-        // Если раунд уже активен — отправляем round_started
         if (room.currentRoundId) {
           socket.emit("round_started", {
             roundNumber: room.currentRound,
@@ -348,7 +331,6 @@ export function createSocketServer(httpServer?: HttpServer) {
           });
           console.log(`📢 Игроку ${name} отправлен активный раунд ${room.currentRound}`);
         } else {
-          // Пробуем найти активный раунд из БД
           try {
             const activeRound = await prisma.round.findFirst({
               where: { gameId: room.gameId, status: "ACTIVE" },
@@ -368,7 +350,48 @@ export function createSocketServer(httpServer?: HttpServer) {
             console.error("Ошибка поиска активного раунда:", err);
           }
         }
+      };
+
+      // Хост не в списке игроков — только обновляем socket и присоединяем к комнате
+      if (gameForHost?.hostId === userId) {
+        room.hostSocketId = socket.id;
+        socket.join(code);
+        socket.emit("joined_game", {
+          gameId: room.gameId,
+          code,
+          players: buildPlayersList(),
+          status: gameStatus,
+        });
+        await sendPlayingStateToSocket();
+        return;
       }
+
+      const existingPlayer = room.players.get(userId);
+      room.players.set(userId, { userId, name, socketId: socket.id });
+      socket.join(code);
+
+      const playersList = buildPlayersList();
+
+      if (existingPlayer) {
+        console.log(`🔄 ${name} переподключился к ${code} (${room.players.size} игроков)`);
+      } else {
+        console.log(`👤 ${name} присоединился к ${code} (${room.players.size} игроков)`);
+      }
+
+      io.to(code).emit("player_joined", {
+        player: { userId, name },
+        players: playersList,
+        count: room.players.size,
+      });
+
+      socket.emit("joined_game", {
+        gameId: room.gameId,
+        code,
+        players: playersList,
+        status: gameStatus,
+      });
+
+      await sendPlayingStateToSocket();
     });
 
     // =============================================
@@ -446,8 +469,21 @@ export function createSocketServer(httpServer?: HttpServer) {
       }
 
       try {
+        let finishHostId = room.hostId;
+        if (!finishHostId) {
+          const gs = await prisma.gameSession.findUnique({
+            where: { id: room.gameId },
+            select: { hostId: true },
+          });
+          finishHostId = gs?.hostId || "";
+          if (finishHostId) room.hostId = finishHostId;
+        }
+
         const players = await prisma.gamePlayer.findMany({
-          where: { gameId: room.gameId },
+          where: {
+            gameId: room.gameId,
+            ...(finishHostId ? { userId: { not: finishHostId } } : {}),
+          },
           include: { user: { select: { id: true, name: true, avatar: true } } },
           orderBy: { score: "desc" },
         });
@@ -570,6 +606,20 @@ export function createSocketServer(httpServer?: HttpServer) {
         return;
       }
 
+      let guessHostId = room.hostId;
+      if (!guessHostId) {
+        const gs = await prisma.gameSession.findUnique({
+          where: { id: room.gameId },
+          select: { hostId: true },
+        });
+        guessHostId = gs?.hostId || "";
+        if (guessHostId) room.hostId = guessHostId;
+      }
+      if (guessHostId && userId === guessHostId) {
+        socket.emit("error", { message: "Организатор не участвует как игрок" });
+        return;
+      }
+
       try {
         // Находим gamePlayer
         const gamePlayer = await prisma.gamePlayer.findUnique({
@@ -671,9 +721,21 @@ export function createSocketServer(httpServer?: HttpServer) {
           return;
         }
 
+        let roundHostId = room.hostId;
+        if (!roundHostId) {
+          const gs = await prisma.gameSession.findUnique({
+            where: { id: room.gameId },
+            select: { hostId: true },
+          });
+          roundHostId = gs?.hostId || "";
+          if (roundHostId) room.hostId = roundHostId;
+        }
+
         // Подсчитываем баллы для каждого участника
         const results = [];
         for (const guess of round.guesses) {
+          if (roundHostId && guess.gamePlayer.user.id === roundHostId) continue;
+
           let score = 0;
 
           // Цвет вина — 2 балла
@@ -790,27 +852,40 @@ export function createSocketServer(httpServer?: HttpServer) {
     socket.on("disconnect", () => {
       console.log(`❌ Отключение: ${socket.id}`);
 
-      for (const [code, room] of activeRooms) {
+      roomLoop: for (const [code, room] of activeRooms) {
+        if (room.hostSocketId === socket.id) {
+          room.hostSocketId = "";
+          console.log(`👑 Хост временно отключился от ${code}`);
+
+          io.to(code).emit("host_temporarily_disconnected", {
+            message: "Хост временно отключился. Ожидайте переподключения...",
+          });
+
+          const anyoneOnline = Array.from(room.players.values()).some(
+            (p) => p.socketId !== ""
+          );
+          if (!anyoneOnline) {
+            console.log(`⏳ Комната ${code}: все отключены, удаление через 5 мин`);
+            setTimeout(() => {
+              const currentRoom = activeRooms.get(code);
+              if (currentRoom) {
+                const stillOnline =
+                  currentRoom.hostSocketId !== "" ||
+                  Array.from(currentRoom.players.values()).some((p) => p.socketId !== "");
+                if (!stillOnline) {
+                  activeRooms.delete(code);
+                  console.log(`🏠 Комната ${code} удалена (все отключены, таймаут)`);
+                }
+              }
+            }, 5 * 60 * 1000);
+          }
+          break roomLoop;
+        }
+
         for (const [userId, player] of room.players) {
           if (player.socketId === socket.id) {
-            const isHost = socket.id === room.hostSocketId;
-
-            if (isHost) {
-              // Хост отключился — НЕ удаляем комнату, просто помечаем
-              // Хост может переподключиться (обновление страницы, потеря связи)
-              room.hostSocketId = "";
-              console.log(`👑 Хост ${player.name} временно отключился от ${code}`);
-
-              // Уведомляем игроков, что хост временно офлайн
-              io.to(code).emit("host_temporarily_disconnected", {
-                message: "Хост временно отключился. Ожидайте переподключения...",
-              });
-            } else {
-              // Обычный игрок — НЕ удаляем из комнаты, помечаем как офлайн
-              // Он может вернуться (обновление страницы)
-              player.socketId = "";
-              console.log(`👤 ${player.name} временно отключился от ${code}`);
-            }
+            player.socketId = "";
+            console.log(`👤 ${player.name} временно отключился от ${code}`);
 
             const onlinePlayers = Array.from(room.players.values())
               .filter((p) => p.socketId !== "")
@@ -825,23 +900,26 @@ export function createSocketServer(httpServer?: HttpServer) {
               count: onlinePlayers.length,
             });
 
-            // Если ВСЕ отключены (и хост, и все игроки) — удаляем через таймаут
-            const anyoneOnline = Array.from(room.players.values()).some((p) => p.socketId !== "");
+            const anyoneOnline =
+              room.hostSocketId !== "" ||
+              Array.from(room.players.values()).some((p) => p.socketId !== "");
             if (!anyoneOnline) {
               console.log(`⏳ Комната ${code}: все отключены, удаление через 5 мин`);
               setTimeout(() => {
                 const currentRoom = activeRooms.get(code);
                 if (currentRoom) {
-                  const stillOnline = Array.from(currentRoom.players.values()).some((p) => p.socketId !== "");
+                  const stillOnline =
+                    currentRoom.hostSocketId !== "" ||
+                    Array.from(currentRoom.players.values()).some((p) => p.socketId !== "");
                   if (!stillOnline) {
                     activeRooms.delete(code);
                     console.log(`🏠 Комната ${code} удалена (все отключены, таймаут)`);
                   }
                 }
-              }, 5 * 60 * 1000); // 5 минут
+              }, 5 * 60 * 1000);
             }
 
-            break;
+            break roomLoop;
           }
         }
       }

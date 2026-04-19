@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { filterPlayersExcludingHost } from "@/lib/game-host";
 
 /**
  * GET /api/games/active — незавершённые игры текущего пользователя
@@ -29,12 +30,13 @@ export async function GET() {
       },
       select: {
         id: true,
+        hostId: true,
         code: true,
         status: true,
         totalRounds: true,
         currentRound: true,
         createdAt: true,
-        players: { select: { id: true } },
+        players: { select: { id: true, userId: true } },
       },
       orderBy: { updatedAt: "desc" },
     });
@@ -51,12 +53,13 @@ export async function GET() {
         game: {
           select: {
             id: true,
+            hostId: true,
             code: true,
             status: true,
             totalRounds: true,
             currentRound: true,
             createdAt: true,
-            players: { select: { id: true } },
+            players: { select: { id: true, userId: true } },
           },
         },
       },
@@ -79,7 +82,7 @@ export async function GET() {
       totalRounds: g.totalRounds,
       currentRound: g.currentRound,
       createdAt: g.createdAt.toISOString(),
-      playersCount: g.players.length,
+      playersCount: filterPlayersExcludingHost(g.players, g.hostId).length,
     });
 
     return NextResponse.json({

@@ -62,7 +62,7 @@ export async function GET(
 
     // Получаем всех игроков игры, отсортированных по итоговому счёту
     const players = await prisma.gamePlayer.findMany({
-      where: { gameId },
+      where: { gameId, userId: { not: game.hostId } },
       include: {
         user: {
           select: { id: true, name: true, avatar: true },

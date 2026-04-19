@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { filterPlayersExcludingHost } from "@/lib/game-host";
 
 /**
  * GET /api/users/[id]/profile — Получение данных профиля пользователя
@@ -64,6 +65,7 @@ export async function GET(
       where: { hostId: id },
       select: {
         id: true,
+        hostId: true,
         code: true,
         status: true,
         totalRounds: true,
@@ -241,23 +243,33 @@ export async function GET(
 
     return NextResponse.json({
       user: userResponse,
-      hostedGames: hostedGames.map((g) => ({
-        ...g,
-        playersCount: g.players.length,
-      })),
-      participatedGames: participatedEntries.map((entry) => ({
-        id: entry.game.id,
-        code: entry.game.code,
-        status: entry.game.status,
-        totalRounds: entry.game.totalRounds,
-        createdAt: entry.game.createdAt,
-        finishedAt: entry.game.finishedAt,
-        host: entry.game.host,
-        playersCount: entry.game.players.length,
-        players: entry.game.players,
-        myScore: entry.score,
-        myPosition: entry.position,
-      })),
+      hostedGames: hostedGames.map((g) => {
+        const players = filterPlayersExcludingHost(g.players, g.hostId);
+        return {
+          ...g,
+          players,
+          playersCount: players.length,
+        };
+      }),
+      participatedGames: participatedEntries.map((entry) => {
+        const players = filterPlayersExcludingHost(
+          entry.game.players,
+          entry.game.host.id
+        );
+        return {
+          id: entry.game.id,
+          code: entry.game.code,
+          status: entry.game.status,
+          totalRounds: entry.game.totalRounds,
+          createdAt: entry.game.createdAt,
+          finishedAt: entry.game.finishedAt,
+          host: entry.game.host,
+          playersCount: players.length,
+          players,
+          myScore: entry.score,
+          myPosition: entry.position,
+        };
+      }),
       stats: {
         totalGames: totalGamesFinished,
         plannedGames,

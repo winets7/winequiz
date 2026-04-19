@@ -580,7 +580,7 @@ export default function PlayPage() {
             <h2 className="text-xl font-bold">Участники угадывают...</h2>
             <div className="bg-[var(--card)] rounded-2xl p-6 shadow border border-[var(--border)]">
               <div className="text-4xl font-bold text-[var(--primary)]">
-                {guessCount} / {totalPlayers > 0 ? totalPlayers - 1 : "?"}
+                {guessCount} / {totalPlayers > 0 ? totalPlayers : "?"}
               </div>
               <p className="text-sm text-[var(--muted-foreground)] mt-2">
                 Ответов получено

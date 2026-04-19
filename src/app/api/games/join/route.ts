@@ -51,7 +51,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (game.players.length >= game.maxPlayers) {
+    if (userId === game.hostId) {
+      return NextResponse.json(
+        { error: "Организатор не присоединяется к игре как участник. Откройте лобби по ссылке хоста." },
+        { status: 400 }
+      );
+    }
+
+    const participantCount = game.players.filter((p) => p.userId !== game.hostId).length;
+    if (participantCount >= game.maxPlayers) {
       return NextResponse.json(
         { error: "Комната заполнена" },
         { status: 400 }

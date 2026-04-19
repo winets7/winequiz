@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { filterPlayersExcludingHost } from "@/lib/game-host";
 
 /**
  * GET /api/games/[gameId] — Получение игры по ID
@@ -36,7 +37,12 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ game });
+    return NextResponse.json({
+      game: {
+        ...game,
+        players: filterPlayersExcludingHost(game.players, game.hostId),
+      },
+    });
   } catch (error) {
     console.error("Ошибка получения игры:", error);
     return NextResponse.json(

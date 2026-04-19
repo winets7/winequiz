@@ -14,13 +14,20 @@ interface GameInfo {
   host: { id: string; name: string; avatar: string | null };
 }
 
+type RoundCellPhase = "lobby" | "live_pending" | "live_done" | "done";
+
+interface RoundCell {
+  phase: RoundCellPhase;
+  score: number | null;
+}
+
 interface PlayerScoreboard {
   position: number;
   userId: string;
   name: string;
   avatar: string | null;
   totalScore: number;
-  roundScores: (number | null)[];
+  roundCells: RoundCell[];
 }
 
 interface RoundInfo {
@@ -32,6 +39,38 @@ interface ScoreboardData {
   game: GameInfo;
   players: PlayerScoreboard[];
   rounds: RoundInfo[];
+}
+
+function RoundCellView({ cell }: { cell: RoundCell }) {
+  if (cell.phase === "lobby") {
+    return <span className="text-white/35">—</span>;
+  }
+  if (cell.phase === "live_pending") {
+    return (
+      <span
+        className="inline-flex items-center justify-center text-2xl md:text-3xl lg:text-4xl xl:text-5xl drop-shadow-[0_0_8px_rgba(240,199,94,0.45)] animate-[scoreboard-wine_1.15s_ease-in-out_infinite]"
+        title="Ожидаем ответ"
+        aria-hidden
+      >
+        🍷
+      </span>
+    );
+  }
+  if (cell.phase === "live_done") {
+    return (
+      <span
+        className="inline-flex h-8 w-8 md:h-10 md:w-10 lg:h-11 lg:w-11 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_14px_rgba(16,185,129,0.65)] ring-2 ring-emerald-200/90 mx-auto"
+        title="Ответ отправлен"
+        aria-label="Ответ отправлен"
+      />
+    );
+  }
+  if (cell.score !== null) {
+    return (
+      <span className={cell.score > 0 ? "text-green-300" : "text-red-300"}>{cell.score}</span>
+    );
+  }
+  return <span className="text-white/40">—</span>;
 }
 
 export default function ScoreboardPage() {
@@ -72,9 +111,12 @@ export default function ScoreboardPage() {
     fetchScoreboard();
   }, [gameId, session, sessionStatus, router]);
 
-  // Автообновление каждые 5 секунд
+  // Автообновление: чаще, пока есть активный раунд (живой эфир)
   useEffect(() => {
     if (!data) return;
+
+    const live = data.rounds.some((r) => r.status === "ACTIVE");
+    const ms = live ? 2000 : 5000;
 
     const interval = setInterval(async () => {
       try {
@@ -86,7 +128,7 @@ export default function ScoreboardPage() {
       } catch {
         // Игнорируем ошибки автообновления
       }
-    }, 5000);
+    }, ms);
 
     return () => clearInterval(interval);
   }, [gameId, data]);
@@ -135,6 +177,12 @@ export default function ScoreboardPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#1A1118] via-[#3D0F1E] to-[#5A1A2A] p-6 md:p-8 lg:p-12">
+      <style>{`
+        @keyframes scoreboard-wine {
+          0%, 100% { opacity: 1; filter: brightness(1.1); transform: scale(1); }
+          50% { opacity: 0.28; filter: brightness(0.75); transform: scale(0.92); }
+        }
+      `}</style>
       {/* Заголовок */}
       <div className="text-center mb-8 md:mb-12">
         <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-2 flex items-center justify-center gap-3 flex-wrap">
@@ -167,9 +215,14 @@ export default function ScoreboardPage() {
               {data.rounds.map((round) => (
                 <div
                   key={round.roundNumber}
-                  className="text-center text-base md:text-lg lg:text-xl xl:text-2xl font-bold text-white"
+                  className="text-center text-base md:text-lg lg:text-xl xl:text-2xl font-bold text-white flex flex-col items-center gap-1"
                 >
-                  Р{round.roundNumber}
+                  <span>Р{round.roundNumber}</span>
+                  {round.status === "ACTIVE" && (
+                    <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-[#F0C75E]/90">
+                      идёт
+                    </span>
+                  )}
                 </div>
               ))}
               <div className="text-center text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-[#F0C75E]">
@@ -214,19 +267,13 @@ export default function ScoreboardPage() {
                       </div>
                     </div>
 
-                    {/* Баллы по раундам */}
-                    {player.roundScores.map((score, index) => (
+                    {/* Статус / баллы по раундам */}
+                    {player.roundCells.map((cell, index) => (
                       <div
                         key={index}
-                        className="text-center text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold"
+                        className="text-center text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold flex items-center justify-center min-h-[2rem] md:min-h-[2.5rem]"
                       >
-                        {score !== null ? (
-                          <span className={score > 0 ? "text-green-300" : "text-red-300"}>
-                            {score}
-                          </span>
-                        ) : (
-                          <span className="text-white/40">—</span>
-                        )}
+                        <RoundCellView cell={cell} />
                       </div>
                     ))}
 

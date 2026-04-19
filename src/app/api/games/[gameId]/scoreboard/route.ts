@@ -91,16 +91,31 @@ export async function GET(
     });
 
     // Формируем данные для scoreboard
-    // Структура: для каждого игрока создаём массив баллов по раундам
+    // roundCells: по каждому раунду — фаза отображения и итоговый балл (только после CLOSED)
     const scoreboardData = players.map((player, index) => {
-      const roundScores: (number | null)[] = [];
-      
-      // Для каждого раунда находим баллы игрока
+      const roundCells: {
+        phase: "lobby" | "live_pending" | "live_done" | "done";
+        score: number | null;
+      }[] = [];
+
       rounds.forEach((round) => {
         const guess = round.guesses.find(
           (g) => g.gamePlayer.user.id === player.user.id
         );
-        roundScores.push(guess ? guess.score : null);
+
+        if (round.status === "CLOSED") {
+          roundCells.push({
+            phase: "done",
+            score: guess !== undefined ? guess.score : null,
+          });
+        } else if (round.status === "ACTIVE") {
+          roundCells.push({
+            phase: guess ? "live_done" : "live_pending",
+            score: null,
+          });
+        } else {
+          roundCells.push({ phase: "lobby", score: null });
+        }
       });
 
       return {
@@ -109,7 +124,7 @@ export async function GET(
         name: player.user.name,
         avatar: player.user.avatar,
         totalScore: player.score,
-        roundScores, // [score1, score2, score3, ...] или null если не ответил
+        roundCells,
       };
     });
 

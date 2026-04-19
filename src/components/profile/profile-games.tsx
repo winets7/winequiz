@@ -355,14 +355,15 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
 
         {/* Кнопки действий - всегда видимы внизу, вне прокрутки */}
         <div className="bg-[var(--card)] border-t border-[var(--border)] rounded-b-3xl px-6 py-4 space-y-2 shrink-0 min-h-[60px] flex flex-col justify-center">
-          {isFinished && isHosted && (
+          {isHosted && (
             <button
+              type="button"
               onClick={() => {
-                window.open(`/scoreboard/${game.id}`, '_blank');
+                window.open(`/scoreboard/${game.id}`, "_blank");
               }}
               className="w-full px-6 py-3 bg-gradient-to-r from-[#DAA520] to-[#C4941A] text-[#3D0F1E] rounded-2xl text-sm font-bold hover:opacity-90 transition-opacity shadow-lg flex items-center justify-center gap-2"
             >
-              📊 Scoreboard для трансляции
+              📊 Scoreboard
             </button>
           )}
           {isFinished && (

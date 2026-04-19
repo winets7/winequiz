@@ -143,7 +143,7 @@ export default function WineQuizPage() {
         <>
           <div className="mt-12 w-full max-w-md mx-auto flex flex-col gap-4">
             <Link
-              href="/profile"
+              href="/games/wine-quiz/active"
               className="w-full flex min-h-[3.75rem] items-center justify-center px-8 py-4 border-2 border-transparent text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold transition-all shadow-lg text-center box-border"
               style={{ background: "var(--gradient-primary)" }}
               onMouseEnter={(e) => {

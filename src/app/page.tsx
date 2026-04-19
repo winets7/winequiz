@@ -118,17 +118,6 @@ export default function Home() {
           </Link>
         </div>
       )}
-
-      <div className="mt-16 flex gap-6 text-sm text-[var(--muted-foreground)]">
-        {isLoggedIn && (
-          <Link
-            href="/profile"
-            className="hover:text-[var(--primary)] transition-colors"
-          >
-            👤 Профиль
-          </Link>
-        )}
-      </div>
     </main>
   );
 }

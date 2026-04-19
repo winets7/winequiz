@@ -277,14 +277,6 @@ export default function WineQuizPage() {
         <Link href="/" className="hover:text-[var(--primary)] transition-colors">
           ← К выбору игр
         </Link>
-        {isLoggedIn && (
-          <Link
-            href="/profile"
-            className="hover:text-[var(--primary)] transition-colors"
-          >
-            👤 Профиль
-          </Link>
-        )}
       </div>
     </main>
   );

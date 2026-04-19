@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
@@ -46,7 +45,18 @@ interface ProfileGamesProps {
 
 /* ─── Утилиты ─── */
 
-function StatusBadge({ status }: { status: string }) {
+/** Единая логика завершённости: статус в БД или отметка времени окончания */
+function isGameFinished(status: string, finishedAt: string | null | undefined): boolean {
+  return status === "FINISHED" || Boolean(finishedAt);
+}
+
+function StatusBadge({
+  status,
+  finishedAt,
+}: {
+  status: string;
+  finishedAt: string | null;
+}) {
   const config: Record<string, { label: string; className: string }> = {
     WAITING: {
       label: "Ожидание",
@@ -61,10 +71,28 @@ function StatusBadge({ status }: { status: string }) {
       className: "bg-[var(--muted)] text-[var(--muted-foreground)]",
     },
   };
-  const c = config[status] || config.FINISHED;
+
+  if (isGameFinished(status, finishedAt)) {
+    const c = config.FINISHED;
+    return (
+      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${c.className}`}>
+        {c.label}
+      </span>
+    );
+  }
+
+  const c = config[status];
+  if (c) {
+    return (
+      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${c.className}`}>
+        {c.label}
+      </span>
+    );
+  }
+
   return (
-    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${c.className}`}>
-      {c.label}
+    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-[var(--border)] text-[var(--muted-foreground)]">
+      Неизвестно
     </span>
   );
 }
@@ -105,14 +133,14 @@ function gameDuration(createdAt: string, finishedAt: string | null): string {
 
 /* ─── Компонент ссылки на профиль игрока ─── */
 
-function PlayerLink({ 
-  player, 
-  index, 
-  gameStatus 
-}: { 
-  player: GamePlayer; 
-  index: number; 
-  gameStatus: string;
+function PlayerLink({
+  player,
+  index,
+  showResults,
+}: {
+  player: GamePlayer;
+  index: number;
+  showResults: boolean;
 }) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -161,7 +189,7 @@ function PlayerLink({
     >
       {/* Позиция / Номер */}
       <div className="w-8 text-center shrink-0">
-        {gameStatus === "FINISHED" && player.position ? (
+        {showResults && player.position ? (
           <PositionBadge position={player.position} />
         ) : (
           <span className="text-xs text-[var(--muted-foreground)]">
@@ -191,7 +219,7 @@ function PlayerLink({
       </div>
 
       {/* Счёт */}
-      {gameStatus === "FINISHED" && (
+      {showResults && (
         <div className="text-sm font-semibold text-[var(--foreground)] shrink-0">
           {player.score} очк.
         </div>
@@ -208,27 +236,16 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
   const isHosted = game._type === "hosted";
   const pGame = game as ParticipatedGame;
 
+  const isFinished = isGameFinished(game.status, game.finishedAt);
+  // В активную игру не пускаем, если сессия по факту уже завершена (статус + finishedAt)
+  const canEnterActiveGame =
+    !isFinished && (game.status === "WAITING" || game.status === "PLAYING");
   // Созданная игра → лобби по id; игра из вкладки «Участвовал» → join по коду комнаты.
-  const canEnterActiveGame = game.status === "WAITING" || game.status === "PLAYING";
   const gameLink = canEnterActiveGame
     ? game._type === "hosted"
       ? `/lobby/${game.id}`
       : `/join/${game.code}`
     : null;
-
-  // Проверяем завершённость игры: либо статус FINISHED, либо есть finishedAt
-  const isFinished = game.status === "FINISHED" || !!game.finishedAt;
-  
-  // Отладка: проверяем статус игры
-  if (typeof window !== "undefined") {
-    console.log("GameModal Debug:", {
-      status: game.status,
-      finishedAt: game.finishedAt,
-      isFinished,
-      gameId: game.id,
-      hasGameLink: !!gameLink,
-    });
-  }
 
   const handleGoToGame = () => {
     if (gameLink) {
@@ -267,7 +284,7 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
                   {game.code}
                 </div>
               )}
-              <StatusBadge status={game.status} />
+              <StatusBadge status={game.status} finishedAt={game.finishedAt} />
             </div>
           </div>
           <button
@@ -295,7 +312,7 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
           </div>
 
           {/* Мой результат (для participated) */}
-          {isParticipated && game.status === "FINISHED" && (
+          {isParticipated && isFinished && (
             <div className="bg-[var(--muted)] rounded-xl p-4">
               <div className="text-xs text-[var(--muted-foreground)] mb-2 font-medium">
                 Мой результат
@@ -323,7 +340,7 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
             </div>
             <div className="space-y-2">
               {game.players.map((player, index) => (
-                <PlayerLink key={player.id} player={player} index={index} gameStatus={game.status} />
+                <PlayerLink key={player.id} player={player} index={index} showResults={isFinished} />
               ))}
 
               {game.players.length === 0 && (
@@ -375,7 +392,7 @@ function GameModal({ game, onClose }: { game: AnyGame; onClose: () => void }) {
           )}
           {!isFinished && !gameLink && (
             <div className="text-center text-xs text-[var(--muted-foreground)] py-2">
-              Игра завершена
+              Действия недоступны
             </div>
           )}
         </div>
@@ -498,7 +515,7 @@ function HostedGamesList({
               <span className="font-mono font-bold text-[var(--primary)] text-sm">
                 {game.code}
               </span>
-              <StatusBadge status={game.status} />
+              <StatusBadge status={game.status} finishedAt={game.finishedAt} />
             </div>
             <span className="text-xs text-[var(--muted-foreground)]">
               {formatDate(game.createdAt)}
@@ -514,7 +531,7 @@ function HostedGamesList({
           </div>
 
           {/* Топ-3 игрока */}
-          {game.status === "FINISHED" && game.players.length > 0 && (
+          {isGameFinished(game.status, game.finishedAt) && game.players.length > 0 && (
             <div className="mt-3 pt-3 border-t border-[var(--border)]">
               <div className="flex gap-3 overflow-x-auto no-scrollbar">
                 {game.players
@@ -572,7 +589,7 @@ function ParticipatedGamesList({
               <span className="font-mono font-bold text-[var(--primary)] text-sm">
                 {game.code}
               </span>
-              <StatusBadge status={game.status} />
+              <StatusBadge status={game.status} finishedAt={game.finishedAt} />
             </div>
             <span className="text-xs text-[var(--muted-foreground)]">
               {formatDate(game.createdAt)}
@@ -588,7 +605,7 @@ function ParticipatedGamesList({
           </div>
 
           {/* Мой результат */}
-          {game.status === "FINISHED" && (
+          {isGameFinished(game.status, game.finishedAt) && (
             <div className="mt-3 pt-3 border-t border-[var(--border)] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <PositionBadge position={game.myPosition} />

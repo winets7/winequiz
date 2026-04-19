@@ -412,7 +412,7 @@ export function createSocketServer(httpServer?: HttpServer) {
     });
 
     // =============================================
-    // Завершить игру (только хост): присоединение и ответы на раунды невозможны
+    // Завершить игру (только хост): все раунды CLOSED, позиции, FINISHED в БД, rankings
     // =============================================
     socket.on("finish_game", async (data: { code: string }) => {
       const { code } = data;
@@ -428,6 +428,11 @@ export function createSocketServer(httpServer?: HttpServer) {
         return;
       }
 
+      if (room.gameEnded) {
+        socket.emit("error", { message: "Игра уже завершена" });
+        return;
+      }
+
       const rounds = await prisma.round.findMany({
         where: { gameId: room.gameId },
         select: { status: true },
@@ -440,23 +445,45 @@ export function createSocketServer(httpServer?: HttpServer) {
         return;
       }
 
-      room.gameEnded = true;
-
       try {
+        const players = await prisma.gamePlayer.findMany({
+          where: { gameId: room.gameId },
+          include: { user: { select: { id: true, name: true, avatar: true } } },
+          orderBy: { score: "desc" },
+        });
+
+        for (let i = 0; i < players.length; i++) {
+          await prisma.gamePlayer.update({
+            where: { id: players[i].id },
+            data: { position: i + 1 },
+          });
+        }
+
         await prisma.gameSession.update({
           where: { id: room.gameId },
           data: { status: "FINISHED", finishedAt: new Date() },
         });
+
+        room.gameEnded = true;
+
+        const rankings = players.map((p, i) => ({
+          position: i + 1,
+          userId: p.user.id,
+          name: p.user.name,
+          avatar: p.user.avatar,
+          score: p.score,
+        }));
+
+        console.log(`🏁 Игра ${code} завершена`);
+
+        io.to(code).emit("game_finished", { rankings });
+
+        activeRooms.delete(code);
       } catch (err) {
-        console.error("Ошибка сохранения завершения игры:", err);
-        socket.emit("error", { message: "Не удалось сохранить завершение игры" });
+        console.error("Ошибка завершения игры:", err);
+        socket.emit("error", { message: "Не удалось завершить игру" });
         room.gameEnded = false;
-        return;
       }
-
-      console.log(`🏁 Игра ${code} завершена`);
-
-      io.to(code).emit("game_finished", {});
     });
 
     // =============================================
@@ -754,65 +781,6 @@ export function createSocketServer(httpServer?: HttpServer) {
       } catch (error) {
         console.error("Ошибка закрытия раунда:", error);
         socket.emit("error", { message: "Ошибка при закрытии раунда" });
-      }
-    });
-
-    // =============================================
-    // Хост завершает игру
-    // =============================================
-    socket.on("finish_game", async (data: { code: string }) => {
-      const { code } = data;
-      const room = activeRooms.get(code);
-
-      if (!room) {
-        socket.emit("error", { message: "Комната не найдена" });
-        return;
-      }
-
-      if (socket.id !== room.hostSocketId) {
-        socket.emit("error", { message: "Только хост может завершить игру" });
-        return;
-      }
-
-      try {
-        // Получаем финальный рейтинг
-        const players = await prisma.gamePlayer.findMany({
-          where: { gameId: room.gameId },
-          include: { user: { select: { id: true, name: true, avatar: true } } },
-          orderBy: { score: "desc" },
-        });
-
-        // Устанавливаем позиции
-        for (let i = 0; i < players.length; i++) {
-          await prisma.gamePlayer.update({
-            where: { id: players[i].id },
-            data: { position: i + 1 },
-          });
-        }
-
-        // Завершаем игру
-        await prisma.gameSession.update({
-          where: { id: room.gameId },
-          data: { status: "FINISHED", finishedAt: new Date() },
-        });
-
-        const rankings = players.map((p, i) => ({
-          position: i + 1,
-          userId: p.user.id,
-          name: p.user.name,
-          avatar: p.user.avatar,
-          score: p.score,
-        }));
-
-        console.log(`🏁 Игра ${code} завершена!`);
-
-        io.to(code).emit("game_finished", { rankings });
-
-        // Удаляем комнату из памяти
-        activeRooms.delete(code);
-      } catch (error) {
-        console.error("Ошибка завершения игры:", error);
-        socket.emit("error", { message: "Ошибка при завершении игры" });
       }
     });
 

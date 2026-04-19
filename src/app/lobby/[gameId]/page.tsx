@@ -659,6 +659,14 @@ export default function LobbyPage() {
                   )}
                 </>
               )}
+              <button
+                type="button"
+                onClick={() => window.open(`/scoreboard/${gameId}`, "_blank")}
+                className="w-full px-8 py-3 bg-gradient-to-r from-[#DAA520] to-[#C4941A] text-[#3D0F1E] rounded-2xl text-sm font-bold hover:opacity-90 transition-opacity shadow-lg flex items-center justify-center gap-2"
+                title="Открыть scoreboard для трансляции"
+              >
+                📊 Scoreboard
+              </button>
             </div>
           )}
 

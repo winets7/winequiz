@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { RoundHistoryItem } from "@/components/profile/round-history-item";
+import { RoundResults } from "@/components/game/round-results";
+import { HostRoundPlayersStatus } from "@/components/game/host-round-players-status";
 
 interface GameInfo {
   id: string;
@@ -54,6 +56,29 @@ interface HistoryData {
   rounds: RoundHistory[];
 }
 
+interface HostRoundOverview {
+  isHost: true;
+  game: GameInfo;
+  round: {
+    roundNumber: number;
+    status: string;
+    correctAnswer: RoundHistory["correctAnswer"];
+    photos: string[];
+  };
+  players: Array<{
+    userId: string;
+    name: string;
+    avatar: string | null;
+    hasSubmitted: boolean;
+  }>;
+  results?: Array<{
+    userId: string;
+    name: string;
+    guess: RoundHistory["correctAnswer"];
+    score: number;
+  }>;
+}
+
 export default function HistoryPage() {
   const params = useParams();
   const router = useRouter();
@@ -61,18 +86,27 @@ export default function HistoryPage() {
   const gameId = params.gameId as string;
   const { data: session, status: sessionStatus } = useSession();
 
-  // Получаем номер раунда из query параметра
   const roundFilter = searchParams.get("round");
   const selectedRoundNumber = roundFilter
     ? (() => {
         const num = parseInt(roundFilter, 10);
-        return isNaN(num) ? null : num;
+        return Number.isNaN(num) ? null : num;
       })()
     : null;
 
   const [history, setHistory] = useState<HistoryData | null>(null);
+  const [hostOverview, setHostOverview] = useState<HostRoundOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchHostOverview = useCallback(async () => {
+    if (!selectedRoundNumber) return null;
+    const res = await fetch(
+      `/api/games/${gameId}/round/${selectedRoundNumber}/host-overview`
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as HostRoundOverview;
+  }, [gameId, selectedRoundNumber]);
 
   useEffect(() => {
     if (sessionStatus === "loading") return;
@@ -82,9 +116,40 @@ export default function HistoryPage() {
       return;
     }
 
-    async function fetchHistory() {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      setHostOverview(null);
+      setHistory(null);
+
+      if (selectedRoundNumber) {
+        const hostRes = await fetch(
+          `/api/games/${gameId}/round/${selectedRoundNumber}/host-overview`
+        );
+        if (cancelled) return;
+
+        if (hostRes.ok) {
+          const data = (await hostRes.json()) as HostRoundOverview;
+          setHostOverview(data);
+          setLoading(false);
+          return;
+        }
+
+        if (hostRes.status === 404) {
+          const err = await hostRes.json().catch(() => ({}));
+          setError(err.error || "Раунд не найден");
+          setLoading(false);
+          return;
+        }
+      }
+
       try {
-        const res = await fetch(`/api/games/${gameId}/history?userId=${session!.user.id}`);
+        const res = await fetch(
+          `/api/games/${gameId}/history?userId=${session!.user.id}`
+        );
+        if (cancelled) return;
         if (!res.ok) {
           const data = await res.json();
           setError(data.error || "Не удалось загрузить историю");
@@ -93,14 +158,36 @@ export default function HistoryPage() {
         const data = await res.json();
         setHistory(data);
       } catch {
-        setError("Ошибка подключения к серверу");
+        if (!cancelled) setError("Ошибка подключения к серверу");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
-    fetchHistory();
-  }, [gameId, session, sessionStatus, router]);
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [gameId, session, sessionStatus, router, selectedRoundNumber]);
+
+  const liveRoundStatus = hostOverview?.round.status;
+
+  useEffect(() => {
+    if (liveRoundStatus !== "ACTIVE" && liveRoundStatus !== "CREATED") return;
+
+    let cancelled = false;
+    const id = window.setInterval(() => {
+      void (async () => {
+        const next = await fetchHostOverview();
+        if (!cancelled && next) setHostOverview(next);
+      })();
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [liveRoundStatus, fetchHostOverview]);
 
   if (sessionStatus === "loading" || loading) {
     return (
@@ -113,7 +200,7 @@ export default function HistoryPage() {
     );
   }
 
-  if (error || !history) {
+  if (error && !hostOverview) {
     return (
       <main className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-4">
@@ -130,16 +217,116 @@ export default function HistoryPage() {
     );
   }
 
-  // Фильтруем раунды: если указан round в URL, показываем только этот раунд
+  if (hostOverview && selectedRoundNumber) {
+    const { game, round, players, results } = hostOverview;
+    const isClosed = round.status === "CLOSED";
+
+    return (
+      <main className="min-h-screen pb-8">
+        <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
+          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
+              <Link
+                href={`/lobby/${gameId}`}
+                className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors text-sm shrink-0"
+              >
+                ← Лобби
+              </Link>
+              <Link
+                href="/profile"
+                className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors text-sm shrink-0 hidden sm:inline"
+              >
+                Профиль
+              </Link>
+            </div>
+            <h1 className="text-base sm:text-lg font-bold text-[var(--primary)] text-center truncate">
+              Раунд {round.roundNumber}/{game.totalRounds}
+            </h1>
+            <ThemeToggle />
+          </div>
+        </div>
+
+        <div className="max-w-2xl mx-auto px-4 space-y-4 mt-4">
+          <div className="bg-[var(--card)] rounded-3xl shadow-lg border border-[var(--border)] p-6">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="min-w-0">
+                <div className="font-mono font-bold text-[var(--primary)] text-xl mb-1">
+                  {game.code}
+                </div>
+                <div className="text-sm text-[var(--muted-foreground)]">
+                  Организатор: {game.host.name}
+                </div>
+              </div>
+              <div
+                className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border ${
+                  round.status === "CREATED"
+                    ? "border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]"
+                    : round.status === "ACTIVE"
+                    ? "border-[var(--primary)] bg-[var(--primary)] bg-opacity-10 text-[var(--primary)]"
+                    : "border-[var(--success)] bg-[var(--success)] bg-opacity-10 text-[var(--success)]"
+                }`}
+              >
+                {round.status === "CREATED" && "Не начат"}
+                {round.status === "ACTIVE" && "Идёт"}
+                {round.status === "CLOSED" && "Завершён"}
+              </div>
+            </div>
+          </div>
+
+          {!isClosed && (
+            <HostRoundPlayersStatus players={players} roundStatus={round.status} />
+          )}
+
+          {isClosed && results && results.length > 0 && (
+            <RoundResults
+              roundNumber={round.roundNumber}
+              totalRounds={game.totalRounds}
+              correctAnswer={round.correctAnswer}
+              photos={round.photos}
+              results={results}
+              currentUserId={session?.user?.id}
+            />
+          )}
+
+          {isClosed && (!results || results.length === 0) && (
+            <div className="bg-[var(--card)] rounded-3xl shadow-lg border border-[var(--border)] p-8 text-center text-[var(--muted-foreground)]">
+              <p className="font-medium mb-2">Раунд завершён</p>
+              <p className="text-sm">В комнате не было игроков для отображения результатов.</p>
+            </div>
+          )}
+        </div>
+      </main>
+    );
+  }
+
+  if (!history) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <div className="text-5xl">😕</div>
+          <p className="text-xl text-[var(--error)]">Данные не загружены</p>
+          <Link
+            href="/profile"
+            className="inline-block px-6 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl"
+          >
+            Вернуться в профиль
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   const displayedRounds = selectedRoundNumber
-    ? history.rounds.filter((round) => round.roundNumber === selectedRoundNumber)
+    ? history.rounds.filter((r) => r.roundNumber === selectedRoundNumber)
     : history.rounds;
 
-  const totalScore = history.rounds.reduce((sum, round) => sum + (round.userGuess?.score || 0), 0);
+  const totalScore = history.rounds.reduce(
+    (sum, round) => sum + (round.userGuess?.score || 0),
+    0
+  );
 
   return (
     <main className="min-h-screen pb-8">
-      {/* Верхняя панель */}
       <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link
@@ -156,9 +343,7 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {/* Контент */}
       <div className="max-w-2xl mx-auto px-4 space-y-4 mt-4">
-        {/* Информация об игре */}
         <div className="bg-[var(--card)] rounded-3xl shadow-lg border border-[var(--border)] p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -207,7 +392,6 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        {/* Раунды */}
         <div className="space-y-4">
           {selectedRoundNumber && (
             <div className="mb-4">
@@ -242,7 +426,6 @@ export default function HistoryPage() {
           )}
         </div>
 
-        {/* Итоговая статистика */}
         {!selectedRoundNumber && history.rounds.length > 0 && (
           <div className="bg-[var(--card)] rounded-3xl shadow-lg border border-[var(--border)] p-6">
             <h3 className="text-lg font-bold mb-4">📊 Итоговая статистика</h3>
@@ -264,7 +447,9 @@ export default function HistoryPage() {
                 </div>
               </div>
               <div>
-                <div className="text-xs text-[var(--muted-foreground)] mb-1">Ответов отправлено</div>
+                <div className="text-xs text-[var(--muted-foreground)] mb-1">
+                  Ответов отправлено
+                </div>
                 <div className="text-xl font-bold">
                   {history.rounds.filter((r) => r.userGuess !== null).length}
                 </div>

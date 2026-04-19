@@ -141,30 +141,38 @@ export default function WineQuizPage() {
 
       {!isLoading && isLoggedIn && (
         <>
-          <div className="mt-12 w-full max-w-md mx-auto flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="px-8 py-4 text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold transition-all shadow-lg"
-              style={{ background: "var(--gradient-primary)" }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow =
-                  "0 6px 16px rgba(139, 26, 42, 0.4)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 12px rgba(139, 26, 42, 0.3)";
-              }}
+          <div className="mt-12 w-full max-w-md mx-auto flex flex-col gap-4">
+            <Link
+              href="/profile"
+              className="w-full px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-center block"
             >
-              🚀 Создать игру
-            </button>
-            <button
-              onClick={() => setShowJoinInput(!showJoinInput)}
-              className="px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-            >
-              📱 Присоединиться
-            </button>
+              Мои активные игры
+            </Link>
+            <div className="flex flex-col sm:flex-row gap-4 w-full">
+              <button
+                onClick={() => setShowCreateForm(!showCreateForm)}
+                className="w-full sm:flex-1 px-8 py-4 text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold transition-all shadow-lg"
+                style={{ background: "var(--gradient-primary)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 6px 16px rgba(139, 26, 42, 0.4)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 12px rgba(139, 26, 42, 0.3)";
+                }}
+              >
+                🚀 Создать игру
+              </button>
+              <button
+                onClick={() => setShowJoinInput(!showJoinInput)}
+                className="w-full sm:flex-1 px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+              >
+                📱 Присоединиться
+              </button>
+            </div>
           </div>
 
           {showCreateForm && (

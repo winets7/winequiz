@@ -154,6 +154,15 @@ export function RoundResults({
           {results.map((result, index) => {
             const guess = formatAnswer(result.guess);
             const isCurrentUser = result.userId === currentUserId;
+            const correctGrapes = correctAnswer.grapeVarieties.map((g) =>
+              g.toLowerCase().trim()
+            );
+            const guessedGrapes = result.guess.grapeVarieties.map((g) =>
+              g.toLowerCase().trim()
+            );
+            const matchedGrapes = guessedGrapes.filter((g) =>
+              correctGrapes.includes(g)
+            );
             return (
               <div
                 key={result.userId}
@@ -189,6 +198,38 @@ export function RoundResults({
                   <ParamRow label="Год" correct={correct.year} guess={guess.year} isMatch={result.guess.vintageYear === correctAnswer.vintageYear} />
                   <ParamRow label="Крепость" correct={correct.alcohol} guess={guess.alcohol}
                     isMatch={result.guess.alcoholContent != null && correctAnswer.alcoholContent != null && Math.abs(result.guess.alcoholContent - correctAnswer.alcoholContent) <= 0.5} />
+                  <div className="flex items-center gap-2 text-sm py-1">
+                    <span
+                      className={`text-base ${
+                        matchedGrapes.length > 0 ? "" : "opacity-40"
+                      }`}
+                    >
+                      {matchedGrapes.length > 0 ? "✅" : "❌"}
+                    </span>
+                    <span className="text-[var(--muted-foreground)] min-w-[80px]">
+                      Сорта
+                    </span>
+                    <span
+                      className={`font-medium ${
+                        matchedGrapes.length > 0
+                          ? "text-[var(--success)]"
+                          : "text-[var(--error)]"
+                      }`}
+                    >
+                      {guess.grapes}
+                    </span>
+                    {matchedGrapes.length > 0 && (
+                      <span className="text-[var(--muted-foreground)] text-xs ml-auto">
+                        Угадано: {matchedGrapes.length} из{" "}
+                        {correctAnswer.grapeVarieties.length}
+                      </span>
+                    )}
+                    {matchedGrapes.length === 0 && (
+                      <span className="text-[var(--muted-foreground)] text-xs ml-auto">
+                        → {correct.grapes}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             );

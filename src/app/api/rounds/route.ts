@@ -7,13 +7,45 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: NextRequest) {
   try {
     const gameId = request.nextUrl.searchParams.get("gameId");
+    const userId = request.nextUrl.searchParams.get("userId");
     if (!gameId) {
       return NextResponse.json({ error: "gameId обязателен" }, { status: 400 });
     }
 
+    let gamePlayerId: string | null = null;
+    if (userId) {
+      const gamePlayer = await prisma.gamePlayer.findUnique({
+        where: {
+          gameId_userId: { gameId, userId },
+        },
+        select: { id: true },
+      });
+      gamePlayerId = gamePlayer?.id ?? null;
+    }
+
     const rounds = await prisma.round.findMany({
       where: { gameId },
-      include: { photos: { orderBy: { sortOrder: "asc" } } },
+      include: {
+        photos: { orderBy: { sortOrder: "asc" } },
+        ...(gamePlayerId
+          ? {
+              guesses: {
+                where: { gamePlayerId },
+                select: {
+                  grapeVarieties: true,
+                  sweetness: true,
+                  vintageYear: true,
+                  country: true,
+                  alcoholContent: true,
+                  isOakAged: true,
+                  color: true,
+                  composition: true,
+                  submittedAt: true,
+                },
+              },
+            }
+          : {}),
+      },
       orderBy: { roundNumber: "asc" },
     });
 

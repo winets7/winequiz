@@ -41,6 +41,17 @@ interface RoundInfo {
   color: string | null;
   country: string | null;
   grapeVarieties: string[];
+  guesses?: Array<{
+    grapeVarieties: string[];
+    sweetness: string | null;
+    vintageYear: number | null;
+    country: string | null;
+    alcoholContent: number | null;
+    isOakAged: boolean | null;
+    color: string | null;
+    composition: string | null;
+    submittedAt: string;
+  }>;
 }
 
 interface RoundResultData {
@@ -82,6 +93,85 @@ interface Ranking {
   score: number;
 }
 
+type SubmittedGuessSnapshot = {
+  grapeVarieties: string[];
+  sweetness: string;
+  vintageYear: string;
+  country: string;
+  alcoholContent: string;
+  isOakAged: boolean | null;
+  color: string;
+  composition: string;
+};
+
+function normalizeGuessValues(values: Partial<WineParams>): SubmittedGuessSnapshot {
+  return {
+    grapeVarieties: (values.grapeVarieties ?? []).map((g) => String(g).trim()),
+    sweetness: String(values.sweetness ?? ""),
+    vintageYear: String(values.vintageYear ?? ""),
+    country: String(values.country ?? ""),
+    alcoholContent: String(values.alcoholContent ?? ""),
+    isOakAged:
+      values.isOakAged === undefined || values.isOakAged === null
+        ? null
+        : Boolean(values.isOakAged),
+    color: String(values.color ?? ""),
+    composition: String(values.composition ?? ""),
+  };
+}
+
+function normalizeServerGuess(guess: {
+  grapeVarieties: string[];
+  sweetness: string | null;
+  vintageYear: number | null;
+  country: string | null;
+  alcoholContent: number | null;
+  isOakAged: boolean | null;
+  color: string | null;
+  composition: string | null;
+}): SubmittedGuessSnapshot {
+  return {
+    grapeVarieties: (guess.grapeVarieties ?? []).map((g) => String(g).trim()),
+    sweetness: String(guess.sweetness ?? ""),
+    vintageYear: guess.vintageYear == null ? "" : String(guess.vintageYear),
+    country: String(guess.country ?? ""),
+    alcoholContent: guess.alcoholContent == null ? "" : String(guess.alcoholContent),
+    isOakAged:
+      guess.isOakAged === undefined || guess.isOakAged === null
+        ? null
+        : Boolean(guess.isOakAged),
+    color: String(guess.color ?? ""),
+    composition: String(guess.composition ?? ""),
+  };
+}
+
+function areGuessesEqual(a: SubmittedGuessSnapshot, b: SubmittedGuessSnapshot): boolean {
+  if (
+    a.sweetness !== b.sweetness ||
+    a.country !== b.country ||
+    a.color !== b.color ||
+    a.composition !== b.composition ||
+    a.isOakAged !== b.isOakAged
+  ) {
+    return false;
+  }
+
+  const aVintage = a.vintageYear.trim() === "" ? null : Number(a.vintageYear);
+  const bVintage = b.vintageYear.trim() === "" ? null : Number(b.vintageYear);
+  if (aVintage !== bVintage) return false;
+
+  const aAlcohol = a.alcoholContent.trim() === "" ? null : Number(a.alcoholContent);
+  const bAlcohol = b.alcoholContent.trim() === "" ? null : Number(b.alcoholContent);
+  if (aAlcohol !== bAlcohol) return false;
+
+  if (a.grapeVarieties.length !== b.grapeVarieties.length) return false;
+  for (let i = 0; i < a.grapeVarieties.length; i += 1) {
+    if (a.grapeVarieties[i] !== b.grapeVarieties[i]) return false;
+  }
+
+  return true;
+}
+
 // =============================================
 // Компонент страницы
 // =============================================
@@ -107,6 +197,7 @@ export default function PlayPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [guessValues, setGuessValues] = useState<Partial<WineParams>>({});
+  const [submittedGuess, setSubmittedGuess] = useState<SubmittedGuessSnapshot | null>(null);
 
   const gameRef = useRef(game);
   gameRef.current = game;
@@ -209,7 +300,9 @@ export default function PlayPage() {
 
         // Загружаем раунды
         let loadedRounds: RoundInfo[] = [];
-        const roundsRes = await fetch(`/api/rounds?gameId=${gameId}`);
+        const roundsRes = await fetch(
+          `/api/rounds?gameId=${gameId}${userId ? `&userId=${userId}` : ""}`
+        );
         if (roundsRes.ok) {
           const roundsData = await roundsRes.json();
           loadedRounds = (roundsData.rounds || []).map((r: RoundInfo) => ({
@@ -219,6 +312,7 @@ export default function PlayPage() {
             color: r.color,
             country: r.country,
             grapeVarieties: r.grapeVarieties,
+            guesses: r.guesses,
           }));
           setRounds(loadedRounds);
         }
@@ -235,12 +329,16 @@ export default function PlayPage() {
             // Раунд уже идёт — восстанавливаем фазу
             setCurrentRound(activeRound.roundNumber);
             setCurrentRoundId(activeRound.id);
+            const existingGuess = activeRound.guesses?.[0] ?? null;
+            setSubmittedGuess(existingGuess ? normalizeServerGuess(existingGuess) : null);
             setPhase("ROUND_ACTIVE");
           } else {
             // Нет активного раунда — следующий раунд
+            setSubmittedGuess(null);
             setPhase("ROUND_READY");
           }
         } else {
+          setSubmittedGuess(null);
           setPhase("ROUND_READY");
         }
       } catch {
@@ -248,7 +346,7 @@ export default function PlayPage() {
       }
     }
     fetchGame();
-  }, [gameId]);
+  }, [gameId, userId]);
 
   // =============================================
   // Присоединение к комнате
@@ -290,6 +388,7 @@ export default function PlayPage() {
       setCurrentRoundId(roundId);
       setGuessCount(0);
       setRoundResult(null);
+      setSubmittedGuess(null);
       setPhase("ROUND_ACTIVE");
     });
 
@@ -307,7 +406,24 @@ export default function PlayPage() {
 
     // Догадка принята (для участника)
     const unsubGuessReceived = on("guess_received", () => {
-      setPhase("GUESS_SUBMITTED");
+      setSubmittedGuess(
+        normalizeGuessValues({
+          color: localStorage.getItem(`wine-guess-${gameId}-color`) || "",
+          sweetness: localStorage.getItem(`wine-guess-${gameId}-sweetness`) || "",
+          composition: localStorage.getItem(`wine-guess-${gameId}-composition`) || "",
+          country: localStorage.getItem(`wine-guess-${gameId}-country`) || "",
+          vintageYear: localStorage.getItem(`wine-guess-${gameId}-vintageYear`) || "",
+          alcoholContent: localStorage.getItem(`wine-guess-${gameId}-alcoholContent`) || "",
+          grapeVarieties: JSON.parse(
+            localStorage.getItem(`wine-guess-${gameId}-grapeVarieties`) || "[]"
+          ),
+          isOakAged: (() => {
+            const saved = localStorage.getItem(`wine-guess-${gameId}-isOakAged`);
+            if (saved === null) return null;
+            return saved === "true";
+          })(),
+        })
+      );
       setSubmitting(false);
     });
 
@@ -360,6 +476,15 @@ export default function PlayPage() {
       unsubError();
     };
   }, [isConnected, on]);
+
+  const currentGuessSnapshot = normalizeGuessValues(guessValues);
+  const isSubmittedGuessUnchanged =
+    submittedGuess !== null && areGuessesEqual(currentGuessSnapshot, submittedGuess);
+  const showResubmitHint = submittedGuess !== null && !isSubmittedGuessUnchanged;
+  const submitButtonDisabled = submitting || isSubmittedGuessUnchanged;
+  const submitButtonLabel = isSubmittedGuessUnchanged
+    ? "Ответ отправлен"
+    : "✅ Отправить ответ";
 
   // =============================================
   // Обработчики действий
@@ -617,17 +742,27 @@ export default function PlayPage() {
               <CharacteristicCards gameId={gameId} values={guessValues} className="h-full" />
             </div>
 
+            {showResubmitHint && (
+              <div className="shrink-0 rounded-xl border border-[var(--primary)] bg-[var(--muted)] px-4 py-3 text-sm text-[var(--foreground)]">
+                Вы изменили ранее отправленный ответ. Для его сохранения в игре отправьте ответ повторно.
+              </div>
+            )}
+
             <button
               onClick={handleSubmitGuess}
-              disabled={submitting}
-              className="w-full shrink-0 px-6 py-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={submitButtonDisabled}
+              className={`w-full shrink-0 px-6 py-4 rounded-2xl text-lg font-bold transition-opacity shadow-lg disabled:cursor-not-allowed ${
+                isSubmittedGuessUnchanged
+                  ? "bg-[var(--muted)] text-[var(--muted-foreground)]"
+                  : "bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90"
+              }`}
             >
               {submitting ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="animate-spin">⏳</span> Отправка...
                 </span>
               ) : (
-                "✅ Отправить ответ"
+                submitButtonLabel
               )}
             </button>
           </div>

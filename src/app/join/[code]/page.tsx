@@ -351,102 +351,103 @@ export default function JoinPage() {
           </div>
         )}
 
-        <div className="w-full max-w-4xl flex flex-col lg:flex-row gap-6">
-          {/* Левая колонка */}
-          <div className="flex-1 space-y-4">
-            {/* Информация о комнате */}
-            <div className="bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)] text-center">
-              <div className="text-5xl mb-4">🍷</div>
-              <h2 className="text-xl font-bold mb-2">Комната</h2>
-              <p className="text-2xl font-mono font-bold text-[var(--primary)] mb-4">
-                {code}
-              </p>
+        <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Информация о комнате */}
+          <div className="bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)] text-center">
+            <div className="text-5xl mb-4">🍷</div>
+            <h2 className="text-xl font-bold mb-2">Комната</h2>
+            <p className="text-2xl font-mono font-bold text-[var(--primary)] mb-4">
+              {code}
+            </p>
+            {game && (
+              <div className="text-sm text-[var(--muted-foreground)] space-y-1">
+                <p>Раундов: {game.totalRounds}</p>
+                <p>Макс. игроков: {game.maxPlayers}</p>
+                <p className="mt-2">
+                  Статус:{" "}
+                  {game.status === "WAITING" ? (
+                    <span className="text-[var(--muted-foreground)]">Ожидание</span>
+                  ) : game.status === "PLAYING" ? (
+                    <span className="text-[var(--primary)]">Игра идёт</span>
+                  ) : (
+                    <span className="text-[var(--success)]">Завершена</span>
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Игроки */}
+          <div className="bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)]">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Игроки</h2>
               {game && (
-                <div className="text-sm text-[var(--muted-foreground)] space-y-1">
-                  <p>Раундов: {game.totalRounds}</p>
-                  <p>Макс. игроков: {game.maxPlayers}</p>
-                  <p className="mt-2">
-                    Статус:{" "}
-                    {game.status === "WAITING" ? (
-                      <span className="text-[var(--muted-foreground)]">Ожидание</span>
-                    ) : game.status === "PLAYING" ? (
-                      <span className="text-[var(--primary)]">Игра идёт</span>
-                    ) : (
-                      <span className="text-[var(--success)]">Завершена</span>
-                    )}
-                  </p>
-                </div>
+                <span className="bg-[var(--muted)] text-[var(--muted-foreground)] px-3 py-1 rounded-full text-sm font-medium">
+                  {players.length} / {game.maxPlayers}
+                </span>
               )}
             </div>
 
-            {/* Раунды */}
-            {game && (
-              <PlayerRoundsList
-                rounds={rounds}
-                totalRounds={game.totalRounds}
-                gameId={gameId}
-                gameStatus={game.status}
-              />
-            )}
+            <div className="space-y-3 max-h-64 overflow-y-auto no-scrollbar">
+              {players.map((player, index) => (
+                <div
+                  key={player.userId}
+                  className={`flex items-center gap-3 p-3 rounded-xl ${
+                    player.userId === userId
+                      ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                      : "bg-[var(--muted)]"
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-[var(--background)] text-[var(--foreground)] flex items-center justify-center font-bold text-sm">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">
+                      {player.name}
+                      {player.userId === userId && " (вы)"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+
+              {players.length === 0 && (
+                <div className="text-center py-6 text-[var(--muted-foreground)]">
+                  <div className="text-3xl mb-2">⏳</div>
+                  <p>Ожидание игроков...</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Правая колонка */}
-          <div className="flex-1 space-y-4">
-            {/* Игроки */}
-            <div className="bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)]">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Игроки</h2>
-                {game && (
-                  <span className="bg-[var(--muted)] text-[var(--muted-foreground)] px-3 py-1 rounded-full text-sm font-medium">
-                    {players.length} / {game.maxPlayers}
-                  </span>
-                )}
+          {/* Раунды (главный блок для участника) */}
+          {game && (
+            <div className="md:col-span-2 space-y-3">
+              <div className="text-sm md:text-base font-semibold text-[var(--primary)] text-center">
+                Главный блок: ваши раунды
               </div>
-
-              <div className="space-y-3 max-h-64 overflow-y-auto no-scrollbar">
-                {players.map((player, index) => (
-                  <div
-                    key={player.userId}
-                    className={`flex items-center gap-3 p-3 rounded-xl ${
-                      player.userId === userId
-                        ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
-                        : "bg-[var(--muted)]"
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-[var(--background)] text-[var(--foreground)] flex items-center justify-center font-bold text-sm">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        {player.name}
-                        {player.userId === userId && " (вы)"}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-
-                {players.length === 0 && (
-                  <div className="text-center py-6 text-[var(--muted-foreground)]">
-                    <div className="text-3xl mb-2">⏳</div>
-                    <p>Ожидание игроков...</p>
-                  </div>
-                )}
+              <div className="rounded-3xl border-2 border-[var(--primary)] shadow-xl p-1">
+                <PlayerRoundsList
+                  rounds={rounds}
+                  totalRounds={game.totalRounds}
+                  gameId={gameId}
+                  gameStatus={game.status}
+                />
               </div>
             </div>
+          )}
 
-            {/* Статус ожидания */}
-            {game && game.status === "WAITING" && (
-              <div className="text-center py-4 text-[var(--muted-foreground)]">
-                <span className="animate-pulse">⏳</span> Ожидайте, пока хост начнёт игру
-              </div>
-            )}
+          {/* Статус ожидания */}
+          {game && game.status === "WAITING" && (
+            <div className="md:col-span-2 text-center py-2 text-[var(--muted-foreground)]">
+              <span className="animate-pulse">⏳</span> Ожидайте, пока хост начнёт игру
+            </div>
+          )}
 
-            {game && game.status === "PLAYING" && (
-              <div className="text-center py-4 text-[var(--primary)] font-semibold text-lg">
-                Идет игра
-              </div>
-            )}
-          </div>
+          {game && game.status === "PLAYING" && (
+            <div className="md:col-span-2 text-center py-2 text-[var(--primary)] font-semibold text-lg">
+              Идет игра
+            </div>
+          )}
         </div>
       </main>
     );

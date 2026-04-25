@@ -736,8 +736,31 @@ export default function PlayPage() {
                   className="shrink-0 flex flex-col items-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
                   title="Вернуться на страницу игры"
                 >
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--card)] shadow-sm hover:bg-[var(--muted)] text-lg leading-none">
-                    ↩
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full shadow-sm transition-transform hover:scale-105">
+                    <svg
+                      viewBox="0 0 64 64"
+                      className="h-11 w-11"
+                      aria-hidden="true"
+                    >
+                      <defs>
+                        <radialGradient id="outerMetal" cx="32%" cy="28%" r="72%">
+                          <stop offset="0%" stopColor="#f7f7f7" />
+                          <stop offset="55%" stopColor="#d6d6d6" />
+                          <stop offset="100%" stopColor="#a8a8a8" />
+                        </radialGradient>
+                        <radialGradient id="innerRed" cx="34%" cy="26%" r="74%">
+                          <stop offset="0%" stopColor="#d43d3d" />
+                          <stop offset="65%" stopColor="#a20f16" />
+                          <stop offset="100%" stopColor="#7a070c" />
+                        </radialGradient>
+                      </defs>
+                      <circle cx="32" cy="32" r="31" fill="url(#outerMetal)" />
+                      <circle cx="32" cy="32" r="23" fill="url(#innerRed)" />
+                      <path
+                        d="M37 17 21 32l16 15v-9c8.5 0 12.5 4.7 14 10-0.2-11.5-3.9-21-14-21z"
+                        fill="#fff"
+                      />
+                    </svg>
                   </span>
                   <span className="mt-1 text-[11px] font-medium">
                     К странице игры

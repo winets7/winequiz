@@ -723,17 +723,25 @@ export default function PlayPage() {
         {/* ROUND_ACTIVE (Участник заполняет форму) */}
         {phase === "ROUND_ACTIVE" && !isHost && (
           <div className="flex min-h-0 flex-1 flex-col gap-4">
-            <div className="shrink-0 text-center">
-              <h2 className="text-xl font-bold">🤔 Угадайте вино!</h2>
-              <p className="text-sm text-[var(--muted-foreground)] mt-1">
-                Раунд {currentRound}/{game?.totalRounds}
-              </p>
+            <div className="shrink-0 flex items-start justify-between gap-3">
+              <div className="flex-1 text-center">
+                <h2 className="text-xl font-bold">🤔 Угадайте вино!</h2>
+                <p className="text-sm text-[var(--muted-foreground)] mt-1">
+                  Раунд {currentRound}/{game?.totalRounds}
+                </p>
+              </div>
               {game?.code && (
                 <Link
                   href={`/join/${game.code}`}
-                  className="mt-3 inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+                  className="shrink-0 flex flex-col items-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                  title="Вернуться на страницу игры"
                 >
-                  Вернуться на страницу игры
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--card)] shadow-sm hover:bg-[var(--muted)] text-lg leading-none">
+                    ↩
+                  </span>
+                  <span className="mt-1 text-[11px] font-medium">
+                    К странице игры
+                  </span>
                 </Link>
               )}
             </div>

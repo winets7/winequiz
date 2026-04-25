@@ -76,7 +76,8 @@ const REFERENCE_LABEL_TEXT = "Выдержка в бочке";
 
 function fitFontToLabelWidth(probe: HTMLElement, wrapWidth: number): number {
   const minPx = 7;
-  const maxPx = Math.max(minPx, Math.min(56, wrapWidth * 0.28));
+  // Ограничиваем верхний порог на широких экранах, чтобы заголовки не были чрезмерно крупными.
+  const maxPx = Math.max(minPx, Math.min(36, wrapWidth * 0.2));
   let lo = minPx;
   let hi = maxPx;
   let best = minPx;
@@ -255,7 +256,8 @@ export function CharacteristicCards({
       const w = wrap.clientWidth;
       if (w < 6) return;
       const minPx = 9;
-      const maxPx = Math.max(minPx, Math.min(160, w));
+      // На десктопе не даем значению раздуваться до размеров заголовка.
+      const maxPx = Math.max(minPx, Math.min(44, w * 0.28));
       const px =
         words.length === 0
           ? 12

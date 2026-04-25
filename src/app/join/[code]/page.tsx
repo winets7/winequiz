@@ -353,7 +353,7 @@ export default function JoinPage() {
 
         <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Информация о комнате */}
-          <div className="bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)] text-center">
+          <div className="order-3 md:order-1 bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)] text-center">
             <div className="text-5xl mb-4">🍷</div>
             <h2 className="text-xl font-bold mb-2">Комната</h2>
             <p className="text-2xl font-mono font-bold text-[var(--primary)] mb-4">
@@ -378,7 +378,7 @@ export default function JoinPage() {
           </div>
 
           {/* Игроки */}
-          <div className="bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)]">
+          <div className="order-2 md:order-2 bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">Игроки</h2>
               {game && (
@@ -421,7 +421,7 @@ export default function JoinPage() {
 
           {/* Раунды (главный блок для участника) */}
           {game && (
-            <div className="md:col-span-2 space-y-3">
+            <div className="order-1 md:order-3 md:col-span-2 space-y-3">
               <div className="text-sm md:text-base font-semibold text-[var(--primary)] text-center">
                 Главный блок: ваши раунды
               </div>

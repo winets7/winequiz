@@ -179,47 +179,6 @@ export function RoundHistoryItem({
           <RoundPhotosGrid photos={photos} />
         )}
 
-        {/* Правильные ответы */}
-        <div>
-          <h4 className="text-sm font-medium text-[var(--muted-foreground)] mb-3">
-            🍷 Правильные ответы
-          </h4>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm bg-[var(--muted)] rounded-xl p-4">
-            <div>
-              <span className="text-[var(--muted-foreground)]">Цвет:</span>{" "}
-              <span className="font-medium">{correct.color}</span>
-            </div>
-            <div>
-              <span className="text-[var(--muted-foreground)]">Сладость:</span>{" "}
-              <span className="font-medium">{correct.sweetness}</span>
-            </div>
-            <div>
-              <span className="text-[var(--muted-foreground)]">Состав:</span>{" "}
-              <span className="font-medium">{correct.composition}</span>
-            </div>
-            <div>
-              <span className="text-[var(--muted-foreground)]">Бочка:</span>{" "}
-              <span className="font-medium">{correct.oak}</span>
-            </div>
-            <div>
-              <span className="text-[var(--muted-foreground)]">Страна:</span>{" "}
-              <span className="font-medium">{correct.country}</span>
-            </div>
-            <div>
-              <span className="text-[var(--muted-foreground)]">Год:</span>{" "}
-              <span className="font-medium">{correct.year}</span>
-            </div>
-            <div>
-              <span className="text-[var(--muted-foreground)]">Крепость:</span>{" "}
-              <span className="font-medium">{correct.alcohol}</span>
-            </div>
-            <div className="col-span-2">
-              <span className="text-[var(--muted-foreground)]">Сорта:</span>{" "}
-              <span className="font-medium">{correct.grapes}</span>
-            </div>
-          </div>
-        </div>
-
         {/* Мои ответы */}
         {userGuess ? (
           <div>

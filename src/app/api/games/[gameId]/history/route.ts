@@ -187,7 +187,7 @@ export async function GET(
       );
     }
 
-    const guesses = await prisma.guess.findMany({
+    const guesses = await prisma.playerGuess.findMany({
       where: {
         gamePlayerId: gamePlayer.id,
         round: {

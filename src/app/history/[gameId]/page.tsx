@@ -56,6 +56,23 @@ interface HistoryData {
   rounds: RoundHistory[];
 }
 
+interface HostHistoryData {
+  isHostView: true;
+  game: GameInfo;
+  players: Array<{
+    user: {
+      id: string;
+      name: string;
+      avatar: string | null;
+    };
+    gamePlayer: {
+      score: number;
+      position: number | null;
+    };
+    rounds: RoundHistory[];
+  }>;
+}
+
 interface HostRoundOverview {
   isHost: true;
   game: GameInfo;
@@ -94,7 +111,7 @@ export default function HistoryPage() {
       })()
     : null;
 
-  const [history, setHistory] = useState<HistoryData | null>(null);
+  const [history, setHistory] = useState<HistoryData | HostHistoryData | null>(null);
   const [hostOverview, setHostOverview] = useState<HostRoundOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -146,9 +163,7 @@ export default function HistoryPage() {
       }
 
       try {
-        const res = await fetch(
-          `/api/games/${gameId}/history?userId=${session!.user.id}`
-        );
+        const res = await fetch(`/api/games/${gameId}/history`);
         if (cancelled) return;
         if (!res.ok) {
           const data = await res.json();
@@ -311,6 +326,112 @@ export default function HistoryPage() {
           >
             Вернуться в профиль
           </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if ("isHostView" in history && history.isHostView) {
+    return (
+      <main className="min-h-screen pb-8">
+        <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
+          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+            <Link
+              href="/profile"
+              className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors text-sm flex items-center gap-1"
+            >
+              ← Профиль
+            </Link>
+            <h1 className="text-lg font-bold text-[var(--primary)]">
+              📋 История ответов
+              {selectedRoundNumber && ` - Раунд ${selectedRoundNumber}`}
+            </h1>
+            <ThemeToggle />
+          </div>
+        </div>
+
+        <div className="max-w-2xl mx-auto px-4 space-y-4 mt-4">
+          <div className="bg-[var(--card)] rounded-3xl shadow-lg border border-[var(--border)] p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="font-mono font-bold text-[var(--primary)] text-xl mb-1">
+                  {history.game.code}
+                </div>
+                <div className="text-sm text-[var(--muted-foreground)]">
+                  Режим организатора: результаты всех игроков
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-[var(--muted-foreground)]">Игроков</div>
+                <div className="text-2xl font-bold text-[var(--primary)]">
+                  {history.players.length}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {selectedRoundNumber && (
+            <div className="mb-4">
+              <Link
+                href={`/history/${gameId}`}
+                className="inline-flex items-center gap-2 text-sm text-[var(--primary)] hover:opacity-80 transition-opacity"
+              >
+                ← Показать все раунды
+              </Link>
+            </div>
+          )}
+
+          {history.players.length === 0 ? (
+            <div className="bg-[var(--card)] rounded-3xl shadow-lg border border-[var(--border)] p-8 text-center text-[var(--muted-foreground)]">
+              В этой игре не было игроков для отображения истории.
+            </div>
+          ) : (
+            history.players.map((player) => {
+              const displayedRounds = selectedRoundNumber
+                ? player.rounds.filter((r) => r.roundNumber === selectedRoundNumber)
+                : player.rounds;
+
+              return (
+                <section
+                  key={player.user.id}
+                  className="bg-[var(--card)] rounded-3xl shadow-lg border border-[var(--border)] p-4 space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-bold">{player.user.name}</h2>
+                      <p className="text-sm text-[var(--muted-foreground)]">
+                        {player.gamePlayer.position
+                          ? `Место: ${player.gamePlayer.position}`
+                          : "Место: —"}
+                      </p>
+                    </div>
+                    <div className="text-xl font-bold text-[var(--primary)]">
+                      {player.gamePlayer.score} очков
+                    </div>
+                  </div>
+
+                  {displayedRounds.length === 0 ? (
+                    <div className="text-sm text-[var(--muted-foreground)] py-2">
+                      Для выбранного раунда данных нет.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {displayedRounds.map((round) => (
+                        <RoundHistoryItem
+                          key={`${player.user.id}-${round.roundNumber}`}
+                          roundNumber={round.roundNumber}
+                          totalRounds={history.game.totalRounds}
+                          correctAnswer={round.correctAnswer}
+                          photos={round.photos}
+                          userGuess={round.userGuess}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })
+          )}
         </div>
       </main>
     );

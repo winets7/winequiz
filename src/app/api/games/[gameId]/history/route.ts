@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fixRoundTextFields } from "@/lib/encoding";
+import { auth } from "@/auth";
 
 /**
  * GET /api/games/[gameId]/history?userId=xxx — Получение истории ответов пользователя в игре
@@ -18,13 +19,13 @@ export async function GET(
 ) {
   try {
     const { gameId } = await params;
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    const session = await auth();
+    const userId = session?.user?.id;
 
     if (!userId) {
       return NextResponse.json(
-        { error: "userId обязателен" },
-        { status: 400 }
+        { error: "Необходима авторизация" },
+        { status: 401 }
       );
     }
 
@@ -38,6 +39,7 @@ export async function GET(
         totalRounds: true,
         createdAt: true,
         finishedAt: true,
+        hostId: true,
         host: {
           select: { id: true, name: true, avatar: true },
         },
@@ -48,6 +50,121 @@ export async function GET(
       return NextResponse.json(
         { error: "Игра не найдена" },
         { status: 404 }
+      );
+    }
+
+    const closedRounds = await prisma.round.findMany({
+      where: {
+        gameId,
+        status: "CLOSED",
+      },
+      include: {
+        photos: {
+          orderBy: { sortOrder: "asc" },
+          select: { imageUrl: true },
+        },
+      },
+      orderBy: { roundNumber: "asc" },
+    });
+
+    const normalizedRounds = closedRounds.map((round) => ({
+      roundNumber: round.roundNumber,
+      status: round.status,
+      correctAnswer: fixRoundTextFields({
+        grapeVarieties: round.grapeVarieties,
+        sweetness: round.sweetness,
+        vintageYear: round.vintageYear,
+        country: round.country,
+        alcoholContent: round.alcoholContent,
+        isOakAged: round.isOakAged,
+        color: round.color,
+        composition: round.composition,
+      }),
+      photos: round.photos.map((p) => p.imageUrl),
+    }));
+
+    if (game.hostId === userId) {
+      const players = await prisma.gamePlayer.findMany({
+        where: { gameId, userId: { not: game.hostId } },
+        include: {
+          user: {
+            select: { id: true, name: true, avatar: true },
+          },
+          guesses: {
+            select: {
+              grapeVarieties: true,
+              sweetness: true,
+              vintageYear: true,
+              country: true,
+              alcoholContent: true,
+              isOakAged: true,
+              color: true,
+              composition: true,
+              score: true,
+              submittedAt: true,
+              round: {
+                select: {
+                  roundNumber: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { score: "desc" },
+      });
+
+      return NextResponse.json(
+        {
+          isHostView: true,
+          game: {
+            id: game.id,
+            code: game.code,
+            status: game.status,
+            totalRounds: game.totalRounds,
+            createdAt: game.createdAt,
+            finishedAt: game.finishedAt,
+            host: game.host,
+          },
+          players: players.map((player) => {
+            const guessesByRound = new Map(
+              player.guesses.map((guess) => [guess.round.roundNumber, guess])
+            );
+
+            return {
+              user: player.user,
+              gamePlayer: {
+                score: player.score,
+                position: player.position,
+              },
+              rounds: normalizedRounds.map((round) => {
+                const userGuess = guessesByRound.get(round.roundNumber);
+                return {
+                  roundNumber: round.roundNumber,
+                  status: round.status,
+                  correctAnswer: round.correctAnswer,
+                  photos: round.photos,
+                  userGuess: userGuess
+                    ? fixRoundTextFields({
+                        grapeVarieties: userGuess.grapeVarieties,
+                        sweetness: userGuess.sweetness,
+                        vintageYear: userGuess.vintageYear,
+                        country: userGuess.country,
+                        alcoholContent: userGuess.alcoholContent,
+                        isOakAged: userGuess.isOakAged,
+                        color: userGuess.color,
+                        composition: userGuess.composition,
+                        score: userGuess.score,
+                        submittedAt: userGuess.submittedAt,
+                      })
+                    : null,
+                };
+              }),
+            };
+          }),
+        },
+        {
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        }
       );
     }
 
@@ -70,59 +187,46 @@ export async function GET(
       );
     }
 
-    // Получаем только завершенные раунды игры
-    const rounds = await prisma.round.findMany({
-      where: { 
-        gameId,
-        status: "CLOSED", // Показываем только завершенные раунды
-      },
-      include: {
-        photos: {
-          orderBy: { sortOrder: "asc" },
-          select: { imageUrl: true },
+    const guesses = await prisma.guess.findMany({
+      where: {
+        gamePlayerId: gamePlayer.id,
+        round: {
+          gameId,
+          status: "CLOSED",
         },
-        guesses: {
-          where: {
-            gamePlayerId: gamePlayer.id,
-          },
+      },
+      select: {
+        grapeVarieties: true,
+        sweetness: true,
+        vintageYear: true,
+        country: true,
+        alcoholContent: true,
+        isOakAged: true,
+        color: true,
+        composition: true,
+        score: true,
+        submittedAt: true,
+        round: {
           select: {
-            id: true,
-            grapeVarieties: true,
-            sweetness: true,
-            vintageYear: true,
-            country: true,
-            alcoholContent: true,
-            isOakAged: true,
-            color: true,
-            composition: true,
-            score: true,
-            submittedAt: true,
+            roundNumber: true,
           },
         },
       },
-      orderBy: { roundNumber: "asc" },
     });
 
-    // Формируем ответ с историей раундов (исправляем возможную кракозябру в текстовых полях)
-    const history = rounds.map((round) => {
-      const userGuess = round.guesses[0] || null; // У пользователя может быть только один ответ на раунд
+    const guessesByRound = new Map(
+      guesses.map((guess) => [guess.round.roundNumber, guess])
+    );
 
-      const correctAnswer = fixRoundTextFields({
-        grapeVarieties: round.grapeVarieties,
-        sweetness: round.sweetness,
-        vintageYear: round.vintageYear,
-        country: round.country,
-        alcoholContent: round.alcoholContent,
-        isOakAged: round.isOakAged,
-        color: round.color,
-        composition: round.composition,
-      });
+    // Формируем ответ с историей раундов (исправляем возможную кракозябру в текстовых полях)
+    const history = normalizedRounds.map((round) => {
+      const userGuess = guessesByRound.get(round.roundNumber) || null;
 
       return {
         roundNumber: round.roundNumber,
         status: round.status,
-        correctAnswer,
-        photos: round.photos.map((p) => p.imageUrl),
+        correctAnswer: round.correctAnswer,
+        photos: round.photos,
         userGuess: userGuess
           ? fixRoundTextFields({
               grapeVarieties: userGuess.grapeVarieties,

@@ -437,11 +437,13 @@ export default function HistoryPage() {
     );
   }
 
-  const displayedRounds = selectedRoundNumber
-    ? history.rounds.filter((r) => r.roundNumber === selectedRoundNumber)
-    : history.rounds;
+  const playerHistory = history as HistoryData;
 
-  const totalScore = history.rounds.reduce(
+  const displayedRounds = selectedRoundNumber
+    ? playerHistory.rounds.filter((r) => r.roundNumber === selectedRoundNumber)
+    : playerHistory.rounds;
+
+  const totalScore = playerHistory.rounds.reduce(
     (sum, round) => sum + (round.userGuess?.score || 0),
     0
   );
@@ -469,25 +471,25 @@ export default function HistoryPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="font-mono font-bold text-[var(--primary)] text-xl mb-1">
-                {history.game.code}
+                {playerHistory.game.code}
               </div>
               <div className="text-sm text-[var(--muted-foreground)]">
-                Хост: {history.game.host.name}
+                Хост: {playerHistory.game.host.name}
               </div>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-[var(--primary)]">
-                {history.gamePlayer.score} очков
+                {playerHistory.gamePlayer.score} очков
               </div>
-              {history.gamePlayer.position && (
+              {playerHistory.gamePlayer.position && (
                 <div className="text-sm text-[var(--muted-foreground)] mt-1">
-                  {history.gamePlayer.position === 1
+                  {playerHistory.gamePlayer.position === 1
                     ? "🥇 1 место"
-                    : history.gamePlayer.position === 2
+                    : playerHistory.gamePlayer.position === 2
                     ? "🥈 2 место"
-                    : history.gamePlayer.position === 3
+                    : playerHistory.gamePlayer.position === 3
                     ? "🥉 3 место"
-                    : `#${history.gamePlayer.position} место`}
+                    : `#${playerHistory.gamePlayer.position} место`}
                 </div>
               )}
             </div>
@@ -496,13 +498,13 @@ export default function HistoryPage() {
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <div className="text-[var(--muted-foreground)] text-xs mb-1">Раундов</div>
-              <div className="font-medium">{history.game.totalRounds}</div>
+              <div className="font-medium">{playerHistory.game.totalRounds}</div>
             </div>
             <div>
               <div className="text-[var(--muted-foreground)] text-xs mb-1">Завершена</div>
               <div className="font-medium">
-                {history.game.finishedAt
-                  ? new Date(history.game.finishedAt).toLocaleDateString("ru-RU", {
+                {playerHistory.game.finishedAt
+                  ? new Date(playerHistory.game.finishedAt).toLocaleDateString("ru-RU", {
                       day: "numeric",
                       month: "short",
                       year: "numeric",
@@ -538,7 +540,7 @@ export default function HistoryPage() {
               <RoundHistoryItem
                 key={round.roundNumber}
                 roundNumber={round.roundNumber}
-                totalRounds={history.game.totalRounds}
+                totalRounds={playerHistory.game.totalRounds}
                 correctAnswer={round.correctAnswer}
                 photos={round.photos}
                 userGuess={round.userGuess}
@@ -547,13 +549,13 @@ export default function HistoryPage() {
           )}
         </div>
 
-        {!selectedRoundNumber && history.rounds.length > 0 && (
+        {!selectedRoundNumber && playerHistory.rounds.length > 0 && (
           <div className="bg-[var(--card)] rounded-3xl shadow-lg border border-[var(--border)] p-6">
             <h3 className="text-lg font-bold mb-4">📊 Итоговая статистика</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="text-xs text-[var(--muted-foreground)] mb-1">Всего раундов</div>
-                <div className="text-xl font-bold">{history.rounds.length}</div>
+                <div className="text-xl font-bold">{playerHistory.rounds.length}</div>
               </div>
               <div>
                 <div className="text-xs text-[var(--muted-foreground)] mb-1">Всего очков</div>
@@ -562,8 +564,8 @@ export default function HistoryPage() {
               <div>
                 <div className="text-xs text-[var(--muted-foreground)] mb-1">Средний балл</div>
                 <div className="text-xl font-bold">
-                  {history.rounds.length > 0
-                    ? Math.round((totalScore / history.rounds.length) * 10) / 10
+                  {playerHistory.rounds.length > 0
+                    ? Math.round((totalScore / playerHistory.rounds.length) * 10) / 10
                     : 0}
                 </div>
               </div>
@@ -572,7 +574,7 @@ export default function HistoryPage() {
                   Ответов отправлено
                 </div>
                 <div className="text-xl font-bold">
-                  {history.rounds.filter((r) => r.userGuess !== null).length}
+                  {playerHistory.rounds.filter((r) => r.userGuess !== null).length}
                 </div>
               </div>
             </div>

@@ -20,6 +20,8 @@ export function getSocket(): Socket {
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
       timeout: 10000,
+      // Куки сессии нужны серверу для верификации NextAuth JWT в io.use().
+      withCredentials: true,
     });
   }
   return socket;

@@ -1,8 +1,22 @@
 import { Server as HttpServer, createServer } from "http";
 import { Server as SocketServer } from "socket.io";
 import { Prisma, PrismaClient } from "@prisma/client";
+import { verifySocketAuth } from "./auth";
 
 const prisma = new PrismaClient();
+
+// Расширяем Socket.data типизацией для аутентифицированного пользователя.
+// Заполняется в io.use() ниже — все обработчики читают userId/name отсюда,
+// игнорируя любые userId, переданные клиентом в payload.
+declare module "socket.io" {
+  interface Socket {
+    data: {
+      userId?: string;
+      name?: string;
+      role?: string;
+    };
+  }
+}
 
 /**
  * Удаляет повторы сортов винограда (нечувствительно к регистру и пробелам),
@@ -61,20 +75,60 @@ export function createSocketServer(httpServer?: HttpServer) {
         return cb(null, false);
       },
       methods: ["GET", "POST"],
+      credentials: true,
     },
     pingTimeout: 60000,
     pingInterval: 25000,
   });
 
+  // Аутентификация по NextAuth JWT (cookie рукопожатия). Без валидной сессии
+  // соединение отклоняется — нельзя подделать чужой userId через payload.
+  io.use(async (socket, next) => {
+    const user = await verifySocketAuth(socket);
+    if (!user) {
+      return next(new Error("Unauthorized"));
+    }
+    socket.data.userId = user.userId;
+    socket.data.name = user.name;
+    socket.data.role = user.role;
+    next();
+  });
+
   io.on("connection", (socket) => {
-    console.log(`🔌 Подключение: ${socket.id}`);
+    console.log(`🔌 Подключение: ${socket.id} (user ${socket.data.userId})`);
 
     // =============================================
     // Создание комнаты (хост)
     // =============================================
-    socket.on("create_game", async (data: { gameId: string; code: string; userId: string; name: string }) => {
-      const { gameId, code, userId, name } = data;
+    socket.on("create_game", async (data: { gameId: string; code: string }) => {
+      const { gameId, code } = data;
       const roomKey = code;
+
+      const userId = socket.data.userId;
+      const name = socket.data.name || "";
+      if (!userId) {
+        socket.emit("error", { message: "Необходима авторизация" });
+        return;
+      }
+
+      // Хостом может быть только реальный hostId игры из БД. Это закрывает
+      // вектор «кто первый прислал create_game — тот и hostSocketId».
+      const gameRow = await prisma.gameSession.findUnique({
+        where: { id: gameId },
+        select: { hostId: true, code: true, status: true, currentRound: true, totalRounds: true },
+      });
+      if (!gameRow) {
+        socket.emit("error", { message: "Игра не найдена" });
+        return;
+      }
+      if (gameRow.code !== code) {
+        socket.emit("error", { message: "Несоответствие кода игры" });
+        return;
+      }
+      if (gameRow.hostId !== userId) {
+        socket.emit("error", { message: "Только организатор может открыть игру как хост" });
+        return;
+      }
 
       // Проверяем, есть ли уже комната (при рекреации после рестарта)
       const existingRoom = activeRooms.get(roomKey);
@@ -85,13 +139,7 @@ export function createSocketServer(httpServer?: HttpServer) {
 
         // Обновляем hostSocketId (хост не в списке игроков)
         existingRoom.hostSocketId = socket.id;
-        if (!existingRoom.hostId) {
-          const g = await prisma.gameSession.findUnique({
-            where: { id: gameId },
-            select: { hostId: true },
-          });
-          existingRoom.hostId = g?.hostId || userId;
-        }
+        existingRoom.hostId = gameRow.hostId;
         socket.join(roomKey);
 
         const playersList = Array.from(existingRoom.players.values()).map((p) => ({
@@ -227,8 +275,14 @@ export function createSocketServer(httpServer?: HttpServer) {
     // =============================================
     // Подключение игрока
     // =============================================
-    socket.on("join_game", async (data: { code: string; userId: string; name: string }) => {
-      const { code, userId, name } = data;
+    socket.on("join_game", async (data: { code: string }) => {
+      const { code } = data;
+      const userId = socket.data.userId;
+      const name = socket.data.name || "";
+      if (!userId) {
+        socket.emit("error", { message: "Необходима авторизация" });
+        return;
+      }
       let room = activeRooms.get(code);
 
       // Если комната не найдена в памяти — пробуем восстановить из БД
@@ -600,7 +654,6 @@ export function createSocketServer(httpServer?: HttpServer) {
     socket.on("submit_guess", async (data: {
       code: string;
       roundId: string;
-      userId: string;
       guess: {
         grapeVarieties: string[];
         sweetness: string;
@@ -612,7 +665,12 @@ export function createSocketServer(httpServer?: HttpServer) {
         composition: string;
       };
     }) => {
-      const { code, roundId, userId, guess } = data;
+      const { code, roundId, guess } = data;
+      const userId = socket.data.userId;
+      if (!userId) {
+        socket.emit("error", { message: "Необходима авторизация" });
+        return;
+      }
       const room = activeRooms.get(code);
 
       if (!room) {

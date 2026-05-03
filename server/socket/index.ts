@@ -1,8 +1,27 @@
 import { Server as HttpServer, createServer } from "http";
 import { Server as SocketServer } from "socket.io";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
+/**
+ * Удаляет повторы сортов винограда (нечувствительно к регистру и пробелам),
+ * сохраняя первое исходное написание. Без этого дубли в догадке умножали бы
+ * баллы за сорта в close_round.
+ */
+function dedupeGrapes(grapes: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of grapes) {
+    const value = typeof raw === "string" ? raw.trim() : "";
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(value);
+  }
+  return out;
+}
 
 // Типы событий
 interface GameRoom {
@@ -631,13 +650,19 @@ export function createSocketServer(httpServer?: HttpServer) {
           return;
         }
 
+        // Дедуп сортов: иначе через дубли (`["Мерло","МЕРЛО"]`) можно
+        // искусственно увеличить итоговый балл при подсчёте в close_round.
+        const dedupedGrapes = dedupeGrapes(
+          Array.isArray(guess.grapeVarieties) ? guess.grapeVarieties : []
+        );
+
         // Сохраняем догадку
         await prisma.playerGuess.upsert({
           where: {
             roundId_gamePlayerId: { roundId, gamePlayerId: gamePlayer.id },
           },
           update: {
-            grapeVarieties: guess.grapeVarieties,
+            grapeVarieties: dedupedGrapes,
             sweetness: guess.sweetness as "DRY" | "SEMI_DRY" | "SEMI_SWEET" | "SWEET",
             vintageYear: guess.vintageYear,
             country: guess.country,
@@ -649,7 +674,7 @@ export function createSocketServer(httpServer?: HttpServer) {
           create: {
             roundId,
             gamePlayerId: gamePlayer.id,
-            grapeVarieties: guess.grapeVarieties,
+            grapeVarieties: dedupedGrapes,
             sweetness: guess.sweetness as "DRY" | "SEMI_DRY" | "SEMI_SWEET" | "SWEET",
             vintageYear: guess.vintageYear,
             country: guess.country,
@@ -701,6 +726,19 @@ export function createSocketServer(httpServer?: HttpServer) {
       }
 
       try {
+        // Атомарный переход ACTIVE → CLOSED. Если затронуто 0 строк —
+        // раунд уже закрыт другим вызовом (двойной клик / переподключение).
+        // В этом случае просто молча выходим, чтобы не начислять баллы повторно.
+        const flipped = await prisma.round.updateMany({
+          where: { id: roundId, status: "ACTIVE" },
+          data: { status: "CLOSED", closedAt: new Date() },
+        });
+        if (flipped.count === 0) {
+          console.log(`⏭️ Раунд ${roundId} уже закрыт — пропускаем повтор`);
+          room.currentRoundId = null;
+          return;
+        }
+
         // Получаем раунд с правильными ответами и фотографиями
         const round = await prisma.round.findUnique({
           where: { id: roundId },
@@ -732,7 +770,27 @@ export function createSocketServer(httpServer?: HttpServer) {
         }
 
         // Подсчитываем баллы для каждого участника
-        const results = [];
+        const correctGrapesSet = new Set(
+          round.grapeVarieties.map((g) => g.toLowerCase().trim()).filter(Boolean)
+        );
+
+        const results: Array<{
+          userId: string;
+          name: string;
+          guess: {
+            grapeVarieties: string[];
+            sweetness: typeof round.sweetness;
+            vintageYear: typeof round.vintageYear;
+            country: typeof round.country;
+            alcoholContent: typeof round.alcoholContent;
+            isOakAged: typeof round.isOakAged;
+            color: typeof round.color;
+            composition: typeof round.composition;
+          };
+          score: number;
+        }> = [];
+        const dbOps: Prisma.PrismaPromise<unknown>[] = [];
+
         for (const guess of round.guesses) {
           if (roundHostId && guess.gamePlayer.user.id === roundHostId) continue;
 
@@ -770,27 +828,30 @@ export function createSocketServer(httpServer?: HttpServer) {
             else if (diff <= 1.5) score += 1;
           }
 
-          // Сорта винограда — 2 балла за каждый угаданный
-          if (guess.grapeVarieties.length > 0 && round.grapeVarieties.length > 0) {
-            const correctGrapes = round.grapeVarieties.map((g) => g.toLowerCase().trim());
+          // Сорта винограда — 2 балла за каждый уникальный угаданный.
+          // Дедуп по нормализованному ключу: дубли в догадке не должны умножать балл.
+          if (guess.grapeVarieties.length > 0 && correctGrapesSet.size > 0) {
+            const guessedSet = new Set<string>();
             for (const grape of guess.grapeVarieties) {
-              if (correctGrapes.includes(grape.toLowerCase().trim())) {
-                score += 2;
-              }
+              const key = grape.toLowerCase().trim();
+              if (!key || guessedSet.has(key)) continue;
+              guessedSet.add(key);
+              if (correctGrapesSet.has(key)) score += 2;
             }
           }
 
-          // Обновляем баллы в БД
-          await prisma.playerGuess.update({
-            where: { id: guess.id },
-            data: { score },
-          });
-
-          // Обновляем общий счёт игрока
-          await prisma.gamePlayer.update({
-            where: { id: guess.gamePlayerId },
-            data: { score: { increment: score } },
-          });
+          dbOps.push(
+            prisma.playerGuess.update({
+              where: { id: guess.id },
+              data: { score },
+            })
+          );
+          dbOps.push(
+            prisma.gamePlayer.update({
+              where: { id: guess.gamePlayerId },
+              data: { score: { increment: score } },
+            })
+          );
 
           results.push({
             userId: guess.gamePlayer.user.id,
@@ -809,11 +870,11 @@ export function createSocketServer(httpServer?: HttpServer) {
           });
         }
 
-        // Закрываем раунд
-        await prisma.round.update({
-          where: { id: roundId },
-          data: { status: "CLOSED", closedAt: new Date() },
-        });
+        // Все обновления баллов — одной транзакцией. Раунд уже переведён в
+        // CLOSED атомарным флипом выше, поэтому повтор close_round не пройдёт.
+        if (dbOps.length > 0) {
+          await prisma.$transaction(dbOps);
+        }
 
         // Сбрасываем активный раунд в комнате (раунд завершён)
         room.currentRoundId = null;

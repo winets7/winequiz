@@ -5,16 +5,14 @@ import { verifySocketAuth } from "./auth";
 
 const prisma = new PrismaClient();
 
-// Расширяем Socket.data типизацией для аутентифицированного пользователя.
+// Расширяем SocketData (тип socket.data в socket.io v4+).
 // Заполняется в io.use() ниже — все обработчики читают userId/name отсюда,
 // игнорируя любые userId, переданные клиентом в payload.
 declare module "socket.io" {
-  interface Socket {
-    data: {
-      userId?: string;
-      name?: string;
-      role?: string;
-    };
+  interface SocketData {
+    userId?: string;
+    name?: string;
+    role?: string;
   }
 }
 

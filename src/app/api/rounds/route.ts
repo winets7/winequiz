@@ -1,26 +1,59 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 /**
- * GET /api/rounds?gameId=xxx — Получить все раунды игры
+ * GET /api/rounds?gameId=xxx — Получить раунды игры.
+ *
+ * Доступ:
+ *  - Хост игры — все раунды со всеми полями (включая правильные ответы и фото).
+ *  - Участник игры — раунды без правильных ответов, пока они не CLOSED.
+ *    Полные поля и фото возвращаются только для CLOSED. Для своих ответов
+ *    возвращаются `guesses` (только своя запись).
+ *  - Сторонние пользователи — 403.
+ *
+ * Параметр `userId` из query игнорируется (всегда берём `session.user.id`),
+ * чтобы исключить подделку чужого id и утечку правильных ответов раунда.
  */
 export async function GET(request: NextRequest) {
   try {
     const gameId = request.nextUrl.searchParams.get("gameId");
-    const userId = request.nextUrl.searchParams.get("userId");
     if (!gameId) {
       return NextResponse.json({ error: "gameId обязателен" }, { status: 400 });
     }
 
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Необходима авторизация" },
+        { status: 401 }
+      );
+    }
+
+    const game = await prisma.gameSession.findUnique({
+      where: { id: gameId },
+      select: { id: true, hostId: true },
+    });
+    if (!game) {
+      return NextResponse.json({ error: "Игра не найдена" }, { status: 404 });
+    }
+
+    const isHost = userId === game.hostId;
+
     let gamePlayerId: string | null = null;
-    if (userId) {
-      const gamePlayer = await prisma.gamePlayer.findUnique({
-        where: {
-          gameId_userId: { gameId, userId },
-        },
+    if (!isHost) {
+      const gp = await prisma.gamePlayer.findUnique({
+        where: { gameId_userId: { gameId, userId } },
         select: { id: true },
       });
-      gamePlayerId = gamePlayer?.id ?? null;
+      gamePlayerId = gp?.id ?? null;
+      if (!gamePlayerId) {
+        return NextResponse.json(
+          { error: "Доступ запрещён" },
+          { status: 403 }
+        );
+      }
     }
 
     const rounds = await prisma.round.findMany({
@@ -49,7 +82,48 @@ export async function GET(request: NextRequest) {
       orderBy: { roundNumber: "asc" },
     });
 
-    return NextResponse.json({ rounds });
+    if (isHost) {
+      return NextResponse.json({ rounds });
+    }
+
+    // Скрываем правильные ответы и фотографии до закрытия раунда —
+    // иначе любой участник через REST увидит загаданное вино.
+    const filtered = rounds.map((round) => {
+      const ownGuesses =
+        (round as typeof round & { guesses?: unknown[] }).guesses ?? [];
+
+      if (round.status === "CLOSED") {
+        return {
+          id: round.id,
+          gameId: round.gameId,
+          roundNumber: round.roundNumber,
+          status: round.status,
+          grapeVarieties: round.grapeVarieties,
+          sweetness: round.sweetness,
+          vintageYear: round.vintageYear,
+          country: round.country,
+          alcoholContent: round.alcoholContent,
+          isOakAged: round.isOakAged,
+          color: round.color,
+          composition: round.composition,
+          createdAt: round.createdAt,
+          closedAt: round.closedAt,
+          photos: round.photos,
+          guesses: ownGuesses,
+        };
+      }
+
+      // CREATED / ACTIVE: только статус и (опционально) собственные ответы.
+      return {
+        id: round.id,
+        gameId: round.gameId,
+        roundNumber: round.roundNumber,
+        status: round.status,
+        guesses: ownGuesses,
+      };
+    });
+
+    return NextResponse.json({ rounds: filtered });
   } catch (error) {
     console.error("Ошибка получения раундов:", error);
     return NextResponse.json(

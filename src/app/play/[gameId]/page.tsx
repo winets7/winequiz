@@ -120,6 +120,28 @@ function normalizeGuessValues(values: Partial<WineParams>): SubmittedGuessSnapsh
   };
 }
 
+function serverGuessToWineParams(guess: {
+  grapeVarieties: string[];
+  sweetness: string | null;
+  vintageYear: number | null;
+  country: string | null;
+  alcoholContent: number | null;
+  isOakAged: boolean | null;
+  color: string | null;
+  composition: string | null;
+}): Partial<WineParams> {
+  return {
+    grapeVarieties: guess.grapeVarieties ?? [],
+    sweetness: guess.sweetness ?? "",
+    vintageYear: guess.vintageYear == null ? "" : String(guess.vintageYear),
+    country: guess.country ?? "",
+    alcoholContent: guess.alcoholContent == null ? "" : String(guess.alcoholContent),
+    isOakAged: guess.isOakAged,
+    color: guess.color ?? "",
+    composition: guess.composition ?? "",
+  };
+}
+
 function normalizeServerGuess(guess: {
   grapeVarieties: string[];
   sweetness: string | null;
@@ -230,6 +252,32 @@ export default function PlayPage() {
     setGuessValues(saved);
   }, [gameId]);
 
+  const saveGuessValuesToLocalStorage = useCallback(
+    (values: Partial<WineParams>) => {
+      if (!gameId) return;
+      localStorage.setItem(`wine-guess-${gameId}-color`, String(values.color ?? ""));
+      localStorage.setItem(`wine-guess-${gameId}-sweetness`, String(values.sweetness ?? ""));
+      localStorage.setItem(`wine-guess-${gameId}-composition`, String(values.composition ?? ""));
+      localStorage.setItem(`wine-guess-${gameId}-country`, String(values.country ?? ""));
+      localStorage.setItem(`wine-guess-${gameId}-vintageYear`, String(values.vintageYear ?? ""));
+      localStorage.setItem(
+        `wine-guess-${gameId}-alcoholContent`,
+        String(values.alcoholContent ?? "")
+      );
+      localStorage.setItem(
+        `wine-guess-${gameId}-grapeVarieties`,
+        JSON.stringify(Array.isArray(values.grapeVarieties) ? values.grapeVarieties : [])
+      );
+      const oak = values.isOakAged;
+      if (oak === null || oak === undefined) {
+        localStorage.removeItem(`wine-guess-${gameId}-isOakAged`);
+      } else {
+        localStorage.setItem(`wine-guess-${gameId}-isOakAged`, oak ? "true" : "false");
+      }
+    },
+    [gameId]
+  );
+
   useEffect(() => {
     if (!gameId || !userId) return;
     
@@ -330,7 +378,15 @@ export default function PlayPage() {
             setCurrentRound(activeRound.roundNumber);
             setCurrentRoundId(activeRound.id);
             const existingGuess = activeRound.guesses?.[0] ?? null;
-            setSubmittedGuess(existingGuess ? normalizeServerGuess(existingGuess) : null);
+            if (existingGuess) {
+              const normalized = normalizeServerGuess(existingGuess);
+              const asWineParams = serverGuessToWineParams(existingGuess);
+              setSubmittedGuess(normalized);
+              setGuessValues(asWineParams);
+              saveGuessValuesToLocalStorage(asWineParams);
+            } else {
+              setSubmittedGuess(null);
+            }
             setPhase("ROUND_ACTIVE");
           } else {
             // Нет активного раунда — следующий раунд
@@ -346,7 +402,7 @@ export default function PlayPage() {
       }
     }
     fetchGame();
-  }, [gameId, userId]);
+  }, [gameId, userId, saveGuessValuesToLocalStorage]);
 
   // =============================================
   // Присоединение к комнате
@@ -390,6 +446,28 @@ export default function PlayPage() {
       setRoundResult(null);
       setSubmittedGuess(null);
       setPhase("ROUND_ACTIVE");
+
+      // При старте/восстановлении раунда подтягиваем ответ с сервера, чтобы
+      // синхронизировать состояние между разными устройствами одного игрока.
+      (async () => {
+        try {
+          const roundsRes = await fetch(`/api/rounds?gameId=${gameId}`);
+          if (!roundsRes.ok) return;
+          const roundsData = await roundsRes.json();
+          const active = (roundsData.rounds || []).find(
+            (r: RoundInfo) => r.id === roundId || r.roundNumber === roundNumber
+          ) as RoundInfo | undefined;
+          const existingGuess = active?.guesses?.[0] ?? null;
+          if (!existingGuess) return;
+          const normalized = normalizeServerGuess(existingGuess);
+          const asWineParams = serverGuessToWineParams(existingGuess);
+          setSubmittedGuess(normalized);
+          setGuessValues(asWineParams);
+          saveGuessValuesToLocalStorage(asWineParams);
+        } catch {
+          // Молча игнорируем: базовый UX уже обеспечен локальным состоянием.
+        }
+      })();
     });
 
     // Обновление количества догадок (для хоста)
@@ -475,7 +553,7 @@ export default function PlayPage() {
       unsubHostReconnected();
       unsubError();
     };
-  }, [isConnected, on]);
+  }, [isConnected, on, gameId, saveGuessValuesToLocalStorage]);
 
   const currentGuessSnapshot = normalizeGuessValues(guessValues);
   const isSubmittedGuessUnchanged =

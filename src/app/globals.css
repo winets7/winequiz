@@ -226,15 +226,32 @@ body {
   text-align: center;
   text-shadow: 0 1px 3px rgba(80, 0, 40, 0.45);
   border: none;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transform: translateY(0) scale(1);
+  box-shadow: 0 4px 10px rgba(80, 0, 40, 0.28);
+  transition:
+    transform 0.14s ease,
+    filter 0.14s ease,
+    box-shadow 0.14s ease;
 }
 
-.btn-pink-glossy-wide:hover {
-  filter: brightness(1.06);
-  transform: scale(1.02);
+@media (hover: hover) {
+  .btn-pink-glossy-wide:hover {
+    filter: brightness(1.05);
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 7px 16px rgba(80, 0, 40, 0.34);
+  }
+
+  .btn-pink-glossy-wide:hover:active {
+    filter: brightness(0.9);
+    transform: translateY(2px) scale(0.95);
+    box-shadow: 0 1px 3px rgba(80, 0, 40, 0.22);
+    transition-duration: 0.06s;
+  }
 }
 
 .btn-pink-glossy-wide:active {
-  filter: brightness(0.96);
-  transform: scale(0.98);
+  filter: brightness(0.9);
+  transform: translateY(2px) scale(0.95);
+  box-shadow: 0 1px 3px rgba(80, 0, 40, 0.22);
+  transition-duration: 0.06s;
 }

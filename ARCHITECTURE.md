@@ -16,7 +16,10 @@
 | **PostgreSQL** | База данных |
 | **Prisma 6** | Работа с БД, миграции, типизация |
 | **Socket.io** | Мультиплеер в реальном времени (отдельный процесс) |
-| **NextAuth.js 5** | Аутентификация (Credentials, по телефону) |
+| **NextAuth.js 5** (Auth.js) | Аутентификация (Credentials, по телефону) |
+| **bcryptjs** | Хэширование пароля при регистрации / входе |
+| **sharp** | Обработка загружаемых изображений (раунды) |
+| **uuid** | Генерация идентификаторов там, где нужны стабильные UUID |
 | **qrcode.react** | Генерация QR-кода для подключения игроков |
 | **PWA** | Установка на мобильные устройства, офлайн-страница |
 
@@ -57,12 +60,16 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/winequiz"
 # === Продакшн (пример для Neon) ===
 # DATABASE_URL="postgresql://[USER]:[PASSWORD]@[HOST].neon.tech/winequiz?sslmode=require"
 
-# === NextAuth и приложение ===
-# NEXTAUTH_URL, NEXTAUTH_SECRET, NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_APP_NAME
+# === Auth.js v5 / NextAuth (совместимые имена) ===
+# AUTH_URL / AUTH_SECRET — предпочтительно для v5; NEXTAUTH_URL / NEXTAUTH_SECRET — для совместимости
+# За reverse proxy в продакшене: AUTH_TRUST_HOST=true
+# NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_APP_NAME
 
 # === Socket.io (клиент подключается к отдельному серверу) ===
 # NEXT_PUBLIC_SOCKET_URL="http://localhost:3001"
 ```
+
+Актуальный перечень с комментариями см. в **`.env.example`** в корне репозитория.
 
 ### Миграции (Prisma)
 
@@ -94,60 +101,71 @@ npx prisma db seed
 - **Подключение игроков:** по QR-коду или по ссылке (URL вида `https://domain/join/WN-XXXXXX`)
 - **Тема интерфейса:** светлая / тёмная (next-themes, сохраняется в cookie)
 - **Игровой процесс:** хост создаёт раунды с параметрами вина и опционально фото; игроки по шагам выбирают цвет, сладость, состав, сорта, страну, год, крепость, выдержку в бочке; очки начисляются за совпадения
-- **Мультиплеер:** реальное время через Socket.io (отдельный сервер, по умолчанию порт 3001)
-- **Аутентификация:** по телефону (Credentials), гостевой режим для быстрого входа в игру
-- **Геймификация:** XP, уровни, достижения, рейтинг; профиль может быть публичным или скрытым
+- **Мультиплеер:** реальное время через Socket.io (отдельный сервер, по умолчанию порт 3001); при необходимости проверка сессии на сокет-сервере (`server/socket/auth.ts`)
+- **Активные игры:** страница **`/games/wine-quiz/active`** (роли «участник» / «организатор») и API **`GET /api/games/active`**
+- **Количество раундов при создании игры:** от 1 до 20 (по умолчанию 5)
+- **Аутентификация:** по телефону (Credentials), гостевой режим для быстрого входа в игру; после успешного входа используется безопасный **`callbackUrl`** и полная перезагрузка страницы (**`src/lib/auth-callback.ts`**, см. страницы входа/регистрации)
+- **Навигация «назад»:** иерархические возвраты через **`useHierarchicalBack`** (`src/hooks/useHierarchicalBack.ts`), чтобы кнопка и свайп не накапливали лишнюю историю
+- **Геймификация:** XP, уровни, достижения; профиль может быть публичным или скрытым
 
 ---
 
 ## Структура проекта
 
 ```
-distwinegame/
+<корень репозитория>/          # в package.json имя пакета: distwinegame
 ├── src/
 │   ├── app/                      # Next.js App Router
-│   │   ├── page.tsx              # Главная: гости — логотип, вход/регистрация; залогиненные — хаб (3 игры)
+│   │   ├── page.tsx              # Главная: гости — вход/регистрация; залогиненные — хаб (3 игры)
 │   │   ├── games/
-│   │   │   ├── wine-quiz/        # Винная викторина: создать игру / присоединиться
-│   │   │   ├── barramundi/       # Заглушка «В разработке»
-│   │   │   └── wine-nose/        # Заглушка «В разработке»
+│   │   │   ├── wine-quiz/        # Винная викторина: создать / присоединиться / активные игры
+│   │   │   │   └── active/      # Мои активные игры (организатор / участник)
+│   │   │   ├── barramundi/
+│   │   │   └── wine-nose/
 │   │   ├── login/, register/     # Вход и регистрация
 │   │   ├── join/[code]/          # Присоединение к игре по коду
 │   │   ├── play/[gameId]/        # Игра: раунд, выбор характеристик
 │   │   │   └── select/           # color, sweetness, composition, grape-varieties,
 │   │   │                         # country, vintage-year, alcohol-content, oak-aged
 │   │   ├── lobby/[gameId]/       # Лобби (хост): игроки, раунды
-│   │   │   └── round/[roundNumber]/  # edit (параметры вина), select/[characteristic]
-│   │   ├── profile/, profile/[id]/   # Свой профиль, профиль пользователя
-│   │   ├── history/[gameId]/     # История игры
-│   │   ├── scoreboard/[gameId]/  # Таблица результатов (трансляция)
-│   │   ├── offline/              # Офлайн-страница PWA
-│   │   ├── api/                  # REST API (auth, games, rounds, users, uploads)
+│   │   │   └── round/[roundNumber]/  # edit, select/[characteristic]
+│   │   ├── profile/, profile/[id]/
+│   │   ├── history/[gameId]/
+│   │   ├── scoreboard/[gameId]/
+│   │   ├── offline/              # PWA offline
+│   │   ├── api/                  # REST: auth, games (в т.ч. active), rounds, users, uploads;
+│   │   │                         # служебно: host-overview по раунду для хоста
 │   │   ├── layout.tsx, globals.css
-│   │   └── middleware.ts
 │   ├── components/
-│   │   ├── ui/                   # theme-toggle, image-lightbox
-│   │   ├── game/                 # wine-form, characteristic-cards, round-results, player-rounds-list
-│   │   ├── profile/              # profile-header, profile-stats, profile-achievements, profile-privacy
+│   │   ├── ui/                   # theme-toggle, image-lightbox, glossy-wide-button
+│   │   ├── game/                 # wine-form, characteristic-cards, round-results, player-rounds-list,
+│   │   │                         # host-round-*, country-value-block
+│   │   ├── profile/              # profile-header, stats, achievements, privacy, games, round-history-item
+│   │   ├── navigation/           # page-nav-menu
 │   │   ├── providers/            # theme-provider, session-provider, sw-register
-│   │   └── pwa/                  # install-prompt
-│   ├── lib/                      # prisma, socket, auth, game-code, encoding, phone, wine-data
+│   │   ├── pwa/                  # install-prompt
+│   │   └── navigation-logger.tsx
+│   ├── lib/                      # prisma, socket, game-code, encoding, phone, wine-data,
+│   │                             # auth-callback, game-host, lobby-round-draft,
+│   │                             # hierarchical-parent-href, navigation-log
 │   ├── hooks/                    # useSocket, useHierarchicalBack
-│   ├── auth.ts                   # NextAuth конфиг
+│   ├── auth.ts                   # конфиг NextAuth / Auth.js
+│   ├── middleware.ts             # middleware App Router
 │   └── types/
 ├── server/
-│   └── socket/                   # Socket.io сервер (index.ts), игровая логика в памяти
+│   └── socket/                   # Socket.io: index.ts, auth.ts
 ├── prisma/
-│   ├── schema.prisma             # Схема БД
-│   ├── seed.ts                   # Начальные данные (достижения и т.д.)
+│   ├── schema.prisma
+│   ├── seed.ts
 │   └── migrations/
-├── public/                       # Статика, PWA (manifest, icons)
-├── docs/                         # PAGES.md, NAVIGATION.md (открытие страниц и возвраты; кнопка «Назад» с edit → диалог «Сохранить?»)
+├── scripts/                      # деплой, проверка HTTP, очистка игр, флаги и др.
+├── public/                       # статика, PWA
+├── docs/
 ├── package.json
 └── .env.example
 ```
 
-**Запуск:** `npm run dev` — Next.js; `npm run socket` — Socket.io сервер; `npm run dev:all` — оба процесса.
+**Запуск:** `npm run dev` — Next.js; `npm run socket` — Socket.io сервер. Скрипт **`npm run dev:all`** поднимает оба процесса одной командой (Unix-ориентированный `&`); на **Windows** при сбоях удобнее два терминала: отдельно `npm run socket` и `npm run dev`.
 
 ---
 
@@ -160,7 +178,7 @@ distwinegame/
 | id | UUID | Первичный ключ |
 | name | String | Имя / никнейм |
 | phone | String | Телефон (уникальный), используется для входа |
-| passwordHash | String | Хэш пароля |
+| passwordHash | String | Хэш пароля (у гостевых пользователей — пустая строка, вход по credentials только у записей с паролем) |
 | avatar | String? | URL аватара |
 | role | Enum (ADMIN, PLAYER) | Роль пользователя |
 | level | Int | Текущий уровень (1–50) |
@@ -209,6 +227,7 @@ distwinegame/
 | isOakAged | Boolean? | Выдержка в дубе |
 | color | WineColor? | Красное / белое / розовое / оранжевое |
 | composition | WineComposition? | Моносортовое / бленд |
+| createdAt | DateTime | Создание записи раунда |
 | closedAt | DateTime? | Время закрытия раунда |
 
 ### RoundPhoto (Фото бутылки раунда)
@@ -294,20 +313,10 @@ distwinegame/
 
 ### XP и уровни
 
-- **XP:** начисляется по результатам раундов и игр (совпадения с загаданным вином, место в рейтинге)
-- **Уровень:** привязан к накопленному XP (формула в коде/БД)
-- **Максимальный уровень:** 50
-
-### Звания (привязаны к уровням)
-
-| Уровни | Звание |
-|--------|--------|
-| 1–5 | Новичок |
-| 6–15 | Любитель |
-| 16–25 | Знаток |
-| 26–35 | Сомелье |
-| 36–45 | Энолог |
-| 46–50 | Мастер вина |
+- **XP и уровень** хранятся в модели `User` и пробрасываются в сессию NextAuth (см. `src/auth.ts`, типы в `src/types/next-auth.d.ts`).
+- **XP:** начисляется по результатам раундов и игр (логика начисления — в API/серверном коде игры).
+- **Прогресс в профиле:** для полосы «до следующего уровня» в UI используется ориентир **`level * 100`** XP для текущего отображаемого уровня (`src/components/profile/profile-header.tsx`). Это не дублирует полную игровую формулу прокачки, а задаёт понятный пользователю индикатор.
+- **Верхняя граница уровня** в схеме БД отдельно не зафиксирована (поле `Int`).
 
 ### Достижения
 
@@ -317,30 +326,20 @@ distwinegame/
 
 ### Рейтинг и профиль
 
-- Профиль игрока: уровень, XP, достижения, история игр
-- Публичность профиля: флаг `isProfilePublic` (скрытый/публичный)
-- Рейтинг: по общему XP или по результатам игр (топ в профиле и на отдельной странице при наличии)
+- Профиль игрока: уровень, XP, достижения, история и списки игр (компоненты в `src/components/profile/`)
+- Публичность профиля: флаг `isProfilePublic` и API приватности (`src/app/api/users/[id]/profile/privacy/`)
 
 ---
 
 ## Тема интерфейса (светлая / тёмная)
 
-Реализация: **next-themes** + **Tailwind CSS** (`darkMode: 'class'`).
+Реализация: **next-themes** + **Tailwind CSS 4** (класс `.dark` на корневом элементе для тёмной темы).
 
 Выбор темы сохраняется в cookie для корректного SSR без мерцания.
 
-### Цветовая палитра (винная тематика)
+### Цвета и токены
 
-| Элемент | Светлая тема | Тёмная тема |
-|---------|-------------|-------------|
-| Фон | `#FFFBF5` (тёплый кремовый) | `#1A1118` (тёмный бордо) |
-| Карточки | `#FFFFFF` | `#2D1F2B` |
-| Акцент основной | `#722F37` (бургундский) | `#C2485B` (светлый бордо) |
-| Акцент вторичный | `#DAA520` (золотой) | `#F0C75E` (светлое золото) |
-| Текст основной | `#1F1215` | `#F5EDE8` |
-| Текст вторичный | `#6B5C5E` | `#A89496` |
-| Успех (правильно) | `#2D6A4F` | `#52B788` |
-| Ошибка (неправильно) | `#9B2226` | `#E5383B` |
+Источник правды для палитры — **`src/app/globals.css`**: блок `@theme inline` (масштаб `wine-*`, `gold-*`, success/error) и семантические переменные **`--background`**, **`--foreground`**, **`--primary`**, **`--card`**, **`--muted`** и т.д. для селекторов `:root` (светлая) и `.dark` (тёмная). Компоненты в основном ссылаются на `var(--…)`, а не на жёсткие hex из старых макетов.
 
 ---
 

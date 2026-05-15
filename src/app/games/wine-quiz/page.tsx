@@ -119,7 +119,7 @@ export default function WineQuizPage() {
             />
           )}
         </div>
-        <h1 className="text-4xl md:text-6xl font-bold text-[var(--primary)]">
+        <h1 className="wine-quiz-page-title text-4xl md:text-6xl font-bold">
           Винная Викторина
         </h1>
       </div>

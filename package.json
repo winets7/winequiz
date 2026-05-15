@@ -17,7 +17,8 @@
     "socket": "npx tsx server/socket/index.ts",
     "dev:all": "npm run socket & npm run dev",
     "test:navigation": "node scripts/test-navigation-routes.mjs",
-    "flags:download": "node scripts/download-flags.mjs"
+    "flags:download": "node scripts/download-flags.mjs",
+    "ui:knockout-png-bg": "node scripts/knockout-neutral-dark-png.mjs public/ui/active_games.png"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

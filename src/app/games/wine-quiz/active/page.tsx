@@ -149,7 +149,7 @@ export default function MyActiveGamesPage() {
           <div className="mt-3 flex w-full justify-center">
             <div className="relative w-full max-w-md">
               <img
-                src="/ui/active_games.jpg"
+                src="/ui/active_games.png"
                 alt=""
                 className="block h-auto w-full select-none"
                 draggable={false}

@@ -31,6 +31,13 @@ interface RoundData {
   grapeVarieties: string[];
 }
 
+/** Панели лобби участника — см. `.cursor/rules/wine-quiz-active-game-cards.mdc` */
+const joinParticipantPanel =
+  "rounded-3xl border-4 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg)] shadow-lg";
+
+const joinPageMainBg =
+  "bg-[url('/pic/fon.png')] bg-cover bg-center bg-no-repeat";
+
 export default function JoinPage() {
   const params = useParams();
   const code = params.code as string;
@@ -322,7 +329,9 @@ export default function JoinPage() {
   // Экран лобби (уже подключился)
   if (joined && gameId) {
     return (
-      <main className="min-h-screen flex flex-col items-center p-4 md:p-8">
+      <main
+        className={`relative min-h-screen flex flex-col items-center p-4 md:p-8 ${joinPageMainBg}`}
+      >
         <div className="fixed top-4 right-4 z-10">
           <ThemeToggle />
         </div>
@@ -353,7 +362,9 @@ export default function JoinPage() {
 
         <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Информация о комнате */}
-          <div className="order-3 md:order-1 bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)] text-center">
+          <div
+            className={`order-3 md:order-1 ${joinParticipantPanel} p-6 text-center`}
+          >
             <div className="text-5xl mb-4">🍷</div>
             <h2 className="text-xl font-bold mb-2">Комната</h2>
             <p className="text-2xl font-mono font-bold text-[var(--primary)] mb-4">
@@ -378,11 +389,11 @@ export default function JoinPage() {
           </div>
 
           {/* Игроки */}
-          <div className="order-2 md:order-2 bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)]">
+          <div className={`order-2 md:order-2 ${joinParticipantPanel} p-6`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">Игроки</h2>
               {game && (
-                <span className="bg-[var(--muted)] text-[var(--muted-foreground)] px-3 py-1 rounded-full text-sm font-medium">
+                <span className="border-2 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg-hover)] text-[var(--foreground)] px-3 py-1 rounded-full text-sm font-medium">
                   {players.length} / {game.maxPlayers}
                 </span>
               )}
@@ -395,7 +406,7 @@ export default function JoinPage() {
                   className={`flex items-center gap-3 p-3 rounded-xl ${
                     player.userId === userId
                       ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
-                      : "bg-[var(--muted)]"
+                      : "bg-[var(--wine-quiz-active-game-card-bg-hover)]"
                   }`}
                 >
                   <div className="w-10 h-10 rounded-full bg-[var(--background)] text-[var(--foreground)] flex items-center justify-center font-bold text-sm">
@@ -425,7 +436,7 @@ export default function JoinPage() {
               <div className="text-sm md:text-base font-semibold text-[var(--primary)] text-center">
                 Главный блок: ваши раунды
               </div>
-              <div className="rounded-3xl border-2 border-[var(--primary)] shadow-xl p-1">
+              <div className={`rounded-3xl shadow-xl p-1 border-4 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg)]`}>
                 <PlayerRoundsList
                   rounds={rounds}
                   totalRounds={game.totalRounds}
@@ -456,11 +467,15 @@ export default function JoinPage() {
   // Пока сессия грузится — одна плашка ожидания вместо мигания «Присоединиться»
   if (sessionStatus === "loading") {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center p-4">
+      <main
+        className={`min-h-screen flex flex-col items-center justify-center p-4 ${joinPageMainBg}`}
+      >
         <div className="fixed top-4 right-4">
           <ThemeToggle />
         </div>
-        <div className="bg-[var(--card)] rounded-3xl p-8 shadow-lg border border-[var(--border)] text-center max-w-sm w-full">
+        <div
+          className={`${joinParticipantPanel} p-8 text-center max-w-sm w-full`}
+        >
           <div className="text-5xl mb-4">🍷</div>
           <p className="text-lg font-medium text-[var(--foreground)] mb-2">Винная Викторина</p>
           <p className="flex items-center justify-center gap-2 text-[var(--muted-foreground)]">
@@ -473,12 +488,16 @@ export default function JoinPage() {
 
   // Экран подключения
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-4">
+    <main
+      className={`min-h-screen flex flex-col items-center justify-center p-4 ${joinPageMainBg}`}
+    >
       <div className="fixed top-4 right-4">
         <ThemeToggle />
       </div>
 
-      <div className="bg-[var(--card)] rounded-3xl p-8 shadow-lg border border-[var(--border)] text-center max-w-sm w-full">
+      <div
+        className={`${joinParticipantPanel} p-8 text-center max-w-sm w-full`}
+      >
         <div className="text-5xl mb-4">🍷</div>
         <h1 className="text-2xl font-bold mb-2">Винная Викторина</h1>
         <p className="text-[var(--muted-foreground)] mb-1">Комната</p>
@@ -493,7 +512,9 @@ export default function JoinPage() {
         )}
 
         {/* Показываем имя из сессии */}
-        <div className="mb-4 p-3 bg-[var(--muted)] rounded-xl">
+        <div
+          className="mb-4 p-3 rounded-xl border-2 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg-hover)]"
+        >
           <p className="text-sm text-[var(--muted-foreground)]">Вы входите как</p>
           <p className="text-lg font-semibold">{userName}</p>
         </div>

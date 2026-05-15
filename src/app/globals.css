@@ -69,6 +69,13 @@
   --gradient-primary: linear-gradient(135deg, #8B1A2A 0%, #A23045 100%);
   --gradient-secondary: linear-gradient(135deg, #DAA520 0%, #F0C75E 100%);
   --gradient-card: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
+
+  /* Карточки игр на /games/wine-quiz/active (пастельная зелень) — см. .cursor/rules/wine-quiz-active-game-cards.mdc */
+  --wine-quiz-active-game-card-bg: #e8f3ea;
+  --wine-quiz-active-game-card-border: #5a7560;
+  --wine-quiz-active-game-card-bg-hover: #daeade;
+  --wine-quiz-active-game-card-border-hover: #4a634f;
+  --wine-quiz-active-game-card-focus-ring: #5a7560;
 }
 
 /* === Тёмная тема === */
@@ -95,6 +102,12 @@
   --gradient-primary: linear-gradient(135deg, #D43D5A 0%, #C2485B 100%);
   --gradient-secondary: linear-gradient(135deg, #F0C75E 0%, #FFD700 100%);
   --gradient-card: linear-gradient(135deg, #1A1A1A 0%, #222222 100%);
+
+  --wine-quiz-active-game-card-bg: #1e2a23;
+  --wine-quiz-active-game-card-border: #6d8f76;
+  --wine-quiz-active-game-card-bg-hover: #28362d;
+  --wine-quiz-active-game-card-border-hover: #7fa088;
+  --wine-quiz-active-game-card-focus-ring: #8fb89a;
 }
 
 /* === Базовые стили === */

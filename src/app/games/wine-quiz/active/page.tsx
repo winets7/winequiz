@@ -214,7 +214,7 @@ export default function MyActiveGamesPage() {
                 <button
                   type="button"
                   onClick={() => navigateToGame(game, tab)}
-                  className="w-full text-left rounded-2xl border-4 border-[#5a7560] bg-[#e8f3ea] p-4 shadow-md hover:bg-[#daeade] hover:border-[#4a634f] transition-colors focus:outline-none focus:ring-2 focus:ring-[#5a7560] focus:ring-offset-2 focus:ring-offset-[var(--background)]"
+                  className="w-full text-left rounded-2xl border-4 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg)] p-4 shadow-md hover:bg-[var(--wine-quiz-active-game-card-bg-hover)] hover:border-[var(--wine-quiz-active-game-card-border-hover)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--wine-quiz-active-game-card-focus-ring)] focus:ring-offset-2 focus:ring-offset-[var(--background)]"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="font-mono font-bold text-[var(--primary)]">

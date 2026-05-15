@@ -1,0 +1,38 @@
+---
+description: Пастельные зелёные блоки вин-квиза (активные игры, лобби участника /join)
+globs: "src/app/join/**/*.tsx,src/app/games/wine-quiz/**/*.tsx"
+alwaysApply: false
+---
+
+# Пастельные карточки винной викторины
+
+Один набор **CSS-переменных** в `src/app/globals.css` (светлая и тёмная темы):
+
+- список игр на **`/games/wine-quiz/active`**;
+- панели на странице **`/join/[code]`** лобби участника (фон страницы там — **`/pic/fon.png`**, см. `joinPageMainBg`).
+
+## Токены
+
+| Переменная | Назначение |
+|---|---|
+| `--wine-quiz-active-game-card-bg` | Фон блока |
+| `--wine-quiz-active-game-card-border` | Цвет рамки (**`border-4`**) |
+| `--wine-quiz-active-game-card-bg-hover` | Фон при `:hover` или внутренние плашки |
+| `--wine-quiz-active-game-card-border-hover` | Рамка при `:hover` |
+| `--wine-quiz-active-game-card-focus-ring` | Кольцо фокуса для кнопок |
+
+## Правила
+
+- **Не** дублировать hex в компонентах — только `var(--wine-quiz-active-game-card-…)`.
+- Жирная окантовка: **`border-4`**, если нужен другой вес — через новую переменную/согласование.
+- Новые экраны вин-квиза с такими карточками — сначала эти токены.
+
+## Примеры
+
+**Кнопка-строка списка активных игр** — `src/app/games/wine-quiz/active/page.tsx` (`list.map`).
+
+**Панели join** — константа `joinParticipantPanel` в `src/app/join/[code]/page.tsx` (rounded-3xl + токены).
+
+```tsx
+className="w-full text-left rounded-2xl border-4 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg)] hover:bg-[var(--wine-quiz-active-game-card-bg-hover)] hover:border-[var(--wine-quiz-active-game-card-border-hover)] focus:ring-[var(--wine-quiz-active-game-card-focus-ring)] …"
+```

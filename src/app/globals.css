@@ -209,16 +209,18 @@ body {
 
 /* Широкая глянцевая кнопка (public/ui/buttons) */
 .btn-pink-glossy-wide {
+  --btn-scale: 0.75;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  min-height: 3.5rem;
+  width: calc(100% * var(--btn-scale));
+  margin-inline: auto;
+  min-height: calc(3.5rem * var(--btn-scale));
   aspect-ratio: 479 / 177;
-  padding: 0.75rem 1.5rem;
+  padding: calc(0.75rem * var(--btn-scale)) calc(1.5rem * var(--btn-scale));
   background: url("/ui/buttons/btn-pink-glossy-wide.png") no-repeat center / 100% 100%;
   color: #fff;
-  font-size: 1.125rem;
+  font-size: calc(1.125rem * var(--btn-scale));
   font-weight: 600;
   line-height: 1.25;
   text-align: center;

@@ -220,7 +220,7 @@ body {
   padding: calc(0.75rem * var(--btn-scale)) calc(1.5rem * var(--btn-scale));
   background: url("/ui/buttons/btn-pink-glossy-wide.png") no-repeat center / 100% 100%;
   color: #fff;
-  font-size: calc(1.125rem * var(--btn-scale));
+  font-size: calc(1.125rem * var(--btn-scale) * 1.5);
   font-weight: 600;
   line-height: 1.25;
   text-align: center;

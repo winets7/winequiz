@@ -328,6 +328,17 @@ body {
   margin-inline: auto;
 }
 
+/* Смартфон: текст на кнопках wine-quiz в 2× крупнее */
+@media (max-width: 767px) {
+  .wine-quiz-action-buttons > .btn-pink-flat-wide {
+    font-size: clamp(
+      calc(0.875rem * var(--btn-scale) * 2),
+      5vw,
+      calc(1.125rem * var(--btn-scale) * 1.5 * 2)
+    );
+  }
+}
+
 @media (min-width: 768px) and (max-width: 1023px) and (orientation: landscape) {
   .wine-quiz-action-buttons {
     flex-direction: row;

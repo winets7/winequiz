@@ -194,6 +194,59 @@ function areGuessesEqual(a: SubmittedGuessSnapshot, b: SubmittedGuessSnapshot): 
   return true;
 }
 
+/** Чтение черновика ответа из localStorage (тот же формат, что в loadSavedValues). */
+function readGuessFromLocalStorage(gameId: string): Partial<WineParams> {
+  return {
+    color: localStorage.getItem(`wine-guess-${gameId}-color`) || "",
+    sweetness: localStorage.getItem(`wine-guess-${gameId}-sweetness`) || "",
+    composition: localStorage.getItem(`wine-guess-${gameId}-composition`) || "",
+    country: localStorage.getItem(`wine-guess-${gameId}-country`) || "",
+    vintageYear: localStorage.getItem(`wine-guess-${gameId}-vintageYear`) || "",
+    alcoholContent: localStorage.getItem(`wine-guess-${gameId}-alcoholContent`) || "",
+    grapeVarieties: JSON.parse(
+      localStorage.getItem(`wine-guess-${gameId}-grapeVarieties`) || "[]"
+    ),
+    isOakAged: (() => {
+      const saved = localStorage.getItem(`wine-guess-${gameId}-isOakAged`);
+      if (saved === null) return null;
+      return saved === "true";
+    })(),
+  };
+}
+
+function isLocalGuessDraftEmpty(values: Partial<WineParams>): boolean {
+  const n = normalizeGuessValues(values);
+  return (
+    n.grapeVarieties.length === 0 &&
+    !n.sweetness &&
+    !n.vintageYear.trim() &&
+    !n.country &&
+    !n.alcoholContent.trim() &&
+    n.isOakAged === null &&
+    !n.color &&
+    !n.composition
+  );
+}
+
+/**
+ * После гидрации с сервера: не затираем черновик в localStorage, если пользователь
+ * уже менял поля (например, цвет) до повторной отправки.
+ */
+function resolveGuessAfterServerHydrate(
+  gameId: string,
+  submittedSnapshot: SubmittedGuessSnapshot,
+  serverWineParams: Partial<WineParams>
+): { values: Partial<WineParams>; writeServerToLocalStorage: boolean } {
+  const fromLocal = readGuessFromLocalStorage(gameId);
+  const localNorm = normalizeGuessValues(fromLocal);
+  const hasMeaningfulLocal =
+    !isLocalGuessDraftEmpty(fromLocal) && !areGuessesEqual(localNorm, submittedSnapshot);
+  if (hasMeaningfulLocal) {
+    return { values: fromLocal, writeServerToLocalStorage: false };
+  }
+  return { values: serverWineParams, writeServerToLocalStorage: true };
+}
+
 // =============================================
 // Компонент страницы
 // =============================================
@@ -234,22 +287,7 @@ export default function PlayPage() {
   // =============================================
   const loadSavedValues = useCallback(() => {
     if (!gameId) return;
-    
-    const saved: Partial<WineParams> = {
-      color: localStorage.getItem(`wine-guess-${gameId}-color`) || "",
-      sweetness: localStorage.getItem(`wine-guess-${gameId}-sweetness`) || "",
-      composition: localStorage.getItem(`wine-guess-${gameId}-composition`) || "",
-      country: localStorage.getItem(`wine-guess-${gameId}-country`) || "",
-      vintageYear: localStorage.getItem(`wine-guess-${gameId}-vintageYear`) || "",
-      alcoholContent: localStorage.getItem(`wine-guess-${gameId}-alcoholContent`) || "",
-      grapeVarieties: JSON.parse(localStorage.getItem(`wine-guess-${gameId}-grapeVarieties`) || "[]"),
-      isOakAged: (() => {
-        const saved = localStorage.getItem(`wine-guess-${gameId}-isOakAged`);
-        if (saved === null) return null;
-        return saved === "true";
-      })(),
-    };
-    setGuessValues(saved);
+    setGuessValues(readGuessFromLocalStorage(gameId));
   }, [gameId]);
 
   const saveGuessValuesToLocalStorage = useCallback(
@@ -382,8 +420,11 @@ export default function PlayPage() {
               const normalized = normalizeServerGuess(existingGuess);
               const asWineParams = serverGuessToWineParams(existingGuess);
               setSubmittedGuess(normalized);
-              setGuessValues(asWineParams);
-              saveGuessValuesToLocalStorage(asWineParams);
+              const resolved = resolveGuessAfterServerHydrate(gameId, normalized, asWineParams);
+              setGuessValues(resolved.values);
+              if (resolved.writeServerToLocalStorage) {
+                saveGuessValuesToLocalStorage(asWineParams);
+              }
             } else {
               setSubmittedGuess(null);
             }
@@ -462,8 +503,11 @@ export default function PlayPage() {
           const normalized = normalizeServerGuess(existingGuess);
           const asWineParams = serverGuessToWineParams(existingGuess);
           setSubmittedGuess(normalized);
-          setGuessValues(asWineParams);
-          saveGuessValuesToLocalStorage(asWineParams);
+          const resolved = resolveGuessAfterServerHydrate(gameId, normalized, asWineParams);
+          setGuessValues(resolved.values);
+          if (resolved.writeServerToLocalStorage) {
+            saveGuessValuesToLocalStorage(asWineParams);
+          }
         } catch {
           // Молча игнорируем: базовый UX уже обеспечен локальным состоянием.
         }

@@ -275,10 +275,10 @@ body {
   margin-inline: auto;
 }
 
-/* Смартфон: текст на кнопках wine-quiz в 2× крупнее */
+/* Смартфон: уменьшенный текст на кнопках wine-quiz (базовый × 2 ÷ 3) */
 @media (max-width: 767px) {
   .wine-quiz-action-buttons > .btn-pink-glossy-wide {
-    font-size: calc(1.125rem * var(--btn-scale) * 1.5 * 2);
+    font-size: calc(1.125rem * var(--btn-scale) * 1.5 * 2 / 3);
   }
 }
 

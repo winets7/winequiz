@@ -103,7 +103,7 @@ export default function MyActiveGamesPage() {
 
   if (isLoading || (!loading && !isLoggedIn)) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center p-4">
+      <main className="relative min-h-screen flex flex-col items-center justify-center p-4 bg-[url('/pic/fon.png')] bg-cover bg-center bg-no-repeat">
         <p className="text-[var(--muted-foreground)]">
           <span className="animate-pulse">⏳</span> Загрузка...
         </p>
@@ -112,7 +112,7 @@ export default function MyActiveGamesPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col pb-10 px-4 pt-4">
+    <main className="relative min-h-screen flex flex-col pb-10 px-4 pt-4 bg-[url('/pic/fon.png')] bg-cover bg-center bg-no-repeat">
       <div className="fixed top-4 right-4 z-10 flex items-center gap-3">
         <button
           type="button"

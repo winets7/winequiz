@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import {
+  PinkFlatWideButton,
+  PinkFlatWideButtonNative,
+} from "@/components/ui/pink-flat-wide-button";
 
 export default function WineQuizPage() {
   const router = useRouter();
@@ -138,38 +142,20 @@ export default function WineQuizPage() {
 
       {!isLoading && isLoggedIn && (
         <>
-          <div className="mt-12 w-full max-w-md mx-auto flex flex-col gap-4">
-            <Link
-              href="/games/wine-quiz/active"
-              className="w-full flex min-h-[3.75rem] items-center justify-center px-8 py-4 border-2 border-transparent text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold transition-all shadow-lg text-center box-border"
-              style={{ background: "var(--gradient-primary)" }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow =
-                  "0 6px 16px rgba(139, 26, 42, 0.4)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 12px rgba(139, 26, 42, 0.3)";
-              }}
-            >
+          <div className="wine-quiz-action-buttons mt-12">
+            <PinkFlatWideButton href="/games/wine-quiz/active">
               Мои активные игры
-            </Link>
-            <div className="flex flex-col sm:flex-row gap-4 w-full">
-              <button
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                className="w-full sm:flex-1 flex min-h-[3.75rem] items-center justify-center px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 box-border"
-              >
-                🚀 Создать игру
-              </button>
-              <button
-                onClick={() => setShowJoinInput(!showJoinInput)}
-                className="w-full sm:flex-1 flex min-h-[3.75rem] items-center justify-center px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 box-border"
-              >
-                📱 Присоединиться
-              </button>
-            </div>
+            </PinkFlatWideButton>
+            <PinkFlatWideButtonNative
+              onClick={() => setShowCreateForm(!showCreateForm)}
+            >
+              🚀 Создать игру
+            </PinkFlatWideButtonNative>
+            <PinkFlatWideButtonNative
+              onClick={() => setShowJoinInput(!showJoinInput)}
+            >
+              📱 Присоединиться
+            </PinkFlatWideButtonNative>
           </div>
 
           {showCreateForm && (

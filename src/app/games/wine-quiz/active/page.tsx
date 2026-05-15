@@ -146,21 +146,9 @@ export default function MyActiveGamesPage() {
           >
             ← К винной викторине
           </Link>
-          <div className="mt-3 flex w-full justify-center">
-            <div className="relative w-full max-w-md">
-              <img
-                src="/ui/active_games.png"
-                alt=""
-                className="block h-auto w-full select-none"
-                draggable={false}
-              />
-              <div className="absolute inset-0 flex items-center justify-center overflow-hidden px-[14%] py-[18%]">
-                <h1 className="max-w-full text-center text-lg font-bold leading-tight text-[#2a1810] sm:text-xl md:text-2xl [overflow-wrap:anywhere]">
-                  Мои активные игры
-                </h1>
-              </div>
-            </div>
-          </div>
+          <h1 className="mt-3 text-center wine-quiz-page-title text-4xl md:text-6xl font-bold">
+            Мои активные игры
+          </h1>
         </div>
 
         <div className="flex rounded-2xl border border-[var(--border)] bg-[var(--card)] p-1 shadow-sm">

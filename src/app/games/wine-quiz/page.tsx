@@ -73,7 +73,7 @@ export default function WineQuizPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-4">
+    <main className="relative min-h-screen flex flex-col items-center justify-center p-4 bg-[url('/pic/games.png')] bg-cover bg-center bg-no-repeat">
       <div className="fixed top-4 right-4 flex items-center gap-3">
         {isLoggedIn && (
           <button

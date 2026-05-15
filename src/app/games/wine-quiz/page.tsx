@@ -6,9 +6,9 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
-  PinkFlatWideButton,
-  PinkFlatWideButtonNative,
-} from "@/components/ui/pink-flat-wide-button";
+  GlossyWideButton,
+  GlossyWideButtonNative,
+} from "@/components/ui/glossy-wide-button";
 
 export default function WineQuizPage() {
   const router = useRouter();
@@ -143,19 +143,19 @@ export default function WineQuizPage() {
       {!isLoading && isLoggedIn && (
         <>
           <div className="wine-quiz-action-buttons mt-12">
-            <PinkFlatWideButton href="/games/wine-quiz/active">
+            <GlossyWideButton href="/games/wine-quiz/active">
               Мои активные игры
-            </PinkFlatWideButton>
-            <PinkFlatWideButtonNative
+            </GlossyWideButton>
+            <GlossyWideButtonNative
               onClick={() => setShowCreateForm(!showCreateForm)}
             >
               🚀 Создать игру
-            </PinkFlatWideButtonNative>
-            <PinkFlatWideButtonNative
+            </GlossyWideButtonNative>
+            <GlossyWideButtonNative
               onClick={() => setShowJoinInput(!showJoinInput)}
             >
               📱 Присоединиться
-            </PinkFlatWideButtonNative>
+            </GlossyWideButtonNative>
           </div>
 
           {showCreateForm && (

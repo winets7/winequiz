@@ -226,6 +226,8 @@ body {
   text-align: center;
   text-shadow: 0 1px 3px rgba(80, 0, 40, 0.45);
   border: none;
+  cursor: pointer;
+  box-sizing: border-box;
   transform: translateY(0) scale(1);
   box-shadow: 0 4px 10px rgba(80, 0, 40, 0.28);
   transition:
@@ -256,61 +258,6 @@ body {
   transition-duration: 0.06s;
 }
 
-/* Широкая плоская кнопка (public/ui/buttons) */
-.btn-pink-flat-wide {
-  --btn-scale: 0.75;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(100% * var(--btn-scale));
-  margin-inline: auto;
-  min-height: calc(3.5rem * var(--btn-scale));
-  aspect-ratio: 479 / 177;
-  padding: calc(0.75rem * var(--btn-scale)) calc(1.5rem * var(--btn-scale));
-  background: url("/ui/buttons/btn-pink-flat-wide.png") no-repeat center / 100% 100%;
-  color: #fff;
-  font-size: clamp(
-    calc(0.875rem * var(--btn-scale)),
-    2.5vw,
-    calc(1.125rem * var(--btn-scale) * 1.5)
-  );
-  font-weight: 600;
-  line-height: 1.25;
-  text-align: center;
-  text-shadow: 0 1px 3px rgba(80, 0, 40, 0.45);
-  border: none;
-  cursor: pointer;
-  box-sizing: border-box;
-  transform: translateY(0) scale(1);
-  box-shadow: 0 4px 10px rgba(80, 0, 40, 0.28);
-  transition:
-    transform 0.14s ease,
-    filter 0.14s ease,
-    box-shadow 0.14s ease;
-}
-
-@media (hover: hover) {
-  .btn-pink-flat-wide:hover {
-    filter: brightness(1.05);
-    transform: translateY(-2px) scale(1.01);
-    box-shadow: 0 7px 16px rgba(80, 0, 40, 0.34);
-  }
-
-  .btn-pink-flat-wide:hover:active {
-    filter: brightness(0.9);
-    transform: translateY(2px) scale(0.95);
-    box-shadow: 0 1px 3px rgba(80, 0, 40, 0.22);
-    transition-duration: 0.06s;
-  }
-}
-
-.btn-pink-flat-wide:active {
-  filter: brightness(0.9);
-  transform: translateY(2px) scale(0.95);
-  box-shadow: 0 1px 3px rgba(80, 0, 40, 0.22);
-  transition-duration: 0.06s;
-}
-
 /* Кнопки wine-quiz: смартфон и планшет (портрет) — колонка; ПК и планшет (альбом) — строка */
 .wine-quiz-action-buttons {
   display: flex;
@@ -322,7 +269,7 @@ body {
   margin-inline: auto;
 }
 
-.wine-quiz-action-buttons > .btn-pink-flat-wide {
+.wine-quiz-action-buttons > .btn-pink-glossy-wide {
   flex: 0 0 auto;
   width: calc(100% * var(--btn-scale));
   margin-inline: auto;
@@ -330,12 +277,8 @@ body {
 
 /* Смартфон: текст на кнопках wine-quiz в 2× крупнее */
 @media (max-width: 767px) {
-  .wine-quiz-action-buttons > .btn-pink-flat-wide {
-    font-size: clamp(
-      calc(0.875rem * var(--btn-scale) * 2),
-      5vw,
-      calc(1.125rem * var(--btn-scale) * 1.5 * 2)
-    );
+  .wine-quiz-action-buttons > .btn-pink-glossy-wide {
+    font-size: calc(1.125rem * var(--btn-scale) * 1.5 * 2);
   }
 }
 
@@ -345,7 +288,7 @@ body {
     max-width: 56rem;
   }
 
-  .wine-quiz-action-buttons > .btn-pink-flat-wide {
+  .wine-quiz-action-buttons > .btn-pink-glossy-wide {
     flex: 1 1 0;
     min-width: 0;
     width: auto;
@@ -360,7 +303,7 @@ body {
     max-width: 56rem;
   }
 
-  .wine-quiz-action-buttons > .btn-pink-flat-wide {
+  .wine-quiz-action-buttons > .btn-pink-glossy-wide {
     flex: 1 1 0;
     min-width: 0;
     width: auto;

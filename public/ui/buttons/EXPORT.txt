@@ -1,0 +1,17 @@
+Перезапишите PNG из Illustrator с теми же именами (прозрачный фон, Background выключен).
+
+Строка в .ai (сверху вниз) → файлы в этой папке:
+
+1 розовый   → btn-pink-*   (glossy-wide, flat-wide, glossy-square, flat-square)
+2 фиолетовый → btn-purple-*
+3 бежевый   → btn-cream-*
+4 оранжевый → btn-amber-*
+5 зелёный   → btn-sage-*
+
+Столбцы (слева направо):
+  wide glossy  → *-glossy-wide.png
+  wide flat    → *-flat-wide.png
+  square glossy → *-glossy-square.png
+  square flat  → *-flat-square.png
+
+Путь в коде: /ui/buttons/btn-pink-glossy-wide.png

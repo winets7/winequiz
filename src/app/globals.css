@@ -206,3 +206,33 @@ body {
 .dark .card-shadow:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
+
+/* Широкая глянцевая кнопка (public/ui/buttons) */
+.btn-pink-glossy-wide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3.5rem;
+  aspect-ratio: 479 / 177;
+  padding: 0.75rem 1.5rem;
+  background: url("/ui/buttons/btn-pink-glossy-wide.png") no-repeat center / 100% 100%;
+  color: #fff;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(80, 0, 40, 0.45);
+  border: none;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.btn-pink-glossy-wide:hover {
+  filter: brightness(1.06);
+  transform: scale(1.02);
+}
+
+.btn-pink-glossy-wide:active {
+  filter: brightness(0.96);
+  transform: scale(0.98);
+}

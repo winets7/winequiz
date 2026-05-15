@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { GlossyWideButton } from "@/components/ui/glossy-wide-button";
 
 export default function Home() {
   const router = useRouter();
@@ -78,44 +79,19 @@ export default function Home() {
       {/* Хаб: три кнопки для залогиненного пользователя */}
       {!isLoading && isLoggedIn && (
         <div className="mt-12 w-full max-w-md mx-auto flex flex-col gap-4">
-          <Link
-            href="/games/wine-quiz"
-            className="px-8 py-4 text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold transition-all shadow-lg text-center"
-            style={{ background: "var(--gradient-primary)" }}
-          >
+          <GlossyWideButton href="/games/wine-quiz">
             🍷 Винная викторина
-          </Link>
-          <Link
-            href="/games/barramundi"
-            className="px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-all shadow-lg text-center"
-          >
-            Баррамунди
-          </Link>
-          <Link
-            href="/games/wine-nose"
-            className="px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-all shadow-lg text-center"
-          >
-            Нос вина
-          </Link>
+          </GlossyWideButton>
+          <GlossyWideButton href="/games/barramundi">Баррамунди</GlossyWideButton>
+          <GlossyWideButton href="/games/wine-nose">Нос вина</GlossyWideButton>
         </div>
       )}
 
       {/* Кнопки для незалогиненного пользователя */}
       {!isLoading && !isLoggedIn && (
-        <div className="mt-12 w-full max-w-md mx-auto flex flex-col sm:flex-row gap-4">
-          <Link
-            href="/login"
-            className="px-8 py-4 text-[var(--primary-foreground)] rounded-2xl text-lg font-semibold transition-all shadow-lg text-center"
-            style={{ background: "var(--gradient-primary)" }}
-          >
-            🔐 Войти
-          </Link>
-          <Link
-            href="/register"
-            className="px-8 py-4 bg-[var(--card)] text-[var(--foreground)] border-2 border-[var(--border)] rounded-2xl text-lg font-semibold hover:bg-[var(--muted)] transition-colors shadow-lg text-center"
-          >
-            📝 Зарегистрироваться
-          </Link>
+        <div className="mt-12 w-full max-w-md mx-auto flex flex-col gap-4">
+          <GlossyWideButton href="/login">🔐 Войти</GlossyWideButton>
+          <GlossyWideButton href="/register">📝 Зарегистрироваться</GlossyWideButton>
         </div>
       )}
     </main>

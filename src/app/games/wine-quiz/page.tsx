@@ -147,12 +147,18 @@ export default function WineQuizPage() {
               Мои активные игры
             </GlossyWideButton>
             <GlossyWideButtonNative
-              onClick={() => setShowCreateForm(!showCreateForm)}
+              onClick={() => {
+                setShowCreateForm((prev) => !prev);
+                setShowJoinInput(false);
+              }}
             >
               🚀 Создать игру
             </GlossyWideButtonNative>
             <GlossyWideButtonNative
-              onClick={() => setShowJoinInput(!showJoinInput)}
+              onClick={() => {
+                setShowJoinInput((prev) => !prev);
+                setShowCreateForm(false);
+              }}
             >
               📱 Присоединиться
             </GlossyWideButtonNative>

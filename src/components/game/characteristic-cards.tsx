@@ -71,8 +71,8 @@ function fitMaxFontAllWordsFitWidth(
   return best;
 }
 
-/** Иллюстрации заголовков карточек — см. `.cursor/rules/wine-quiz-wineparam-assets.mdc` */
-const WINE_PARAM_HEADER_IMAGE: Record<string, string> = {
+/** Фон карточки = иллюстрация параметра на всю ячейку — см. `.cursor/rules/wine-quiz-wineparam-assets.mdc` */
+const WINE_PARAM_CARD_BG: Record<string, string> = {
   color: "/ui/wineparam/colorwine@2x.png",
   sweetness: "/ui/wineparam/sweetwine@2x.png",
   composition: "/ui/wineparam/sostavwine@2x.png",
@@ -87,10 +87,13 @@ function CharacteristicValueBlock({
   text,
   fontSizePx,
   widthMeasureRef,
+  overlay = false,
 }: {
   text: string;
   fontSizePx: number;
   widthMeasureRef?: MutableRefObject<HTMLDivElement | null>;
+  /** Текст поверх фото-подложки — усиленная тень для читаемости */
+  overlay?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -118,7 +121,11 @@ function CharacteristicValueBlock({
     >
       <div
         ref={textRef}
-        className="max-h-full w-full min-w-0 text-center font-bold leading-[1.12] text-[var(--foreground)] [hyphens:none] [overflow-wrap:normal] [word-break:normal]"
+        className={`max-h-full w-full min-w-0 text-center font-bold leading-[1.12] [hyphens:none] [overflow-wrap:normal] [word-break:normal] ${
+          overlay
+            ? "text-[var(--foreground)] [text-shadow:0_0_10px_rgba(255,255,255,1),0_2px_8px_rgba(0,0,0,0.75)]"
+            : "text-[var(--foreground)]"
+        }`}
         style={{ fontSize: `${fontSizePx}px` }}
       >
         {text}
@@ -173,56 +180,56 @@ export function CharacteristicCards({
     return [
       {
         label: "Цвет вина",
-        headerSrc: WINE_PARAM_HEADER_IMAGE.color,
+        backgroundSrc: WINE_PARAM_CARD_BG.color,
         value: colorDisplay,
         field: "color" as const,
         path: "color",
       },
       {
         label: "Сладость",
-        headerSrc: WINE_PARAM_HEADER_IMAGE.sweetness,
+        backgroundSrc: WINE_PARAM_CARD_BG.sweetness,
         value: sweetnessDisplay,
         field: "sweetness" as const,
         path: "sweetness",
       },
       {
         label: "Состав",
-        headerSrc: WINE_PARAM_HEADER_IMAGE.composition,
+        backgroundSrc: WINE_PARAM_CARD_BG.composition,
         value: compositionDisplay,
         field: "composition" as const,
         path: "composition",
       },
       {
         label: "Сорта винограда",
-        headerSrc: WINE_PARAM_HEADER_IMAGE["grape-varieties"],
+        backgroundSrc: WINE_PARAM_CARD_BG["grape-varieties"],
         value: grapeDisplay,
         field: "grapeVarieties" as const,
         path: "grape-varieties",
       },
       {
         label: "Страна",
-        headerSrc: WINE_PARAM_HEADER_IMAGE.country,
+        backgroundSrc: WINE_PARAM_CARD_BG.country,
         value: countryDisplay,
         field: "country" as const,
         path: "country",
       },
       {
         label: "Год урожая",
-        headerSrc: WINE_PARAM_HEADER_IMAGE["vintage-year"],
+        backgroundSrc: WINE_PARAM_CARD_BG["vintage-year"],
         value: vintageDisplay,
         field: "vintageYear" as const,
         path: "vintage-year",
       },
       {
         label: "Крепость (%)",
-        headerSrc: WINE_PARAM_HEADER_IMAGE["alcohol-content"],
+        backgroundSrc: WINE_PARAM_CARD_BG["alcohol-content"],
         value: alcoholDisplay,
         field: "alcoholContent" as const,
         path: "alcohol-content",
       },
       {
         label: "Выдержка в бочке",
-        headerSrc: WINE_PARAM_HEADER_IMAGE["oak-aged"],
+        backgroundSrc: WINE_PARAM_CARD_BG["oak-aged"],
         value: oakDisplay,
         field: "isOakAged" as const,
         path: "oak-aged",
@@ -281,25 +288,34 @@ export function CharacteristicCards({
           key={card.field}
           type="button"
           onClick={() => handleCardClick(card.field, card.path)}
-          className="flex min-h-0 min-w-0 flex-col bg-[var(--card)] border border-[var(--border)] rounded-xl text-left hover:bg-[var(--muted)] transition-all card-shadow [container-type:size] [padding:clamp(0.5rem,3cqmin,1rem)]"
+          className="group relative flex min-h-0 min-w-0 overflow-hidden rounded-xl text-left ring-1 ring-black/15 transition-all card-shadow [container-type:size] hover:ring-2 hover:ring-[var(--primary)]/45 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          aria-label={card.label}
         >
-          <div className="relative flex min-h-0 min-w-0 shrink-0 items-center justify-center border-b border-[var(--border)] [margin-bottom:clamp(0.25rem,1.2cqmin,0.5rem)] [padding-bottom:clamp(0.25rem,1.2cqmin,0.5rem)]">
-            <img
-              src={card.headerSrc}
-              alt={card.label}
-              draggable={false}
-              className="pointer-events-none h-[clamp(1.75rem,12cqmin,3.25rem)] w-auto max-w-full select-none object-contain object-center"
-            />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-200 group-hover:scale-[1.03]"
+            style={{ backgroundImage: `url(${card.backgroundSrc})` }}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/35"
+          />
+          <div
+            className="relative z-[1] flex min-h-0 w-full flex-1 flex-col items-center justify-center [padding:clamp(0.35rem,2.8cqmin,0.85rem)]"
+          >
+            {card.field === "country" && values.country ? (
+              <div className="flex min-h-0 w-full flex-1 flex-col items-stretch justify-center [&_img]:drop-shadow-md [&_div:last-child]:[text-shadow:0_0_10px_rgba(255,255,255,1),0_2px_8px_rgba(0,0,0,0.75)]">
+                <CountryValueBlock countryName={values.country} />
+              </div>
+            ) : (
+              <CharacteristicValueBlock
+                text={card.value}
+                fontSizePx={unifiedValueFontPx}
+                widthMeasureRef={index === 0 ? valueWidthRef : undefined}
+                overlay
+              />
+            )}
           </div>
-          {card.field === "country" && values.country ? (
-            <CountryValueBlock countryName={values.country} />
-          ) : (
-            <CharacteristicValueBlock
-              text={card.value}
-              fontSizePx={unifiedValueFontPx}
-              widthMeasureRef={index === 0 ? valueWidthRef : undefined}
-            />
-          )}
         </button>
       ))}
       </div>

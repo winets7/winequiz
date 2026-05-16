@@ -282,23 +282,23 @@ export function CharacteristicCards({
         aria-hidden
         className="pointer-events-none fixed top-0 left-[-10000px] z-[-1] whitespace-nowrap font-bold text-[var(--foreground)]"
       />
-      <div className="grid h-full min-h-[220px] grid-cols-2 grid-rows-[repeat(4,minmax(0,1fr))] gap-3 sm:gap-4">
+      <div className="grid w-full min-h-[20rem] grid-cols-2 grid-rows-[repeat(4,minmax(5.25rem,1fr))] gap-3 sm:min-h-[24rem] sm:gap-4">
       {cards.map((card, index) => (
         <button
           key={card.field}
           type="button"
           onClick={() => handleCardClick(card.field, card.path)}
-          className="group relative flex min-h-0 min-w-0 overflow-hidden rounded-xl text-left ring-1 ring-black/15 transition-all card-shadow [container-type:size] hover:ring-2 hover:ring-[var(--primary)]/45 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          className="group relative flex min-h-0 min-w-0 overflow-hidden rounded-xl bg-[#dfeadf] text-left ring-1 ring-black/15 transition-all card-shadow [container-type:size] hover:ring-2 hover:ring-[var(--primary)]/45 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] dark:bg-[#2a332c]"
           aria-label={card.label}
         >
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-cover bg-top bg-no-repeat transition-[filter] duration-200 group-hover:brightness-105"
+            className="pointer-events-none absolute inset-0 bg-contain bg-center bg-no-repeat transition-[filter] duration-200 group-hover:brightness-105"
             style={{ backgroundImage: `url(${card.backgroundSrc})` }}
           />
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/35"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20"
           />
           <div
             className="relative z-[1] flex min-h-0 w-full flex-1 flex-col items-center justify-center [padding:clamp(0.35rem,2.8cqmin,0.85rem)]"

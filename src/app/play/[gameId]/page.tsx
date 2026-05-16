@@ -910,13 +910,13 @@ export default function PlayPage() {
               )}
             </div>
 
-            <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden rounded-2xl ring-2 ring-black/15 shadow-lg dark:ring-white/20">
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl ring-2 ring-black/15 shadow-lg dark:ring-white/20">
               <div
                 aria-hidden
                 className={`pointer-events-none absolute inset-0 ${PLAY_PAGE_FON_BG}`}
               />
-              <div className="relative z-[1] min-h-0 w-full p-1 sm:p-2">
-                <CharacteristicCards gameId={gameId} values={guessValues} className="w-full min-h-0" />
+              <div className="relative z-[1] min-h-0 h-full p-1 sm:p-2">
+                <CharacteristicCards gameId={gameId} values={guessValues} className="h-full" />
               </div>
             </div>
 

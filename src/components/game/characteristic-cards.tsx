@@ -293,7 +293,7 @@ export function CharacteristicCards({
         >
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-cover bg-top bg-no-repeat transition-[filter] duration-200 group-hover:brightness-105"
+            className="pointer-events-none absolute inset-0 origin-top scale-[0.95] bg-cover bg-top bg-no-repeat transition-[filter] duration-200 group-hover:brightness-105"
             style={{ backgroundImage: `url(${card.backgroundSrc})` }}
           />
           <div

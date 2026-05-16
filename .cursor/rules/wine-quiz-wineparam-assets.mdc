@@ -1,0 +1,34 @@
+---
+description: Соответствие PNG в public/ui/wineparam характеристикам вина (винная викторина)
+globs: "public/ui/wineparam/**,src/app/**/select/**/*.tsx,src/app/lobby/**/select/**/*.tsx,src/components/game/characteristic-cards.tsx,src/components/game/**"
+alwaysApply: false
+---
+
+# Ассеты `public/ui/wineparam` → параметр вина
+
+В каталоге **8** файлов `@2x` (ретина). Имена — мнемоника (англ. + сокр. рус.); **ни один файл не переиспользуется для двух параметров**.
+
+Публичный URL: **`/ui/wineparam/<имя_файла>`** (например `/ui/wineparam/colorwine@2x.png`).
+
+| Файл | Параметр в игре | Сегмент маршрута / `characteristic` | Поле в данных раунда (ориентир) |
+|------|------------------|-------------------------------------|----------------------------------|
+| `colorwine@2x.png` | Цвет вина | `color` | `color` |
+| `sweetwine@2x.png` | Сладость | `sweetness` | `sweetness` |
+| `sostavwine@2x.png` | Состав (тип вина) | `composition` | `composition` |
+| `sortwine@2x.png` | Сорта винограда | `grape-varieties` | `grapeVarieties` |
+| `stranawine@2x.png` | Страна | `country` | `country` |
+| `yearwine@2x.png` | Год урожая | `vintage-year` | `vintageYear` |
+| `strongwine@2x.png` | Крепость (алкоголь) | `alcohol-content` | `alcoholContent` |
+| `agedwine@2x.png` | Выдержка в дубе / бочке | `oak-aged` | `isOakAged` (Prisma `Round`) |
+
+## Где в коде
+
+- **Карточки ответа игрока** (`/play/[gameId]`, фаза угадывания): `src/components/game/characteristic-cards.tsx` — заголовки карточек = **изображения** из таблицы (`WINE_PARAM_HEADER_IMAGE`), подпись сохраняется в **`alt`** у `<img>`.
+- Игрок: `src/app/play/[gameId]/select/*/page.tsx` — папки совпадают с сегментом (кроме `grape-varieties` с дефисом).
+- Хост (черновик раунда): `src/app/lobby/[gameId]/round/[roundNumber]/select/[characteristic]/page.tsx` — список допустимых `characteristic` в коде совпадает с колонкой «Сегмент маршрута».
+
+## Правила для агента
+
+- Подключая иллюстрацию к экрану выбора, **сопоставляй файл строго по таблице**; не меняй соответствие «по вкусу» без явного запроса дизайнера.
+- Новый параметр = **новый файл** в `public/ui/wineparam/` и строка в этой таблице; старые имена не переиспользовать под другой смысл.
+- В разметке предпочтительно **`next/image`** или `<img src="/ui/wineparam/...">` с **точным именем файла** (включая `@2x`).

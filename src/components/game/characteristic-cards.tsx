@@ -71,32 +71,17 @@ function fitMaxFontAllWordsFitWidth(
   return best;
 }
 
-/** Самая длинная подпись — по ширине ячейки под неё вычисляется общий кегль для всех заголовков. */
-const REFERENCE_LABEL_TEXT = "Выдержка в бочке";
-
-function fitFontToLabelWidth(probe: HTMLElement, wrapWidth: number): number {
-  const minPx = 7;
-  // Ограничиваем верхний порог на широких экранах, чтобы заголовки не были чрезмерно крупными.
-  const maxPx = Math.max(minPx, Math.min(36, wrapWidth * 0.2));
-  let lo = minPx;
-  let hi = maxPx;
-  let best = minPx;
-  probe.style.whiteSpace = "nowrap";
-  probe.style.display = "block";
-
-  for (let i = 0; i < 28; i++) {
-    const mid = (lo + hi) / 2;
-    probe.style.fontSize = `${mid}px`;
-    if (probe.scrollWidth <= wrapWidth + 1) {
-      best = mid;
-      lo = mid;
-    } else {
-      hi = mid;
-    }
-  }
-  probe.style.fontSize = `${best}px`;
-  return best;
-}
+/** Иллюстрации заголовков карточек — см. `.cursor/rules/wine-quiz-wineparam-assets.mdc` */
+const WINE_PARAM_HEADER_IMAGE: Record<string, string> = {
+  color: "/ui/wineparam/colorwine@2x.png",
+  sweetness: "/ui/wineparam/sweetwine@2x.png",
+  composition: "/ui/wineparam/sostavwine@2x.png",
+  "grape-varieties": "/ui/wineparam/sortwine@2x.png",
+  country: "/ui/wineparam/stranawine@2x.png",
+  "vintage-year": "/ui/wineparam/yearwine@2x.png",
+  "alcohol-content": "/ui/wineparam/strongwine@2x.png",
+  "oak-aged": "/ui/wineparam/agedwine@2x.png",
+};
 
 function CharacteristicValueBlock({
   text,
@@ -157,11 +142,8 @@ export function CharacteristicCards({
   className = "",
 }: CharacteristicCardsProps) {
   const router = useRouter();
-  const labelMeasureWrapRef = useRef<HTMLDivElement>(null);
-  const labelProbeRef = useRef<HTMLSpanElement>(null);
   const valueWidthRef = useRef<HTMLDivElement>(null);
   const valueFontProbeRef = useRef<HTMLSpanElement>(null);
-  const [unifiedLabelFontPx, setUnifiedLabelFontPx] = useState(11);
   const [unifiedValueFontPx, setUnifiedValueFontPx] = useState(12);
 
   const cards = useMemo(() => {
@@ -189,58 +171,64 @@ export function CharacteristicCards({
           : "Нет";
 
     return [
-      { icon: "🎨", label: "Цвет вина", value: colorDisplay, field: "color" as const, path: "color" },
-      { icon: "🍬", label: "Сладость", value: sweetnessDisplay, field: "sweetness" as const, path: "sweetness" },
-      { icon: "🔀", label: "Состав", value: compositionDisplay, field: "composition" as const, path: "composition" },
       {
-        icon: "🍇",
+        label: "Цвет вина",
+        headerSrc: WINE_PARAM_HEADER_IMAGE.color,
+        value: colorDisplay,
+        field: "color" as const,
+        path: "color",
+      },
+      {
+        label: "Сладость",
+        headerSrc: WINE_PARAM_HEADER_IMAGE.sweetness,
+        value: sweetnessDisplay,
+        field: "sweetness" as const,
+        path: "sweetness",
+      },
+      {
+        label: "Состав",
+        headerSrc: WINE_PARAM_HEADER_IMAGE.composition,
+        value: compositionDisplay,
+        field: "composition" as const,
+        path: "composition",
+      },
+      {
         label: "Сорта винограда",
+        headerSrc: WINE_PARAM_HEADER_IMAGE["grape-varieties"],
         value: grapeDisplay,
         field: "grapeVarieties" as const,
         path: "grape-varieties",
       },
-      { icon: "🌍", label: "Страна", value: countryDisplay, field: "country" as const, path: "country" },
       {
-        icon: "📅",
+        label: "Страна",
+        headerSrc: WINE_PARAM_HEADER_IMAGE.country,
+        value: countryDisplay,
+        field: "country" as const,
+        path: "country",
+      },
+      {
         label: "Год урожая",
+        headerSrc: WINE_PARAM_HEADER_IMAGE["vintage-year"],
         value: vintageDisplay,
         field: "vintageYear" as const,
         path: "vintage-year",
       },
       {
-        icon: "🥃",
         label: "Крепость (%)",
+        headerSrc: WINE_PARAM_HEADER_IMAGE["alcohol-content"],
         value: alcoholDisplay,
         field: "alcoholContent" as const,
         path: "alcohol-content",
       },
       {
-        icon: "🪵",
-        label: REFERENCE_LABEL_TEXT,
+        label: "Выдержка в бочке",
+        headerSrc: WINE_PARAM_HEADER_IMAGE["oak-aged"],
         value: oakDisplay,
         field: "isOakAged" as const,
         path: "oak-aged",
       },
     ];
   }, [values]);
-
-  useLayoutEffect(() => {
-    const wrap = labelMeasureWrapRef.current;
-    const probe = labelProbeRef.current;
-    if (!wrap || !probe) return;
-
-    const fit = () => {
-      const w = wrap.clientWidth;
-      if (w < 6) return;
-      const px = fitFontToLabelWidth(probe, w);
-      setUnifiedLabelFontPx(px);
-    };
-
-    fit();
-    const ro = new ResizeObserver(() => requestAnimationFrame(fit));
-    ro.observe(wrap);
-    return () => ro.disconnect();
-  }, []);
 
   useLayoutEffect(() => {
     const wrap = valueWidthRef.current;
@@ -295,25 +283,13 @@ export function CharacteristicCards({
           onClick={() => handleCardClick(card.field, card.path)}
           className="flex min-h-0 min-w-0 flex-col bg-[var(--card)] border border-[var(--border)] rounded-xl text-left hover:bg-[var(--muted)] transition-all card-shadow [container-type:size] [padding:clamp(0.5rem,3cqmin,1rem)]"
         >
-          <div
-            ref={index === 0 ? labelMeasureWrapRef : undefined}
-            className="relative min-w-0 shrink-0 border-b border-[var(--border)] [margin-bottom:clamp(0.25rem,1.2cqmin,0.5rem)] [padding-bottom:clamp(0.25rem,1.2cqmin,0.5rem)]"
-          >
-            {index === 0 && (
-              <span
-                ref={labelProbeRef}
-                className="pointer-events-none absolute left-0 top-0 block w-full select-none whitespace-nowrap uppercase tracking-wide text-[var(--muted-foreground)] opacity-0"
-                aria-hidden
-              >
-                {REFERENCE_LABEL_TEXT}
-              </span>
-            )}
-            <span
-              className="relative z-[1] block min-w-0 whitespace-nowrap uppercase tracking-wide text-[var(--muted-foreground)]"
-              style={{ fontSize: `${unifiedLabelFontPx}px` }}
-            >
-              {card.label}
-            </span>
+          <div className="relative flex min-h-0 min-w-0 shrink-0 items-center justify-center border-b border-[var(--border)] [margin-bottom:clamp(0.25rem,1.2cqmin,0.5rem)] [padding-bottom:clamp(0.25rem,1.2cqmin,0.5rem)]">
+            <img
+              src={card.headerSrc}
+              alt={card.label}
+              draggable={false}
+              className="pointer-events-none h-[clamp(1.75rem,12cqmin,3.25rem)] w-auto max-w-full select-none object-contain object-center"
+            />
           </div>
           {card.field === "country" && values.country ? (
             <CountryValueBlock countryName={values.country} />

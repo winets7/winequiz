@@ -194,6 +194,10 @@ function areGuessesEqual(a: SubmittedGuessSnapshot, b: SubmittedGuessSnapshot): 
   return true;
 }
 
+/** Фон страницы ответов участника и подложка сетки карточек (как join / wine-quiz). */
+const PLAY_PAGE_FON_BG =
+  "bg-[url('/pic/fon.png')] bg-cover bg-center bg-no-repeat";
+
 /** Чтение черновика ответа из localStorage (тот же формат, что в loadSavedValues). */
 function readGuessFromLocalStorage(gameId: string): Partial<WineParams> {
   return {
@@ -729,10 +733,23 @@ export default function PlayPage() {
     );
   }
 
+  const participantAnswerGarden =
+    !isHost && (phase === "ROUND_ACTIVE" || phase === "GUESS_SUBMITTED");
+
   return (
-    <main className="flex h-dvh min-h-0 flex-col items-center overflow-y-auto pb-8">
+    <main
+      className={`flex h-dvh min-h-0 flex-col items-center overflow-y-auto pb-8${
+        participantAnswerGarden ? ` ${PLAY_PAGE_FON_BG}` : ""
+      }`}
+    >
       {/* === Верхняя панель === */}
-      <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
+      <div
+        className={`w-full sticky top-0 z-10 border-b border-[var(--border)] ${
+          participantAnswerGarden
+            ? "bg-[var(--background)]/85 backdrop-blur-md supports-[backdrop-filter]:bg-[var(--background)]/65"
+            : "bg-[var(--background)]"
+        }`}
+      >
         <div className="max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
@@ -847,8 +864,10 @@ export default function PlayPage() {
           <div className="flex min-h-0 flex-1 flex-col gap-4">
             <div className="shrink-0 flex items-start justify-between gap-3">
               <div className="flex-1 text-center">
-                <h2 className="text-xl font-bold">🤔 Угадайте вино!</h2>
-                <p className="text-sm text-[var(--muted-foreground)] mt-1">
+                <h2 className="text-xl font-bold [text-shadow:0_1px_2px_rgba(255,255,255,0.95),0_0_14px_rgba(255,255,255,0.55)]">
+                  🤔 Угадайте вино!
+                </h2>
+                <p className="mt-1 text-sm font-medium text-[var(--foreground)] [text-shadow:0_1px_2px_rgba(255,255,255,0.9)]">
                   Раунд {currentRound}/{game?.totalRounds}
                 </p>
               </div>
@@ -891,8 +910,14 @@ export default function PlayPage() {
               )}
             </div>
 
-            <div className="min-h-0 flex-1">
-              <CharacteristicCards gameId={gameId} values={guessValues} className="h-full" />
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl ring-2 ring-black/15 shadow-lg dark:ring-white/20">
+              <div
+                aria-hidden
+                className={`pointer-events-none absolute inset-0 ${PLAY_PAGE_FON_BG}`}
+              />
+              <div className="relative z-[1] min-h-0 h-full p-1 sm:p-2">
+                <CharacteristicCards gameId={gameId} values={guessValues} className="h-full" />
+              </div>
             </div>
 
             {showResubmitHint && (
@@ -923,10 +948,12 @@ export default function PlayPage() {
 
         {/* ──────────── GUESS_SUBMITTED ──────────── */}
         {phase === "GUESS_SUBMITTED" && (
-          <div className="text-center py-16 space-y-6">
+          <div className="space-y-6 py-16 text-center">
             <div className="text-6xl mb-4">✅</div>
-            <h2 className="text-xl font-bold mb-2">Ответ отправлен!</h2>
-            <p className="text-[var(--muted-foreground)]">
+            <h2 className="mb-2 text-xl font-bold [text-shadow:0_1px_2px_rgba(255,255,255,0.95),0_0_14px_rgba(255,255,255,0.55)]">
+              Ответ отправлен!
+            </h2>
+            <p className="font-medium text-[var(--foreground)] [text-shadow:0_1px_2px_rgba(255,255,255,0.85)]">
               Ожидайте, пока хост закроет раунд...
             </p>
             {game?.code && (

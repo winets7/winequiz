@@ -91,12 +91,24 @@
     --wq-answer-label-font-size: 0.875rem;
     --wq-answer-value-font-size: 1.125rem;
     --wq-answer-card-gap: 1rem;
-    --wq-answer-card-padding-max: 1.125rem;
-    --wq-answer-card-header-margin-bottom: 0.5rem;
-    --wq-answer-card-header-padding-bottom: 0.5rem;
+    --wq-answer-card-padding-top: 0.25rem;
+    --wq-answer-card-padding-inline: clamp(0.5rem, 3cqmin, 1.125rem);
+    --wq-answer-card-padding-bottom: clamp(0.5rem, 3cqmin, 1.125rem);
+    --wq-answer-card-header-margin-bottom: 0;
+    --wq-answer-card-header-padding-bottom: 0;
     --wq-answer-grid-min-height: 200px;
     --wq-answer-country-name-font-size: clamp(1.25rem, 7.5cqmin, 2rem);
     --wq-answer-country-flag-font-size: clamp(1.5rem, 9cqmin, 2.75rem);
+  }
+
+  .wine-quiz-answer-card {
+    padding: var(--wq-answer-card-padding-top) var(--wq-answer-card-padding-inline)
+      var(--wq-answer-card-padding-bottom);
+  }
+
+  .wine-quiz-answer-card__header {
+    margin-bottom: 0;
+    padding-bottom: 0;
   }
 }
 

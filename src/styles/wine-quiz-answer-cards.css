@@ -36,8 +36,13 @@
     --wq-answer-card-padding-bottom: clamp(0.5rem, 3cqmin, 1rem);
     --wq-answer-card-header-margin-bottom: 0;
     --wq-answer-card-header-padding-bottom: 0;
-    --wq-answer-country-name-font-size: clamp(1.4375rem, 9.6cqmin, 2.375rem);
-    --wq-answer-country-flag-font-size: clamp(1.6875rem, 11cqmin, 3.1875rem);
+    /* Название страны — тот же кегль, что у значений остальных карточек */
+    --wq-answer-country-name-font-size: var(--wq-answer-value-font-size);
+    --wq-answer-country-flag-font-size: var(--wq-answer-value-font-size);
+  }
+
+  .wine-quiz-answer-card__country .wine-quiz-answer-card__country-name {
+    line-height: var(--wq-answer-value-line-height);
   }
 
   .wine-quiz-answer-card {

@@ -4,6 +4,10 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { SWEETNESS_LABELS } from "@/lib/wine-data";
 import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
+import {
+  PlaySelectScreen,
+  playSelectGridOptionClass,
+} from "@/components/game/play-select-screen";
 
 export default function SelectSweetnessPage() {
   const params = useParams();
@@ -12,7 +16,6 @@ export default function SelectSweetnessPage() {
 
   const [selectedSweetness, setSelectedSweetness] = useState<string>("");
 
-  // Загружаем сохраненное значение из localStorage
   useEffect(() => {
     const saved = localStorage.getItem(`wine-guess-${gameId}-sweetness`);
     if (saved) {
@@ -22,55 +25,30 @@ export default function SelectSweetnessPage() {
 
   const handleSweetnessSelect = (sweetness: string) => {
     setSelectedSweetness(sweetness);
-    // Сохраняем в localStorage
     localStorage.setItem(`wine-guess-${gameId}-sweetness`, sweetness);
-    // Отправляем кастомное событие для обновления состояния на странице раунда
     window.dispatchEvent(new CustomEvent("localStorageChange"));
-    // Возвращаемся на страницу раунда
     goBack();
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center pb-8">
-      {/* === Верхняя панель === */}
-      <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+    <PlaySelectScreen
+      barTitle="Сладость"
+      heading="Сладость"
+      emoji="🍬"
+      onBack={goBack}
+    >
+      <div className="grid grid-cols-2 gap-4">
+        {Object.entries(SWEETNESS_LABELS).map(([value, label]) => (
           <button
-            onClick={goBack}
-            className="text-[var(--foreground)] hover:opacity-70 transition-opacity"
+            key={value}
+            type="button"
+            onClick={() => handleSweetnessSelect(value)}
+            className={playSelectGridOptionClass(selectedSweetness === value)}
           >
-            ←
+            <div className="text-lg font-medium">{label}</div>
           </button>
-          <div className="text-sm font-bold text-[var(--primary)]">Сладость</div>
-          <div className="w-6"></div> {/* Spacer для центрирования */}
-        </div>
+        ))}
       </div>
-
-      {/* === Основной контент === */}
-      <div className="w-full max-w-lg mx-auto px-4 mt-4">
-        <div className="space-y-4">
-          <div className="text-center mb-6">
-            <div className="text-4xl mb-2">🍬</div>
-            <h1 className="text-xl font-bold">Сладость</h1>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {Object.entries(SWEETNESS_LABELS).map(([value, label]) => (
-              <button
-                key={value}
-                onClick={() => handleSweetnessSelect(value)}
-                className={`p-6 rounded-2xl text-center transition-all ${
-                  selectedSweetness === value
-                    ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg scale-105"
-                    : "bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)]"
-                }`}
-              >
-                <div className="text-lg font-medium">{label}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </main>
+    </PlaySelectScreen>
   );
 }

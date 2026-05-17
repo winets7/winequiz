@@ -4,6 +4,11 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ALCOHOL_CONTENT_VALUES } from "@/lib/wine-data";
 import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
+import {
+  PlaySelectScreen,
+  PLAY_SELECT_INPUT_CLASS,
+  playSelectListRowClass,
+} from "@/components/game/play-select-screen";
 
 export default function SelectAlcoholContentPage() {
   const params = useParams();
@@ -13,7 +18,6 @@ export default function SelectAlcoholContentPage() {
   const [selectedAlcohol, setSelectedAlcohol] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Загружаем сохраненное значение из localStorage
   useEffect(() => {
     const saved = localStorage.getItem(`wine-guess-${gameId}-alcoholContent`);
     if (saved) {
@@ -23,11 +27,8 @@ export default function SelectAlcoholContentPage() {
 
   const handleAlcoholSelect = (alcohol: string) => {
     setSelectedAlcohol(alcohol);
-    // Сохраняем в localStorage
     localStorage.setItem(`wine-guess-${gameId}-alcoholContent`, alcohol);
-    // Отправляем кастомное событие для обновления состояния на странице раунда
     window.dispatchEvent(new CustomEvent("localStorageChange"));
-    // Возвращаемся на страницу раунда
     goBack();
   };
 
@@ -36,59 +37,37 @@ export default function SelectAlcoholContentPage() {
   );
 
   return (
-    <main className="min-h-screen flex flex-col items-center pb-8">
-      {/* === Верхняя панель === */}
-      <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-          <button
-            onClick={goBack}
-            className="text-[var(--foreground)] hover:opacity-70 transition-opacity"
-          >
-            ←
-          </button>
-          <div className="text-sm font-bold text-[var(--primary)]">Крепость</div>
-          <div className="w-6"></div> {/* Spacer для центрирования */}
+    <PlaySelectScreen
+      barTitle="Крепость"
+      heading="Крепость (%)"
+      emoji="🥃"
+      onBack={goBack}
+    >
+      <div className="space-y-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Поиск крепости..."
+          className={PLAY_SELECT_INPUT_CLASS}
+        />
+
+        <div className="max-h-96 space-y-2 overflow-y-auto">
+          {filteredAlcoholValues.map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => handleAlcoholSelect(value)}
+              className={playSelectListRowClass(selectedAlcohol === value)}
+            >
+              {value}%
+              {selectedAlcohol === value ? (
+                <span className="ml-2">✓</span>
+              ) : null}
+            </button>
+          ))}
         </div>
       </div>
-
-      {/* === Основной контент === */}
-      <div className="w-full max-w-lg mx-auto px-4 mt-4">
-        <div className="space-y-4">
-          <div className="text-center mb-6">
-            <div className="text-4xl mb-2">🥃</div>
-            <h1 className="text-xl font-bold">Крепость (%)</h1>
-          </div>
-
-          {/* Поиск */}
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Поиск крепости..."
-            className="w-full px-4 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)] placeholder:text-[var(--muted-foreground)]"
-          />
-
-          {/* Список значений крепости */}
-          <div className="max-h-96 overflow-y-auto space-y-2">
-            {filteredAlcoholValues.map((value) => (
-              <button
-                key={value}
-                onClick={() => handleAlcoholSelect(value)}
-                className={`w-full p-3 rounded-xl text-left transition-all ${
-                  selectedAlcohol === value
-                    ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg"
-                    : "bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)]"
-                }`}
-              >
-                {value}%
-                {selectedAlcohol === value && (
-                  <span className="ml-2">✓</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </main>
+    </PlaySelectScreen>
   );
 }

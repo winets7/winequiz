@@ -23,7 +23,13 @@ export function CountryValueBlock({
           : "flex min-h-0 min-w-0 flex-1 flex-col items-stretch justify-center gap-[clamp(0.125rem,1cqmin,0.375rem)] overflow-hidden"
       }
     >
-      <div className="flex min-h-0 w-full flex-1 items-center justify-center px-0.5">
+      <div
+        className={
+          isPlayCard
+            ? "wine-quiz-answer-card__country-flag flex min-h-0 items-center justify-center px-0.5"
+            : "flex min-h-0 w-full flex-1 items-center justify-center px-0.5"
+        }
+      >
         {iso ? (
           <img
             src={`/flags/${iso}.png`}

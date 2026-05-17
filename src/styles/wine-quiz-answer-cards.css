@@ -110,6 +110,36 @@
     margin-bottom: 0;
     padding-bottom: 0;
   }
+
+  /* «Страна»: флаг и название в одну строку */
+  .wine-quiz-answer-card__country {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(0.25rem, 2cqmin, 0.5rem);
+  }
+
+  .wine-quiz-answer-card__country-flag {
+    flex: 0 0 auto;
+    width: auto;
+    height: 100%;
+    max-width: 45%;
+  }
+
+  .wine-quiz-answer-card__country-flag img {
+    max-height: 100%;
+    width: auto;
+    height: auto;
+  }
+
+  .wine-quiz-answer-card__country .wine-quiz-answer-card__country-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    text-align: left;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
 }
 
 /* Браузер / десктоп */

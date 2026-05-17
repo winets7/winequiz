@@ -21,6 +21,7 @@
   --wq-answer-card-header-margin-bottom: 0.5rem;
   --wq-answer-card-header-padding-bottom: 0.5rem;
   --wq-answer-grid-min-height: 220px;
+  --wq-answer-card-border-width: 4px;
   --wq-answer-country-name-font-size: clamp(1.5rem, 9.6cqmin, 2.4375rem);
   --wq-answer-country-flag-font-size: clamp(1.75rem, 11cqmin, 3.25rem);
 }
@@ -36,6 +37,7 @@
     --wq-answer-card-padding-bottom: clamp(0.5rem, 3cqmin, 1rem);
     --wq-answer-card-header-margin-bottom: 0;
     --wq-answer-card-header-padding-bottom: 0;
+    --wq-answer-card-border-width: 8px;
     /* Название страны — тот же кегль, что у значений остальных карточек */
     --wq-answer-country-name-font-size: var(--wq-answer-value-font-size);
     --wq-answer-country-flag-font-size: var(--wq-answer-value-font-size);
@@ -134,7 +136,7 @@
   min-width: 0;
   flex-direction: column;
   border-radius: 0.75rem;
-  border-width: 4px;
+  border-width: var(--wq-answer-card-border-width);
   border-style: solid;
   border-color: var(--wine-quiz-active-game-card-border);
   background-color: var(--wine-quiz-active-game-card-bg);

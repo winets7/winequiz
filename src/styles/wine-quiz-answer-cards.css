@@ -245,6 +245,7 @@
 
 .wine-quiz-answer-card__country-col--flag {
   min-height: 0;
+  padding: 0.125rem;
 }
 
 .wine-quiz-answer-card__country .wine-quiz-answer-card__country-name {
@@ -273,7 +274,8 @@
     grid-row: 1;
     width: max-content;
     max-width: 50%;
-    padding: 0;
+    padding: 0.125rem;
+    padding-right: 0.1875rem;
     justify-self: start;
     border-right: 1px solid var(--wine-quiz-active-game-card-border);
   }

@@ -113,10 +113,18 @@ export const WINE_COUNTRY_TO_ISO: Partial<Record<string, string>> = {
   Франция: "fr",
 };
 
-/** Годы урожая (от 1900 до 2030) */
-export const VINTAGE_YEARS = Array.from({ length: 131 }, (_, i) => 
-  String(1900 + i)
-).reverse(); // От нового к старому
+const VINTAGE_YEAR_MIN = 1900;
+
+/** Годы урожая от текущего года до 1900 (по убыванию) */
+export function getVintageYears(): string[] {
+  const currentYear = new Date().getFullYear();
+  return Array.from(
+    { length: currentYear - VINTAGE_YEAR_MIN + 1 },
+    (_, i) => String(currentYear - i)
+  );
+}
+
+export const VINTAGE_YEARS = getVintageYears();
 
 /** Значения крепости (от 18.0% до 0.0% с шагом 0.1) */
 export const ALCOHOL_CONTENT_VALUES = Array.from({ length: 181 }, (_, i) => 

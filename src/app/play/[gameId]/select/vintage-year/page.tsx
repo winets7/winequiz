@@ -2,12 +2,12 @@
 
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { VINTAGE_YEARS } from "@/lib/wine-data";
+import { getVintageYears } from "@/lib/wine-data";
 import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
 import {
   PlaySelectScreen,
   PLAY_SELECT_INPUT_CLASS,
-  playSelectListRowClass,
+  playSelectGridOptionClass,
 } from "@/components/game/play-select-screen";
 
 export default function SelectVintageYearPage() {
@@ -32,7 +32,7 @@ export default function SelectVintageYearPage() {
     goBack();
   };
 
-  const filteredYears = VINTAGE_YEARS.filter((year) =>
+  const filteredYears = getVintageYears().filter((year) =>
     year.includes(searchQuery)
   );
 
@@ -52,16 +52,18 @@ export default function SelectVintageYearPage() {
           className={PLAY_SELECT_INPUT_CLASS}
         />
 
-        <div className="max-h-96 space-y-2 overflow-y-auto">
+        <div className="grid grid-cols-4 gap-2 sm:gap-3">
           {filteredYears.map((year) => (
             <button
               key={year}
               type="button"
               onClick={() => handleYearSelect(year)}
-              className={playSelectListRowClass(selectedYear === year)}
+              className={`${playSelectGridOptionClass(selectedYear === year)} !p-3 text-sm sm:text-base`}
             >
               {year}
-              {selectedYear === year ? <span className="ml-2">✓</span> : null}
+              {selectedYear === year ? (
+                <span className="mt-0.5 block text-xs">✓</span>
+              ) : null}
             </button>
           ))}
         </div>

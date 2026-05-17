@@ -263,7 +263,7 @@
  */
 @media (min-width: 768px) and (orientation: landscape) {
   .wine-quiz-answer-card .wine-quiz-answer-card__country {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
     grid-template-rows: minmax(0, 1fr);
     gap: 0;
   }

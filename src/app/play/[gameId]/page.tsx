@@ -862,16 +862,17 @@ export default function PlayPage() {
         {/* ROUND_ACTIVE (Участник заполняет форму) */}
         {phase === "ROUND_ACTIVE" && !isHost && (
           <div className="flex min-h-0 flex-1 flex-col gap-4">
-            <div className="shrink-0 flex items-start justify-between gap-3">
-              <div className="flex-1 text-center">
-                <h2 className="text-xl font-bold [text-shadow:0_1px_2px_rgba(255,255,255,0.95),0_0_14px_rgba(255,255,255,0.55)]">
+            <div className="shrink-0 space-y-3">
+              <div className="text-center">
+                <h1 className="wine-quiz-page-title text-4xl font-bold md:text-6xl">
                   🤔 Угадайте вино!
-                </h2>
-                <p className="mt-1 text-sm font-medium text-[var(--foreground)] [text-shadow:0_1px_2px_rgba(255,255,255,0.9)]">
+                </h1>
+                <p className="mt-2 text-base font-bold text-[var(--primary)] md:text-lg">
                   Раунд {currentRound}/{game?.totalRounds}
                 </p>
               </div>
               {game?.code && (
+                <div className="flex justify-end">
                 <Link
                   href={`/join/${game.code}`}
                   className="shrink-0 flex flex-col items-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
@@ -907,6 +908,7 @@ export default function PlayPage() {
                     К странице игры
                   </span>
                 </Link>
+                </div>
               )}
             </div>
 
@@ -950,10 +952,10 @@ export default function PlayPage() {
         {phase === "GUESS_SUBMITTED" && (
           <div className="space-y-6 py-16 text-center">
             <div className="text-6xl mb-4">✅</div>
-            <h2 className="mb-2 text-xl font-bold [text-shadow:0_1px_2px_rgba(255,255,255,0.95),0_0_14px_rgba(255,255,255,0.55)]">
+            <h1 className="wine-quiz-page-title text-4xl font-bold md:text-6xl">
               Ответ отправлен!
-            </h2>
-            <p className="font-medium text-[var(--foreground)] [text-shadow:0_1px_2px_rgba(255,255,255,0.85)]">
+            </h1>
+            <p className="mt-2 font-medium text-[var(--foreground)]">
               Ожидайте, пока хост закроет раунд...
             </p>
             {game?.code && (

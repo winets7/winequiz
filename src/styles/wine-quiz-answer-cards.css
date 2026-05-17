@@ -75,13 +75,13 @@
 @media (min-width: 768px) and (max-width: 1023px) and (orientation: portrait) {
   :root {
     --wq-answer-label-font-size: 0.8125rem;
-    --wq-answer-value-font-size: 1.0625rem;
+    --wq-answer-value-font-size: 2.125rem;
     --wq-answer-card-gap: 1rem;
     --wq-answer-card-header-margin-bottom: 0.625rem;
     --wq-answer-card-header-padding-bottom: 0.625rem;
     --wq-answer-grid-min-height: 280px;
-    --wq-answer-country-name-font-size: clamp(1.375rem, 8.5cqmin, 2.25rem);
-    --wq-answer-country-flag-font-size: clamp(1.625rem, 10cqmin, 3rem);
+    --wq-answer-country-name-font-size: clamp(2.75rem, 17cqmin, 4.5rem);
+    --wq-answer-country-flag-font-size: clamp(3.25rem, 20cqmin, 6rem);
   }
 }
 

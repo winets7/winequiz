@@ -768,10 +768,12 @@ export default function PlayPage() {
               }`}
             />
           </div>
-          <div className="text-sm font-bold text-[var(--primary)]">
-            {phase !== "GAME_FINISHED"
-              ? `Раунд ${currentRound}/${game?.totalRounds || "?"}`
-              : "Игра завершена"}
+          <div className="min-w-[4.5rem] text-center text-sm font-bold text-[var(--primary)]">
+            {phase === "GAME_FINISHED"
+              ? "Игра завершена"
+              : !participantAnswerGarden
+                ? `Раунд ${currentRound}/${game?.totalRounds || "?"}`
+                : null}
           </div>
           <div className="flex items-center gap-2">
             {isHost && (
@@ -862,54 +864,83 @@ export default function PlayPage() {
         {/* ROUND_ACTIVE (Участник заполняет форму) */}
         {phase === "ROUND_ACTIVE" && !isHost && (
           <div className="flex min-h-0 flex-1 flex-col gap-4">
-            <div className="shrink-0 space-y-3">
-              <div className="text-center">
-                <h1 className="wine-quiz-page-title text-4xl font-bold md:text-6xl">
-                  🤔 Угадайте вино!
-                </h1>
-                <p className="mt-2 text-base font-bold text-[var(--primary)] md:text-lg">
-                  Раунд {currentRound}/{game?.totalRounds}
-                </p>
-              </div>
-              {game?.code && (
-                <div className="flex justify-end">
-                <Link
-                  href={`/join/${game.code}`}
-                  className="shrink-0 flex flex-col items-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-                  title="Вернуться на страницу игры"
-                >
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full shadow-sm transition-transform hover:scale-105">
-                    <svg
-                      viewBox="0 0 64 64"
-                      className="h-11 w-11"
-                      aria-hidden="true"
-                    >
-                      <defs>
-                        <radialGradient id="outerMetal" cx="32%" cy="28%" r="72%">
-                          <stop offset="0%" stopColor="#f7f7f7" />
-                          <stop offset="55%" stopColor="#d6d6d6" />
-                          <stop offset="100%" stopColor="#a8a8a8" />
-                        </radialGradient>
-                        <radialGradient id="innerRed" cx="34%" cy="26%" r="74%">
-                          <stop offset="0%" stopColor="#d43d3d" />
-                          <stop offset="65%" stopColor="#a20f16" />
-                          <stop offset="100%" stopColor="#7a070c" />
-                        </radialGradient>
-                      </defs>
-                      <circle cx="32" cy="32" r="31" fill="url(#outerMetal)" />
-                      <circle cx="32" cy="32" r="23" fill="url(#innerRed)" />
-                      <path
-                        d="M37 17 21 32l16 15v-9c8.5 0 12.5 4.7 14 10-0.2-11.5-3.9-21-14-21z"
-                        fill="#fff"
-                      />
-                    </svg>
-                  </span>
-                  <span className="mt-1 text-[11px] font-medium">
-                    К странице игры
-                  </span>
-                </Link>
+            <div className="shrink-0">
+              <div className="flex items-start gap-2 sm:gap-3">
+                {game?.code ? (
+                  <Link
+                    href={`/join/${game.code}`}
+                    className="flex w-[4.25rem] shrink-0 flex-col items-center text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)] sm:w-[4.75rem]"
+                    title="Вернуться на страницу игры"
+                  >
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full shadow-sm transition-transform hover:scale-105 sm:h-11 sm:w-11">
+                      <svg
+                        viewBox="0 0 64 64"
+                        className="h-10 w-10 sm:h-11 sm:w-11"
+                        aria-hidden="true"
+                      >
+                        <defs>
+                          <radialGradient
+                            id="playJoinBackOuterMetal"
+                            cx="32%"
+                            cy="28%"
+                            r="72%"
+                          >
+                            <stop offset="0%" stopColor="#f7f7f7" />
+                            <stop offset="55%" stopColor="#d6d6d6" />
+                            <stop offset="100%" stopColor="#a8a8a8" />
+                          </radialGradient>
+                          <radialGradient
+                            id="playJoinBackInnerRed"
+                            cx="34%"
+                            cy="26%"
+                            r="74%"
+                          >
+                            <stop offset="0%" stopColor="#d43d3d" />
+                            <stop offset="65%" stopColor="#a20f16" />
+                            <stop offset="100%" stopColor="#7a070c" />
+                          </radialGradient>
+                        </defs>
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r="31"
+                          fill="url(#playJoinBackOuterMetal)"
+                        />
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r="23"
+                          fill="url(#playJoinBackInnerRed)"
+                        />
+                        <path
+                          d="M37 17 21 32l16 15v-9c8.5 0 12.5 4.7 14 10-0.2-11.5-3.9-21-14-21z"
+                          fill="#fff"
+                        />
+                      </svg>
+                    </span>
+                    <span className="mt-0.5 text-center text-[10px] font-medium leading-tight sm:text-[11px]">
+                      К странице игры
+                    </span>
+                  </Link>
+                ) : (
+                  <div
+                    className="w-[4.25rem] shrink-0 sm:w-[4.75rem]"
+                    aria-hidden
+                  />
+                )}
+                <div className="min-w-0 flex-1 pt-0.5 text-center">
+                  <h1 className="wine-quiz-page-title text-xl font-bold sm:text-2xl md:text-3xl">
+                    🤔 Угадайте вино!
+                  </h1>
+                  <p className="wine-quiz-round-label mt-1">
+                    Раунд {currentRound}/{game?.totalRounds}
+                  </p>
                 </div>
-              )}
+                <div
+                  className="w-[4.25rem] shrink-0 sm:w-[4.75rem]"
+                  aria-hidden
+                />
+              </div>
             </div>
 
             <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl ring-2 ring-black/15 shadow-lg dark:ring-white/20">

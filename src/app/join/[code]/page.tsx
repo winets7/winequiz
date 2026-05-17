@@ -337,11 +337,26 @@ export default function JoinPage() {
         </div>
 
         {/* Верхняя панель */}
-        <div className="w-full max-w-4xl flex items-center justify-between mb-6 mt-4">
-          <h1 className="wine-quiz-page-title text-4xl font-bold md:text-6xl">
-            🍷 Винная Викторина
-          </h1>
-          <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+        <div className="mb-6 mt-4 flex w-full max-w-4xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 flex-col gap-3 md:flex-1 md:flex-row md:items-center md:gap-4">
+            <h1 className="wine-quiz-page-title shrink-0 text-4xl font-bold md:text-6xl">
+              🍷 Винная Викторина
+            </h1>
+            <div
+              className={`hidden md:flex ${joinParticipantPanel} items-center gap-3 px-4 py-3`}
+            >
+              <span className="text-3xl" aria-hidden>
+                🍷
+              </span>
+              <div className="min-w-0 text-left">
+                <p className="text-sm font-bold text-[var(--foreground)]">Комната</p>
+                <p className="font-mono text-xl font-bold text-[var(--primary)]">
+                  {code}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 text-sm text-[var(--muted-foreground)] md:justify-end">
             <div
               className={`w-2 h-2 rounded-full ${
                 isConnected ? "bg-[var(--success)]" : "bg-[var(--error)]"
@@ -361,35 +376,21 @@ export default function JoinPage() {
         )}
 
         <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Информация о комнате */}
+          {/* Информация о комнате (только смартфон) */}
           <div
-            className={`order-3 md:order-1 ${joinParticipantPanel} p-6 text-center`}
+            className={`order-3 md:hidden ${joinParticipantPanel} p-6 text-center`}
           >
             <div className="text-5xl mb-4">🍷</div>
             <h2 className="text-xl font-bold mb-2">Комната</h2>
-            <p className="text-2xl font-mono font-bold text-[var(--primary)] mb-4">
+            <p className="text-2xl font-mono font-bold text-[var(--primary)]">
               {code}
             </p>
-            {game && (
-              <div className="text-sm text-[var(--muted-foreground)] space-y-1">
-                <p>Раундов: {game.totalRounds}</p>
-                <p>Макс. игроков: {game.maxPlayers}</p>
-                <p className="mt-2">
-                  Статус:{" "}
-                  {game.status === "WAITING" ? (
-                    <span className="text-[var(--muted-foreground)]">Ожидание</span>
-                  ) : game.status === "PLAYING" ? (
-                    <span className="text-[var(--primary)]">Игра идёт</span>
-                  ) : (
-                    <span className="text-[var(--success)]">Завершена</span>
-                  )}
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Игроки */}
-          <div className={`order-2 md:order-2 ${joinParticipantPanel} p-6`}>
+          <div
+            className={`order-2 md:order-2 md:col-start-2 ${joinParticipantPanel} p-6`}
+          >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">Игроки</h2>
               {game && (

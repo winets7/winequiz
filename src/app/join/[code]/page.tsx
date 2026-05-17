@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSocket } from "@/hooks/useSocket";
@@ -38,6 +38,9 @@ const joinParticipantPanel =
 const joinPageMainBg =
   "bg-[url('/pic/fon.png')] bg-cover bg-center bg-no-repeat";
 
+const joinMainPanelFrame =
+  "rounded-3xl shadow-xl border-4 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg)]";
+
 export default function JoinPage() {
   const params = useParams();
   const code = params.code as string;
@@ -55,9 +58,17 @@ export default function JoinPage() {
   const [rounds, setRounds] = useState<RoundData[]>([]);
   const [loadingRounds, setLoadingRounds] = useState(false);
   const [checkingExistingPlayer, setCheckingExistingPlayer] = useState(false);
+  const [playersExpanded, setPlayersExpanded] = useState(false);
 
   const userId = session?.user?.id ?? null;
   const userName = session?.user?.name ?? "Игрок";
+
+  const sortedPlayers = useMemo(() => {
+    if (!userId) return players;
+    const self = players.find((p) => p.userId === userId);
+    const rest = players.filter((p) => p.userId !== userId);
+    return self ? [self, ...rest] : players;
+  }, [players, userId]);
 
   const autoRejoinLookupDone = useRef(false);
   const pendingAutoSocketJoin = useRef(false);
@@ -343,11 +354,8 @@ export default function JoinPage() {
               🍷 Винная Викторина
             </h1>
             <div
-              className={`hidden md:flex ${joinParticipantPanel} items-center gap-3 px-4 py-3`}
+              className={`hidden md:flex ${joinParticipantPanel} px-4 py-3`}
             >
-              <span className="text-3xl" aria-hidden>
-                🍷
-              </span>
               <div className="min-w-0 text-left">
                 <p className="text-sm font-bold text-[var(--foreground)]">Комната</p>
                 <p className="font-mono text-xl font-bold text-[var(--primary)]">
@@ -375,91 +383,94 @@ export default function JoinPage() {
           </div>
         )}
 
-        <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex w-full max-w-4xl flex-col gap-6">
           {/* Информация о комнате (только смартфон) */}
-          <div
-            className={`order-3 md:hidden ${joinParticipantPanel} p-6 text-center`}
-          >
-            <div className="text-5xl mb-4">🍷</div>
+          <div className={`md:hidden ${joinParticipantPanel} p-6 text-center`}>
             <h2 className="text-xl font-bold mb-2">Комната</h2>
             <p className="text-2xl font-mono font-bold text-[var(--primary)]">
               {code}
             </p>
           </div>
 
-          {/* Игроки */}
-          <div
-            className={`order-2 md:order-2 md:col-start-2 ${joinParticipantPanel} p-6`}
-          >
-            <div className="flex items-center justify-between mb-4">
+          {/* Раунды */}
+          {game ? (
+            <div className={`${joinMainPanelFrame} p-1`}>
+              <PlayerRoundsList
+                rounds={rounds}
+                totalRounds={game.totalRounds}
+                gameId={gameId}
+                gameStatus={game.status}
+              />
+            </div>
+          ) : null}
+
+          {/* Игроки (сворачиваемый блок) */}
+          <div className={joinMainPanelFrame}>
+            <button
+              type="button"
+              onClick={() => setPlayersExpanded((open) => !open)}
+              aria-expanded={playersExpanded}
+              className="flex w-full items-center justify-between gap-3 rounded-3xl px-4 py-4 text-left transition-colors hover:bg-[var(--wine-quiz-active-game-card-bg-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--wine-quiz-active-game-card-focus-ring)] focus:ring-offset-2 focus:ring-offset-[var(--background)]"
+            >
               <h2 className="text-xl font-bold">Игроки</h2>
-              {game && (
-                <span className="border-2 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg-hover)] text-[var(--foreground)] px-3 py-1 rounded-full text-sm font-medium">
-                  {players.length} / {game.maxPlayers}
+              <span className="flex shrink-0 items-center gap-2">
+                {game ? (
+                  <span className="rounded-full border-2 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg-hover)] px-3 py-1 text-sm font-medium text-[var(--foreground)]">
+                    {players.length} / {game.maxPlayers}
+                  </span>
+                ) : null}
+                <span className="text-sm text-[var(--muted-foreground)]" aria-hidden>
+                  {playersExpanded ? "▼" : "▶"}
                 </span>
-              )}
-            </div>
+              </span>
+            </button>
 
-            <div className="space-y-3 max-h-64 overflow-y-auto no-scrollbar">
-              {players.map((player, index) => (
-                <div
-                  key={player.userId}
-                  className={`flex items-center gap-3 p-3 rounded-xl ${
-                    player.userId === userId
-                      ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
-                      : "bg-[var(--wine-quiz-active-game-card-bg-hover)]"
-                  }`}
-                >
-                  <div className="w-10 h-10 rounded-full bg-[var(--background)] text-[var(--foreground)] flex items-center justify-center font-bold text-sm">
-                    {index + 1}
+            {playersExpanded ? (
+              <div className="max-h-64 space-y-3 overflow-y-auto border-t-2 border-[var(--wine-quiz-active-game-card-border)] px-4 pb-4 pt-3 no-scrollbar">
+                {sortedPlayers.map((player, index) => (
+                  <div
+                    key={player.userId}
+                    className={`flex items-center gap-3 rounded-xl p-3 ${
+                      player.userId === userId
+                        ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                        : "bg-[var(--wine-quiz-active-game-card-bg-hover)]"
+                    }`}
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--background)] text-sm font-bold text-[var(--foreground)]">
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">
+                        {player.name}
+                        {player.userId === userId ? " (вы)" : ""}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium">
-                      {player.name}
-                      {player.userId === userId && " (вы)"}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))}
 
-              {players.length === 0 && (
-                <div className="text-center py-6 text-[var(--muted-foreground)]">
-                  <div className="text-3xl mb-2">⏳</div>
-                  <p>Ожидание игроков...</p>
-                </div>
-              )}
-            </div>
+                {sortedPlayers.length === 0 ? (
+                  <div className="py-6 text-center text-[var(--muted-foreground)]">
+                    <div className="mb-2 text-3xl">⏳</div>
+                    <p>Ожидание игроков...</p>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
-          {/* Раунды (главный блок для участника) */}
-          {game && (
-            <div className="order-1 md:order-3 md:col-span-2 space-y-3">
-              <div className="text-sm md:text-base font-semibold text-[var(--primary)] text-center">
-                Главный блок: ваши раунды
-              </div>
-              <div className={`rounded-3xl shadow-xl p-1 border-4 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg)]`}>
-                <PlayerRoundsList
-                  rounds={rounds}
-                  totalRounds={game.totalRounds}
-                  gameId={gameId}
-                  gameStatus={game.status}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Статус ожидания */}
-          {game && game.status === "WAITING" && (
-            <div className="md:col-span-2 text-center py-2 text-[var(--muted-foreground)]">
+          {game && game.status === "WAITING" ? (
+            <div className="py-2 text-center text-[var(--muted-foreground)]">
               <span className="animate-pulse">⏳</span> Ожидайте, пока хост начнёт игру
             </div>
-          )}
+          ) : null}
 
-          {game && game.status === "PLAYING" && (
-            <div className="md:col-span-2 text-center py-2 text-[var(--primary)] font-semibold text-lg">
+          {game && game.status === "PLAYING" ? (
+            <div className="py-2 text-center text-lg font-semibold text-[var(--primary)]">
               Идет игра
             </div>
-          )}
+          ) : null}
+
+
         </div>
       </main>
     );

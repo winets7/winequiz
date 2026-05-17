@@ -6,6 +6,10 @@ import { COLOR_LABELS, COLOR_ICONS, SWEETNESS_LABELS, COMPOSITION_LABELS } from 
 import { WineParams } from "./wine-form";
 import { CountryValueBlock } from "./country-value-block";
 
+/** Карточка ответа на /play — см. `.cursor/rules/wine-quiz-active-game-cards.mdc` */
+const WINE_QUIZ_ANSWER_CARD =
+  "flex min-h-0 min-w-0 flex-col rounded-xl border-4 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg)] text-left shadow-md transition-colors card-shadow [container-type:size] [padding:clamp(0.5rem,3cqmin,1rem)] hover:border-[var(--wine-quiz-active-game-card-border-hover)] hover:bg-[var(--wine-quiz-active-game-card-bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wine-quiz-active-game-card-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent";
+
 /** Слова для замера ширины: пробелы, запятые, точки с запятой — границы; без разрыва внутри токена. */
 function extractWordsFromValueStrings(strings: string[]): string[] {
   const seen = new Set<string>();
@@ -71,29 +75,41 @@ function fitMaxFontAllWordsFitWidth(
   return best;
 }
 
-/** Фон карточки = иллюстрация параметра на всю ячейку — см. `.cursor/rules/wine-quiz-wineparam-assets.mdc` */
-const WINE_PARAM_CARD_BG: Record<string, string> = {
-  color: "/ui/wineparam/colorwine@2x.png",
-  sweetness: "/ui/wineparam/sweetwine@2x.png",
-  composition: "/ui/wineparam/sostavwine@2x.png",
-  "grape-varieties": "/ui/wineparam/sortwine@2x.png",
-  country: "/ui/wineparam/stranawine@2x.png",
-  "vintage-year": "/ui/wineparam/yearwine@2x.png",
-  "alcohol-content": "/ui/wineparam/strongwine@2x.png",
-  "oak-aged": "/ui/wineparam/agedwine@2x.png",
-};
+/** Самая длинная подпись — по ширине ячейки под неё вычисляется общий кегль для всех заголовков. */
+const REFERENCE_LABEL_TEXT = "Выдержка в бочке";
+
+function fitFontToLabelWidth(probe: HTMLElement, wrapWidth: number): number {
+  const minPx = 7;
+  // Ограничиваем верхний порог на широких экранах, чтобы заголовки не были чрезмерно крупными.
+  const maxPx = Math.max(minPx, Math.min(36, wrapWidth * 0.2));
+  let lo = minPx;
+  let hi = maxPx;
+  let best = minPx;
+  probe.style.whiteSpace = "nowrap";
+  probe.style.display = "block";
+
+  for (let i = 0; i < 28; i++) {
+    const mid = (lo + hi) / 2;
+    probe.style.fontSize = `${mid}px`;
+    if (probe.scrollWidth <= wrapWidth + 1) {
+      best = mid;
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  probe.style.fontSize = `${best}px`;
+  return best;
+}
 
 function CharacteristicValueBlock({
   text,
   fontSizePx,
   widthMeasureRef,
-  overlay = false,
 }: {
   text: string;
   fontSizePx: number;
   widthMeasureRef?: MutableRefObject<HTMLDivElement | null>;
-  /** Текст поверх фото-подложки — усиленная тень для читаемости */
-  overlay?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -121,11 +137,7 @@ function CharacteristicValueBlock({
     >
       <div
         ref={textRef}
-        className={`max-h-full w-full min-w-0 text-center font-bold leading-[1.12] [hyphens:none] [overflow-wrap:normal] [word-break:normal] ${
-          overlay
-            ? "text-[var(--foreground)] [text-shadow:0_0_10px_rgba(255,255,255,1),0_2px_8px_rgba(0,0,0,0.75)]"
-            : "text-[var(--foreground)]"
-        }`}
+        className="max-h-full w-full min-w-0 text-center font-bold leading-[1.12] text-[var(--foreground)] [hyphens:none] [overflow-wrap:normal] [word-break:normal]"
         style={{ fontSize: `${fontSizePx}px` }}
       >
         {text}
@@ -149,8 +161,11 @@ export function CharacteristicCards({
   className = "",
 }: CharacteristicCardsProps) {
   const router = useRouter();
+  const labelMeasureWrapRef = useRef<HTMLDivElement>(null);
+  const labelProbeRef = useRef<HTMLSpanElement>(null);
   const valueWidthRef = useRef<HTMLDivElement>(null);
   const valueFontProbeRef = useRef<HTMLSpanElement>(null);
+  const [unifiedLabelFontPx, setUnifiedLabelFontPx] = useState(11);
   const [unifiedValueFontPx, setUnifiedValueFontPx] = useState(12);
 
   const cards = useMemo(() => {
@@ -178,64 +193,58 @@ export function CharacteristicCards({
           : "Нет";
 
     return [
+      { icon: "🎨", label: "Цвет вина", value: colorDisplay, field: "color" as const, path: "color" },
+      { icon: "🍬", label: "Сладость", value: sweetnessDisplay, field: "sweetness" as const, path: "sweetness" },
+      { icon: "🔀", label: "Состав", value: compositionDisplay, field: "composition" as const, path: "composition" },
       {
-        label: "Цвет вина",
-        backgroundSrc: WINE_PARAM_CARD_BG.color,
-        value: colorDisplay,
-        field: "color" as const,
-        path: "color",
-      },
-      {
-        label: "Сладость",
-        backgroundSrc: WINE_PARAM_CARD_BG.sweetness,
-        value: sweetnessDisplay,
-        field: "sweetness" as const,
-        path: "sweetness",
-      },
-      {
-        label: "Состав",
-        backgroundSrc: WINE_PARAM_CARD_BG.composition,
-        value: compositionDisplay,
-        field: "composition" as const,
-        path: "composition",
-      },
-      {
+        icon: "🍇",
         label: "Сорта винограда",
-        backgroundSrc: WINE_PARAM_CARD_BG["grape-varieties"],
         value: grapeDisplay,
         field: "grapeVarieties" as const,
         path: "grape-varieties",
       },
+      { icon: "🌍", label: "Страна", value: countryDisplay, field: "country" as const, path: "country" },
       {
-        label: "Страна",
-        backgroundSrc: WINE_PARAM_CARD_BG.country,
-        value: countryDisplay,
-        field: "country" as const,
-        path: "country",
-      },
-      {
+        icon: "📅",
         label: "Год урожая",
-        backgroundSrc: WINE_PARAM_CARD_BG["vintage-year"],
         value: vintageDisplay,
         field: "vintageYear" as const,
         path: "vintage-year",
       },
       {
+        icon: "🥃",
         label: "Крепость (%)",
-        backgroundSrc: WINE_PARAM_CARD_BG["alcohol-content"],
         value: alcoholDisplay,
         field: "alcoholContent" as const,
         path: "alcohol-content",
       },
       {
-        label: "Выдержка в бочке",
-        backgroundSrc: WINE_PARAM_CARD_BG["oak-aged"],
+        icon: "🪵",
+        label: REFERENCE_LABEL_TEXT,
         value: oakDisplay,
         field: "isOakAged" as const,
         path: "oak-aged",
       },
     ];
   }, [values]);
+
+  useLayoutEffect(() => {
+    const wrap = labelMeasureWrapRef.current;
+    const probe = labelProbeRef.current;
+    if (!wrap || !probe) return;
+
+    const fit = () => {
+      const w = wrap.clientWidth;
+      if (w < 6) return;
+      const px = fitFontToLabelWidth(probe, w);
+      setUnifiedLabelFontPx(px);
+    };
+
+    fit();
+    const ro = new ResizeObserver(() => requestAnimationFrame(fit));
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, []);
 
   useLayoutEffect(() => {
     const wrap = valueWidthRef.current;
@@ -288,34 +297,37 @@ export function CharacteristicCards({
           key={card.field}
           type="button"
           onClick={() => handleCardClick(card.field, card.path)}
-          className="group relative flex min-h-0 min-w-0 overflow-hidden rounded-xl text-left ring-1 ring-black/15 transition-all card-shadow [container-type:size] hover:ring-2 hover:ring-[var(--primary)]/45 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-          aria-label={card.label}
+          className={WINE_QUIZ_ANSWER_CARD}
         >
           <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 origin-top scale-[0.9025] bg-cover bg-top bg-no-repeat transition-[filter] duration-200 group-hover:brightness-105"
-            style={{ backgroundImage: `url(${card.backgroundSrc})` }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/35"
-          />
-          <div
-            className="relative z-[1] flex min-h-0 w-full flex-1 flex-col items-center justify-center [padding:clamp(0.35rem,2.8cqmin,0.85rem)]"
+            ref={index === 0 ? labelMeasureWrapRef : undefined}
+            className="relative min-w-0 shrink-0 border-b border-[var(--wine-quiz-active-game-card-border)] [margin-bottom:clamp(0.25rem,1.2cqmin,0.5rem)] [padding-bottom:clamp(0.25rem,1.2cqmin,0.5rem)]"
           >
-            {card.field === "country" && values.country ? (
-              <div className="flex min-h-0 w-full flex-1 flex-col items-stretch justify-center [&_img]:drop-shadow-md [&_div:last-child]:[text-shadow:0_0_10px_rgba(255,255,255,1),0_2px_8px_rgba(0,0,0,0.75)]">
-                <CountryValueBlock countryName={values.country} />
-              </div>
-            ) : (
-              <CharacteristicValueBlock
-                text={card.value}
-                fontSizePx={unifiedValueFontPx}
-                widthMeasureRef={index === 0 ? valueWidthRef : undefined}
-                overlay
-              />
+            {index === 0 && (
+              <span
+                ref={labelProbeRef}
+                className="pointer-events-none absolute left-0 top-0 block w-full select-none whitespace-nowrap uppercase tracking-wide text-[var(--muted-foreground)] opacity-0"
+                aria-hidden
+              >
+                {REFERENCE_LABEL_TEXT}
+              </span>
             )}
+            <span
+              className="relative z-[1] block min-w-0 whitespace-nowrap uppercase tracking-wide text-[var(--muted-foreground)]"
+              style={{ fontSize: `${unifiedLabelFontPx}px` }}
+            >
+              {card.label}
+            </span>
           </div>
+          {card.field === "country" && values.country ? (
+            <CountryValueBlock countryName={values.country} />
+          ) : (
+            <CharacteristicValueBlock
+              text={card.value}
+              fontSizePx={unifiedValueFontPx}
+              widthMeasureRef={index === 0 ? valueWidthRef : undefined}
+            />
+          )}
         </button>
       ))}
       </div>

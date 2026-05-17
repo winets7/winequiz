@@ -23,7 +23,7 @@ alwaysApply: false
 
 ## Где в коде
 
-- **Карточки ответа игрока** (`/play/[gameId]`, фаза угадывания): `src/components/game/characteristic-cards.tsx` — PNG параметра на **всю площадь ячейки** (`background-image` + `bg-cover`), поверх — **только значение ответа** (текст с тенью / блок страны). Смысл карточки дублируется в **`aria-label`** у `<button>`.
+- **Карточки ответа** на `/play/[gameId]` используют **текстовые** заголовки и значения; стиль рамки/фона — токены из **`wine-quiz-active-game-cards.mdc`**, не PNG wineparam на ячейке.
 - Игрок: `src/app/play/[gameId]/select/*/page.tsx` — папки совпадают с сегментом (кроме `grape-varieties` с дефисом).
 - Хост (черновик раунда): `src/app/lobby/[gameId]/round/[roundNumber]/select/[characteristic]/page.tsx` — список допустимых `characteristic` в коде совпадает с колонкой «Сегмент маршрута».
 

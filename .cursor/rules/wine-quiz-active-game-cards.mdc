@@ -9,7 +9,10 @@ alwaysApply: false
 Один набор **CSS-переменных** в `src/app/globals.css` (светлая и тёмная темы):
 
 - список игр на **`/games/wine-quiz/active`**;
+- карточки ответа на **`/play/[gameId]`** (`CharacteristicCards`, константа `WINE_QUIZ_ANSWER_CARD`);
 - панели на странице **`/join/[code]`** лобби участника (фон страницы там — **`/pic/fon.png`**, см. `joinPageMainBg`).
+
+Общая подложка сетки ответов на `/play`: обёртка с **`/pic/fon.png`** в `page.tsx` (вне отдельных карточек).
 
 ## Токены
 

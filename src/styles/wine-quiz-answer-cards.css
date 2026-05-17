@@ -37,7 +37,6 @@
     --wq-answer-card-padding-bottom: clamp(0.5rem, 3cqmin, 1rem);
     --wq-answer-card-header-margin-bottom: 0;
     --wq-answer-card-header-padding-bottom: 0;
-    --wq-answer-card-border-width: 8px;
     /* Название страны — тот же кегль, что у значений остальных карточек */
     --wq-answer-country-name-font-size: var(--wq-answer-value-font-size);
     --wq-answer-country-flag-font-size: var(--wq-answer-value-font-size);

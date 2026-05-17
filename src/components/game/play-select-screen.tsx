@@ -34,6 +34,34 @@ export const PLAY_SELECT_SAVE_BUTTON_CLASS =
 export const PLAY_SELECT_CHIP_CLASS =
   "inline-flex items-center gap-1 rounded-full border-2 border-[var(--wine-quiz-active-game-card-border-hover)] bg-[var(--wine-quiz-active-game-card-bg-hover)] px-3 py-1 text-sm font-medium text-[var(--foreground)]";
 
+/** Подложка сетки — как блок карточек ответов на /play/[gameId] в раунде */
+export const PLAY_SELECT_GRID_PANEL_CLASS =
+  "relative overflow-hidden rounded-2xl ring-2 ring-black/15 shadow-lg dark:ring-white/20";
+
+type PlaySelectGridPanelProps = {
+  children: ReactNode;
+  className?: string;
+  innerClassName?: string;
+};
+
+export function PlaySelectGridPanel({
+  children,
+  className = "",
+  innerClassName = "",
+}: PlaySelectGridPanelProps) {
+  return (
+    <div className={`${PLAY_SELECT_GRID_PANEL_CLASS} ${className}`.trim()}>
+      <div
+        aria-hidden
+        className={`pointer-events-none absolute inset-0 ${PLAY_SELECT_PAGE_BG}`}
+      />
+      <div className={`relative z-[1] p-2 sm:p-3 ${innerClassName}`.trim()}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 type PlaySelectScreenProps = {
   barTitle: string;
   heading: string;

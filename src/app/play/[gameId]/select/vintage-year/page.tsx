@@ -6,6 +6,7 @@ import { getVintageYears } from "@/lib/wine-data";
 import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
 import {
   PlaySelectScreen,
+  PlaySelectGridPanel,
   PLAY_SELECT_INPUT_CLASS,
   playSelectGridOptionClass,
 } from "@/components/game/play-select-screen";
@@ -52,7 +53,7 @@ export default function SelectVintageYearPage() {
           className={PLAY_SELECT_INPUT_CLASS}
         />
 
-        <div className="grid grid-cols-4 gap-2 sm:gap-3">
+        <PlaySelectGridPanel innerClassName="grid grid-cols-4 gap-2 sm:gap-3">
           {filteredYears.map((year) => (
             <button
               key={year}
@@ -66,7 +67,7 @@ export default function SelectVintageYearPage() {
               ) : null}
             </button>
           ))}
-        </div>
+        </PlaySelectGridPanel>
       </div>
     </PlaySelectScreen>
   );

@@ -80,8 +80,12 @@
     --wq-answer-card-header-margin-bottom: 0.625rem;
     --wq-answer-card-header-padding-bottom: 0.625rem;
     --wq-answer-grid-min-height: 280px;
-    --wq-answer-country-name-font-size: clamp(2.75rem, 17cqmin, 4.5rem);
+    --wq-answer-country-name-font-size: var(--wq-answer-value-font-size);
     --wq-answer-country-flag-font-size: clamp(3.25rem, 20cqmin, 6rem);
+  }
+
+  .wine-quiz-answer-card__country .wine-quiz-answer-card__country-name {
+    line-height: var(--wq-answer-value-line-height);
   }
 }
 

@@ -1,0 +1,44 @@
+---
+description: Типографика карточек ответа игрока (/play) по устройству и ориентации
+globs: "src/components/game/characteristic-cards.tsx,src/components/game/country-value-block.tsx,src/styles/wine-quiz-answer-cards.css"
+alwaysApply: false
+---
+
+# Карточки ответа на /play — типографика по устройству
+
+Стили в **`src/styles/wine-quiz-answer-cards.css`**, классы **`wine-quiz-answer-card*`**.
+
+Цвета рамки/фона — токены из **`wine-quiz-active-game-cards.mdc`** (`--wine-quiz-active-game-card-*`).
+
+## Брейкпоинты
+
+| Режим | Media query |
+|--------|-------------|
+| Смартфон | `max-width: 767px` — сетка карточки `1fr / 2fr` (линия на ⅓ высоты), уменьшенный `padding-top` |
+| Планшет, портрет | `768–1023px` + `orientation: portrait` |
+| Планшет, альбом | `768–1023px` + `orientation: landscape` |
+| Браузер | `min-width: 1024px` |
+
+Те же границы, что у **`.wine-quiz-action-buttons`** в `globals.css`.
+
+## CSS-переменные (менять только в `wine-quiz-answer-cards.css`)
+
+| Переменная | Назначение |
+|------------|------------|
+| `--wq-answer-label-font-size` | Подпись параметра |
+| `--wq-answer-value-font-size` | Значение |
+| `--wq-answer-card-gap` | Зазор сетки 2×4 |
+| `--wq-answer-card-padding-*` | Внутренний отступ карточки |
+| `--wq-answer-card-header-margin-bottom` / `padding-bottom` | Блок заголовка |
+| `--wq-answer-grid-min-height` | Мин. высота сетки |
+| `--wq-answer-country-name-font-size` | Название страны |
+| `--wq-answer-country-flag-font-size` | Эмодзи-флаг (fallback) |
+
+## Компоненты
+
+- **`CharacteristicCards`** — `wine-quiz-answer-cards`, `wine-quiz-answer-card`, не дублировать `text-xs`/`text-base` в JSX.
+- **`CountryValueBlock`** — при `typography="play-answer-card"` классы `wine-quiz-answer-card__country*`.
+
+## Не смешивать
+
+Карточки **хоста** (`HostRoundCharacteristicCards`) пока с Tailwind `text-xs`/`text-base` в компоненте; при переносе — отдельный файл или префикс `--wq-host-*`.

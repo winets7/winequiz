@@ -1,0 +1,215 @@
+/**
+ * Карточки ответа игрока (/play) — типографика и сетка по устройству.
+ * См. .cursor/rules/wine-quiz-answer-card-typography.mdc
+ *
+ * Брейкпоинты:
+ * - смартфон: max-width 767px (базовые :root)
+ * - планшет портрет: 768–1023px + orientation portrait
+ * - планшет альбом: 768–1023px + orientation landscape
+ * - браузер (десктоп): min-width 1024px
+ */
+
+:root {
+  --wq-answer-label-font-size: 0.75rem;
+  --wq-answer-label-line-height: 1.25;
+  --wq-answer-value-font-size: 1rem;
+  --wq-answer-value-line-height: 1.12;
+  --wq-answer-card-padding-min: 0.5rem;
+  --wq-answer-card-padding-fluid: 3cqmin;
+  --wq-answer-card-padding-max: 1rem;
+  --wq-answer-card-gap: 0.75rem;
+  --wq-answer-card-header-margin-bottom: 0.5rem;
+  --wq-answer-card-header-padding-bottom: 0.5rem;
+  --wq-answer-grid-min-height: 220px;
+  --wq-answer-country-name-font-size: clamp(1.5rem, 9.6cqmin, 2.4375rem);
+  --wq-answer-country-flag-font-size: clamp(1.75rem, 11cqmin, 3.25rem);
+}
+
+/* Смартфон */
+@media (max-width: 767px) {
+  :root {
+    /* 12px→11px, 16px→15px */
+    --wq-answer-label-font-size: 0.6875rem;
+    --wq-answer-value-font-size: 0.9375rem;
+    --wq-answer-card-padding-top: 0.25rem;
+    --wq-answer-card-padding-inline: clamp(0.5rem, 3cqmin, 1rem);
+    --wq-answer-card-padding-bottom: clamp(0.5rem, 3cqmin, 1rem);
+    --wq-answer-card-header-margin-bottom: 0;
+    --wq-answer-card-header-padding-bottom: 0;
+    --wq-answer-country-name-font-size: clamp(1.4375rem, 9.6cqmin, 2.375rem);
+    --wq-answer-country-flag-font-size: clamp(1.6875rem, 11cqmin, 3.1875rem);
+  }
+
+  .wine-quiz-answer-card {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 2fr);
+    padding: var(--wq-answer-card-padding-top) var(--wq-answer-card-padding-inline)
+      var(--wq-answer-card-padding-bottom);
+  }
+
+  .wine-quiz-answer-card__header {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    justify-content: flex-end;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: var(--wine-quiz-active-game-card-border);
+  }
+
+  .wine-quiz-answer-card__value-body {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+/* Планшет, портрет */
+@media (min-width: 768px) and (max-width: 1023px) and (orientation: portrait) {
+  :root {
+    --wq-answer-label-font-size: 0.8125rem;
+    --wq-answer-value-font-size: 1.0625rem;
+    --wq-answer-card-gap: 1rem;
+    --wq-answer-card-header-margin-bottom: 0.625rem;
+    --wq-answer-card-header-padding-bottom: 0.625rem;
+    --wq-answer-grid-min-height: 280px;
+    --wq-answer-country-name-font-size: clamp(1.375rem, 8.5cqmin, 2.25rem);
+    --wq-answer-country-flag-font-size: clamp(1.625rem, 10cqmin, 3rem);
+  }
+}
+
+/* Планшет, альбом */
+@media (min-width: 768px) and (max-width: 1023px) and (orientation: landscape) {
+  :root {
+    --wq-answer-label-font-size: 0.875rem;
+    --wq-answer-value-font-size: 1.125rem;
+    --wq-answer-card-gap: 1rem;
+    --wq-answer-card-padding-max: 1.125rem;
+    --wq-answer-card-header-margin-bottom: 0.5rem;
+    --wq-answer-card-header-padding-bottom: 0.5rem;
+    --wq-answer-grid-min-height: 200px;
+    --wq-answer-country-name-font-size: clamp(1.25rem, 7.5cqmin, 2rem);
+    --wq-answer-country-flag-font-size: clamp(1.5rem, 9cqmin, 2.75rem);
+  }
+}
+
+/* Браузер / десктоп */
+@media (min-width: 1024px) {
+  :root {
+    --wq-answer-label-font-size: 0.875rem;
+    --wq-answer-value-font-size: 1.25rem;
+    --wq-answer-card-gap: 1rem;
+    --wq-answer-card-padding-max: 1.25rem;
+    --wq-answer-card-header-margin-bottom: 0.625rem;
+    --wq-answer-card-header-padding-bottom: 0.625rem;
+    --wq-answer-grid-min-height: 260px;
+    --wq-answer-country-name-font-size: clamp(1.5rem, 8cqmin, 2.5rem);
+    --wq-answer-country-flag-font-size: clamp(1.75rem, 9.5cqmin, 3.25rem);
+  }
+}
+
+.wine-quiz-answer-cards {
+  position: relative;
+  min-height: var(--wq-answer-grid-min-height);
+}
+
+.wine-quiz-answer-cards__grid {
+  display: grid;
+  height: 100%;
+  min-height: var(--wq-answer-grid-min-height);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: var(--wq-answer-card-gap);
+}
+
+.wine-quiz-answer-card {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  border-radius: 0.75rem;
+  border-width: 4px;
+  border-style: solid;
+  border-color: var(--wine-quiz-active-game-card-border);
+  background-color: var(--wine-quiz-active-game-card-bg);
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: 0.3s;
+  container-type: size;
+  padding: clamp(
+    var(--wq-answer-card-padding-min),
+    var(--wq-answer-card-padding-fluid),
+    var(--wq-answer-card-padding-max)
+  );
+}
+
+.wine-quiz-answer-card:hover {
+  border-color: var(--wine-quiz-active-game-card-border-hover);
+  background-color: var(--wine-quiz-active-game-card-bg-hover);
+}
+
+.wine-quiz-answer-card:focus {
+  outline: none;
+}
+
+.wine-quiz-answer-card:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 2px var(--wine-quiz-active-game-card-focus-ring),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.dark .wine-quiz-answer-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.wine-quiz-answer-card__header {
+  flex-shrink: 0;
+  min-width: 0;
+  margin-bottom: var(--wq-answer-card-header-margin-bottom);
+  padding-bottom: var(--wq-answer-card-header-padding-bottom);
+  border-bottom: 1px solid var(--wine-quiz-active-game-card-border);
+}
+
+.wine-quiz-answer-card__label {
+  display: block;
+  font-size: var(--wq-answer-label-font-size);
+  line-height: var(--wq-answer-label-line-height);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+
+.wine-quiz-answer-card__value {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: var(--wq-answer-value-font-size);
+  line-height: var(--wq-answer-value-line-height);
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.wine-quiz-answer-card__value-body {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+/* Блок «Страна» внутри карточки ответа */
+.wine-quiz-answer-card__country .wine-quiz-answer-card__country-name {
+  font-size: var(--wq-answer-country-name-font-size);
+}
+
+.wine-quiz-answer-card__country .wine-quiz-answer-card__country-flag-fallback {
+  font-size: var(--wq-answer-country-flag-font-size);
+}

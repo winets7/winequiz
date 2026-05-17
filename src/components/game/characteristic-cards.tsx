@@ -6,10 +6,6 @@ import { COLOR_LABELS, COLOR_ICONS, SWEETNESS_LABELS, COMPOSITION_LABELS } from 
 import { WineParams } from "./wine-form";
 import { CountryValueBlock } from "./country-value-block";
 
-/** Карточка ответа на /play — см. `.cursor/rules/wine-quiz-active-game-cards.mdc` */
-const WINE_QUIZ_ANSWER_CARD =
-  "flex min-h-0 min-w-0 flex-col rounded-xl border-4 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg)] text-left shadow-md transition-colors card-shadow [container-type:size] [padding:clamp(0.5rem,3cqmin,1rem)] hover:border-[var(--wine-quiz-active-game-card-border-hover)] hover:bg-[var(--wine-quiz-active-game-card-bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wine-quiz-active-game-card-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent";
-
 interface CharacteristicCardsProps {
   gameId: string;
   values: Partial<WineParams>;
@@ -94,27 +90,23 @@ export function CharacteristicCards({
   };
 
   return (
-    <div className={`relative min-h-[220px] ${className}`.trim()}>
-      <div className="grid h-full min-h-[220px] grid-cols-2 grid-rows-[repeat(4,minmax(0,1fr))] gap-3 sm:gap-4">
+    <div className={`wine-quiz-answer-cards ${className}`.trim()}>
+      <div className="wine-quiz-answer-cards__grid">
         {cards.map((card) => (
           <button
             key={card.field}
             type="button"
             onClick={() => handleCardClick(card.field, card.path)}
-            className={WINE_QUIZ_ANSWER_CARD}
+            className="wine-quiz-answer-card card-shadow"
           >
-            <div className="mb-2 shrink-0 border-b border-[var(--wine-quiz-active-game-card-border)] pb-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
-                {card.label}
-              </span>
+            <div className="wine-quiz-answer-card__header">
+              <span className="wine-quiz-answer-card__label">{card.label}</span>
             </div>
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <div className="wine-quiz-answer-card__value-body">
               {card.field === "country" && values.country ? (
-                <CountryValueBlock countryName={values.country} />
+                <CountryValueBlock countryName={values.country} typography="play-answer-card" />
               ) : (
-                <div className="flex min-h-0 flex-1 items-center justify-center text-center text-base font-bold text-[var(--foreground)]">
-                  {card.value}
-                </div>
+                <div className="wine-quiz-answer-card__value">{card.value}</div>
               )}
             </div>
           </button>

@@ -338,7 +338,7 @@ export default function JoinPage() {
 
         {/* Верхняя панель */}
         <div className="w-full max-w-4xl flex items-center justify-between mb-6 mt-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-[var(--primary)]">
+          <h1 className="wine-quiz-page-title text-4xl font-bold md:text-6xl">
             🍷 Винная Викторина
           </h1>
           <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">

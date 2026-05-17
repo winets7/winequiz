@@ -97,7 +97,6 @@
     --wq-answer-card-header-margin-bottom: 0;
     --wq-answer-card-header-padding-bottom: 0;
     --wq-answer-grid-min-height: 200px;
-    --wq-answer-country-name-font-size: clamp(1.25rem, 7.5cqmin, 2rem);
     --wq-answer-country-flag-font-size: clamp(1.5rem, 9cqmin, 2.75rem);
   }
 
@@ -245,7 +244,6 @@
 
 .wine-quiz-answer-card__country-col--flag {
   min-height: 0;
-  padding: 0.125rem;
 }
 
 .wine-quiz-answer-card__country .wine-quiz-answer-card__country-name {
@@ -274,10 +272,8 @@
     grid-row: 1;
     width: max-content;
     max-width: 50%;
-    padding: 0.125rem;
-    padding-right: 0.1875rem;
-    justify-self: start;
     border-right: 1px solid var(--wine-quiz-active-game-card-border);
+    padding-inline: clamp(0.125rem, 1.5cqmin, 0.375rem);
   }
 
   .wine-quiz-answer-card__country-col--name {
@@ -291,7 +287,6 @@
     max-height: 100%;
     width: auto;
     height: auto;
-    max-width: none;
     object-fit: contain;
   }
 

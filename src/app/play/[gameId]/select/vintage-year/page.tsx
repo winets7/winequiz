@@ -10,6 +10,12 @@ import {
   PLAY_SELECT_INPUT_CLASS,
   playSelectGridOptionClass,
 } from "@/components/game/play-select-screen";
+import {
+  dispatchWineGuessStorageChange,
+  getActivePlayRoundNumber,
+  readWineGuessFromLocalStorage,
+  writeWineGuessToLocalStorage,
+} from "@/lib/wine-guess-storage";
 
 export default function SelectVintageYearPage() {
   const params = useParams();
@@ -20,16 +26,21 @@ export default function SelectVintageYearPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem(`wine-guess-${gameId}-vintageYear`);
+    const roundNumber = getActivePlayRoundNumber(gameId);
+    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).vintageYear;
     if (saved) {
       setSelectedYear(saved);
     }
   }, [gameId]);
 
   const handleYearSelect = (year: string) => {
+    const roundNumber = getActivePlayRoundNumber(gameId);
     setSelectedYear(year);
-    localStorage.setItem(`wine-guess-${gameId}-vintageYear`, year);
-    window.dispatchEvent(new CustomEvent("localStorageChange"));
+    writeWineGuessToLocalStorage(gameId, roundNumber, {
+      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+      vintageYear: year,
+    });
+    dispatchWineGuessStorageChange();
     goBack();
   };
 

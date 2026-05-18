@@ -7,6 +7,12 @@ import {
   PlaySelectScreen,
   playSelectGridOptionClass,
 } from "@/components/game/play-select-screen";
+import {
+  dispatchWineGuessStorageChange,
+  getActivePlayRoundNumber,
+  readWineGuessFromLocalStorage,
+  writeWineGuessToLocalStorage,
+} from "@/lib/wine-guess-storage";
 
 export default function SelectOakAgedPage() {
   const params = useParams();
@@ -16,16 +22,21 @@ export default function SelectOakAgedPage() {
   const [isOakAged, setIsOakAged] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem(`wine-guess-${gameId}-isOakAged`);
-    if (saved !== null) {
-      setIsOakAged(saved === "true");
+    const roundNumber = getActivePlayRoundNumber(gameId);
+    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).isOakAged;
+    if (saved !== null && saved !== undefined) {
+      setIsOakAged(saved);
     }
   }, [gameId]);
 
   const handleSelect = (value: boolean) => {
+    const roundNumber = getActivePlayRoundNumber(gameId);
     setIsOakAged(value);
-    localStorage.setItem(`wine-guess-${gameId}-isOakAged`, value.toString());
-    window.dispatchEvent(new CustomEvent("localStorageChange"));
+    writeWineGuessToLocalStorage(gameId, roundNumber, {
+      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+      isOakAged: value,
+    });
+    dispatchWineGuessStorageChange();
     goBack();
   };
 

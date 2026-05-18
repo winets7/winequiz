@@ -8,6 +8,12 @@ import {
   PlaySelectScreen,
   playSelectGridOptionClass,
 } from "@/components/game/play-select-screen";
+import {
+  dispatchWineGuessStorageChange,
+  getActivePlayRoundNumber,
+  readWineGuessFromLocalStorage,
+  writeWineGuessToLocalStorage,
+} from "@/lib/wine-guess-storage";
 
 export default function SelectCompositionPage() {
   const params = useParams();
@@ -17,16 +23,21 @@ export default function SelectCompositionPage() {
   const [selectedComposition, setSelectedComposition] = useState<string>("");
 
   useEffect(() => {
-    const saved = localStorage.getItem(`wine-guess-${gameId}-composition`);
+    const roundNumber = getActivePlayRoundNumber(gameId);
+    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).composition;
     if (saved) {
       setSelectedComposition(saved);
     }
   }, [gameId]);
 
   const handleCompositionSelect = (composition: string) => {
+    const roundNumber = getActivePlayRoundNumber(gameId);
     setSelectedComposition(composition);
-    localStorage.setItem(`wine-guess-${gameId}-composition`, composition);
-    window.dispatchEvent(new CustomEvent("localStorageChange"));
+    writeWineGuessToLocalStorage(gameId, roundNumber, {
+      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+      composition,
+    });
+    dispatchWineGuessStorageChange();
     goBack();
   };
 

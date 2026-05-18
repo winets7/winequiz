@@ -8,6 +8,12 @@ import {
   PlaySelectScreen,
   playSelectGridOptionClass,
 } from "@/components/game/play-select-screen";
+import {
+  dispatchWineGuessStorageChange,
+  getActivePlayRoundNumber,
+  readWineGuessFromLocalStorage,
+  writeWineGuessToLocalStorage,
+} from "@/lib/wine-guess-storage";
 
 export default function SelectSweetnessPage() {
   const params = useParams();
@@ -17,16 +23,21 @@ export default function SelectSweetnessPage() {
   const [selectedSweetness, setSelectedSweetness] = useState<string>("");
 
   useEffect(() => {
-    const saved = localStorage.getItem(`wine-guess-${gameId}-sweetness`);
+    const roundNumber = getActivePlayRoundNumber(gameId);
+    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).sweetness;
     if (saved) {
       setSelectedSweetness(saved);
     }
   }, [gameId]);
 
   const handleSweetnessSelect = (sweetness: string) => {
+    const roundNumber = getActivePlayRoundNumber(gameId);
     setSelectedSweetness(sweetness);
-    localStorage.setItem(`wine-guess-${gameId}-sweetness`, sweetness);
-    window.dispatchEvent(new CustomEvent("localStorageChange"));
+    writeWineGuessToLocalStorage(gameId, roundNumber, {
+      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+      sweetness,
+    });
+    dispatchWineGuessStorageChange();
     goBack();
   };
 

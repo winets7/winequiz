@@ -9,6 +9,12 @@ import {
   PLAY_SELECT_INPUT_CLASS,
   playSelectListRowClass,
 } from "@/components/game/play-select-screen";
+import {
+  dispatchWineGuessStorageChange,
+  getActivePlayRoundNumber,
+  readWineGuessFromLocalStorage,
+  writeWineGuessToLocalStorage,
+} from "@/lib/wine-guess-storage";
 
 export default function SelectAlcoholContentPage() {
   const params = useParams();
@@ -19,16 +25,21 @@ export default function SelectAlcoholContentPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem(`wine-guess-${gameId}-alcoholContent`);
+    const roundNumber = getActivePlayRoundNumber(gameId);
+    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).alcoholContent;
     if (saved) {
       setSelectedAlcohol(saved);
     }
   }, [gameId]);
 
   const handleAlcoholSelect = (alcohol: string) => {
+    const roundNumber = getActivePlayRoundNumber(gameId);
     setSelectedAlcohol(alcohol);
-    localStorage.setItem(`wine-guess-${gameId}-alcoholContent`, alcohol);
-    window.dispatchEvent(new CustomEvent("localStorageChange"));
+    writeWineGuessToLocalStorage(gameId, roundNumber, {
+      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+      alcoholContent: alcohol,
+    });
+    dispatchWineGuessStorageChange();
     goBack();
   };
 

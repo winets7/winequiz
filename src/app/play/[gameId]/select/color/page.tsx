@@ -8,6 +8,12 @@ import {
   PlaySelectScreen,
   playSelectGridOptionClass,
 } from "@/components/game/play-select-screen";
+import {
+  dispatchWineGuessStorageChange,
+  getActivePlayRoundNumber,
+  readWineGuessFromLocalStorage,
+  writeWineGuessToLocalStorage,
+} from "@/lib/wine-guess-storage";
 
 export default function SelectColorPage() {
   const params = useParams();
@@ -17,16 +23,21 @@ export default function SelectColorPage() {
   const [selectedColor, setSelectedColor] = useState<string>("");
 
   useEffect(() => {
-    const saved = localStorage.getItem(`wine-guess-${gameId}-color`);
+    const roundNumber = getActivePlayRoundNumber(gameId);
+    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).color;
     if (saved) {
       setSelectedColor(saved);
     }
   }, [gameId]);
 
   const handleColorSelect = (color: string) => {
+    const roundNumber = getActivePlayRoundNumber(gameId);
     setSelectedColor(color);
-    localStorage.setItem(`wine-guess-${gameId}-color`, color);
-    window.dispatchEvent(new CustomEvent("localStorageChange"));
+    writeWineGuessToLocalStorage(gameId, roundNumber, {
+      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+      color,
+    });
+    dispatchWineGuessStorageChange();
     goBack();
   };
 

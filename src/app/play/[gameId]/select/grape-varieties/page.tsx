@@ -11,6 +11,12 @@ import {
   PLAY_SELECT_SAVE_BUTTON_CLASS,
   playSelectListRowClass,
 } from "@/components/game/play-select-screen";
+import {
+  dispatchWineGuessStorageChange,
+  getActivePlayRoundNumber,
+  readWineGuessFromLocalStorage,
+  writeWineGuessToLocalStorage,
+} from "@/lib/wine-guess-storage";
 
 export default function SelectGrapeVarietiesPage() {
   const params = useParams();
@@ -21,16 +27,10 @@ export default function SelectGrapeVarietiesPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem(`wine-guess-${gameId}-grapeVarieties`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setSelectedGrapes(parsed);
-        }
-      } catch {
-        // ignore parse errors
-      }
+    const roundNumber = getActivePlayRoundNumber(gameId);
+    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).grapeVarieties;
+    if (saved && saved.length > 0) {
+      setSelectedGrapes(saved);
     }
   }, [gameId]);
 
@@ -41,11 +41,12 @@ export default function SelectGrapeVarietiesPage() {
   };
 
   const handleSave = () => {
-    localStorage.setItem(
-      `wine-guess-${gameId}-grapeVarieties`,
-      JSON.stringify(selectedGrapes)
-    );
-    window.dispatchEvent(new CustomEvent("localStorageChange"));
+    const roundNumber = getActivePlayRoundNumber(gameId);
+    writeWineGuessToLocalStorage(gameId, roundNumber, {
+      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+      grapeVarieties: selectedGrapes,
+    });
+    dispatchWineGuessStorageChange();
     goBack();
   };
 

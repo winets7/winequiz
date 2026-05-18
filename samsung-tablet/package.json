@@ -7,7 +7,7 @@
     "icons": "node scripts/copy-icons.mjs",
     "cap:sync": "npx cap sync android",
     "android:debug": "cd android && .\\gradlew.bat assembleDebug",
-    "android:release": "node scripts/ensure-keystore.mjs && cd android && .\\gradlew.bat assembleRelease",
+    "android:release": "node scripts/ensure-keystore.mjs && node scripts/ensure-local-properties.mjs && npm run icons && npx cap sync android && cd android && .\\gradlew.bat assembleRelease",
     "install:release": "node scripts/install-release.mjs"
   },
   "dependencies": {

@@ -7,11 +7,20 @@ import android.content.Intent;
 public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent == null || !Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
+        if (intent == null || intent.getAction() == null) {
             return;
         }
-        Intent launch = new Intent(context, MainActivity.class);
-        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        context.startActivity(launch);
+
+        String action = intent.getAction();
+        if (!Intent.ACTION_BOOT_COMPLETED.equals(action)
+                && !Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(action)
+                && !"android.intent.action.QUICKBOOT_POWERON".equals(action)
+                && !"com.htc.intent.action.QUICKBOOT_POWERON".equals(action)) {
+            return;
+        }
+
+        final PendingResult pendingResult = goAsync();
+        BootLaunchScheduler.schedule(context);
+        pendingResult.finish();
     }
 }

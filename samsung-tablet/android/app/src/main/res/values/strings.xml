@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Винная Викторина</string>
+    <string name="title_activity_main">Винная Викторина</string>
+    <string name="package_name">ru.vintaste.winequiz</string>
+    <string name="custom_url_scheme">ru.vintaste.winequiz</string>
+</resources>

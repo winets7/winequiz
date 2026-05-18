@@ -1,30 +1,16 @@
 package ru.vintaste.winequiz;
 
 import android.os.Bundle;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.splashscreen.SplashScreen;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
-import org.mozilla.geckoview.GeckoRuntime;
-import org.mozilla.geckoview.GeckoRuntimeSettings;
-import org.mozilla.geckoview.GeckoSession;
-import org.mozilla.geckoview.GeckoView;
+import com.getcapacitor.BridgeActivity;
 
-public class MainActivity extends AppCompatActivity {
-
-    private static final String START_URL = "https://vintaste.ru/";
-
-    private GeckoRuntime runtime;
-    private GeckoSession session;
-
+public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
         hideNavigationBar();
-        setupGecko();
     }
 
     @Override
@@ -33,27 +19,6 @@ public class MainActivity extends AppCompatActivity {
         if (hasFocus) {
             hideNavigationBar();
         }
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (session != null) {
-            session.close();
-            session = null;
-        }
-        runtime = null;
-        super.onDestroy();
-    }
-
-    private void setupGecko() {
-        GeckoView geckoView = findViewById(R.id.gecko_view);
-        GeckoRuntimeSettings settings =
-                new GeckoRuntimeSettings.Builder().javaScriptEnabled(true).build();
-        runtime = GeckoRuntime.create(this, settings);
-        session = new GeckoSession();
-        session.open(runtime);
-        geckoView.setSession(session);
-        session.loadUri(START_URL);
     }
 
     private void hideNavigationBar() {

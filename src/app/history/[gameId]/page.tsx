@@ -8,6 +8,11 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { RoundHistoryItem } from "@/components/profile/round-history-item";
 import { RoundResults } from "@/components/game/round-results";
 import { HostRoundPlayersStatus } from "@/components/game/host-round-players-status";
+import { PLAY_SELECT_PAGE_BG } from "@/components/game/play-select-screen";
+
+const historyPageMainClass = `relative min-h-screen pb-8 ${PLAY_SELECT_PAGE_BG}`;
+const historyPageHeaderClass =
+  "sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--background)]/85 backdrop-blur-md supports-[backdrop-filter]:bg-[var(--background)]/65";
 
 interface GameInfo {
   id: string;
@@ -206,7 +211,7 @@ export default function HistoryPage() {
 
   if (sessionStatus === "loading" || loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
+      <main className={`flex items-center justify-center ${historyPageMainClass}`}>
         <div className="text-center">
           <div className="text-5xl mb-4 animate-pulse">🍷</div>
           <p className="text-[var(--muted-foreground)]">Загрузка истории...</p>
@@ -217,7 +222,7 @@ export default function HistoryPage() {
 
   if (error && !hostOverview) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4">
+      <main className={`flex items-center justify-center p-4 ${historyPageMainClass}`}>
         <div className="text-center space-y-4">
           <div className="text-5xl">😕</div>
           <p className="text-xl text-[var(--error)]">{error || "История не найдена"}</p>
@@ -237,8 +242,8 @@ export default function HistoryPage() {
     const isClosed = round.status === "CLOSED";
 
     return (
-      <main className="min-h-screen pb-8">
-        <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
+      <main className={historyPageMainClass}>
+        <div className={historyPageHeaderClass}>
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
               <Link
@@ -316,7 +321,7 @@ export default function HistoryPage() {
 
   if (!history) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4">
+      <main className={`flex items-center justify-center p-4 ${historyPageMainClass}`}>
         <div className="text-center space-y-4">
           <div className="text-5xl">😕</div>
           <p className="text-xl text-[var(--error)]">Данные не загружены</p>
@@ -333,8 +338,8 @@ export default function HistoryPage() {
 
   if ("isHostView" in history && history.isHostView) {
     return (
-      <main className="min-h-screen pb-8">
-        <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
+      <main className={historyPageMainClass}>
+        <div className={historyPageHeaderClass}>
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
             <Link
               href="/profile"
@@ -449,8 +454,8 @@ export default function HistoryPage() {
   );
 
   return (
-    <main className="min-h-screen pb-8">
-      <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
+    <main className={historyPageMainClass}>
+      <div className={historyPageHeaderClass}>
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link
             href="/profile"

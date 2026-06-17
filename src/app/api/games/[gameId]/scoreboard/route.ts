@@ -36,6 +36,7 @@ export async function GET(
         code: true,
         status: true,
         totalRounds: true,
+        currentRound: true,
         createdAt: true,
         finishedAt: true,
         hostId: true,
@@ -90,6 +91,17 @@ export async function GET(
       orderBy: { roundNumber: "asc" },
     });
 
+    /** Только текущий раунд игры может быть ACTIVE (см. POST /api/rounds). */
+    const effectiveRoundStatus = (round: (typeof rounds)[number]) => {
+      if (
+        round.status === "ACTIVE" &&
+        round.roundNumber !== game.currentRound
+      ) {
+        return "CREATED";
+      }
+      return round.status;
+    };
+
     // Формируем данные для scoreboard
     // roundCells: по каждому раунду — фаза отображения и итоговый балл (только после CLOSED)
     const scoreboardData = players.map((player, index) => {
@@ -99,16 +111,17 @@ export async function GET(
       }[] = [];
 
       rounds.forEach((round) => {
+        const status = effectiveRoundStatus(round);
         const guess = round.guesses.find(
           (g) => g.gamePlayer.user.id === player.user.id
         );
 
-        if (round.status === "CLOSED") {
+        if (status === "CLOSED") {
           roundCells.push({
             phase: "done",
             score: guess !== undefined ? guess.score : null,
           });
-        } else if (round.status === "ACTIVE") {
+        } else if (status === "ACTIVE") {
           roundCells.push({
             phase: guess ? "live_done" : "live_pending",
             score: null,
@@ -141,7 +154,7 @@ export async function GET(
       players: scoreboardData,
       rounds: rounds.map((r) => ({
         roundNumber: r.roundNumber,
-        status: r.status,
+        status: effectiveRoundStatus(r),
       })),
     });
   } catch (error) {

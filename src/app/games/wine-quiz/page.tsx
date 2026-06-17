@@ -57,13 +57,16 @@ export default function WineQuizPage() {
   };
 
   const handleJoinByCode = () => {
-    const code = joinCode.trim().toUpperCase();
-    if (!code) {
+    const digits = joinCode.replace(/\D/g, "");
+    if (!digits) {
       setError("Введите код комнаты");
       return;
     }
-    const fullCode = code.startsWith("WN-") ? code : `WN-${code}`;
-    router.push(`/join/${fullCode}`);
+    if (digits.length !== 6) {
+      setError("Введите 6 цифр кода");
+      return;
+    }
+    router.push(`/join/WN-${digits}`);
   };
 
   const handleSignOut = async () => {
@@ -234,18 +237,24 @@ export default function WineQuizPage() {
 
           {showJoinInput && (
             <div className="mt-6 flex flex-col sm:flex-row gap-3 items-center max-w-md w-full">
-              <div className="flex-1 w-full">
+              <div className="flex-1 w-full flex items-center bg-[var(--card)] border-2 border-[var(--border)] rounded-xl focus-within:ring-2 focus-within:ring-[var(--primary)]">
+                <span className="pl-4 text-lg font-mono text-[var(--muted-foreground)] select-none">
+                  WN-
+                </span>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
                   value={joinCode}
                   onChange={(e) => {
-                    setJoinCode(e.target.value.toUpperCase());
+                    setJoinCode(e.target.value.replace(/\D/g, "").slice(0, 6));
                     setError(null);
                   }}
                   onKeyDown={(e) => e.key === "Enter" && handleJoinByCode()}
-                  placeholder="WN-000000"
-                  maxLength={9}
-                  className="w-full px-4 py-3 bg-[var(--card)] border-2 border-[var(--border)] rounded-xl text-center text-lg font-mono focus:outline-none focus:ring-2 focus:ring-[var(--primary)] placeholder:text-[var(--muted-foreground)]"
+                  placeholder="000000"
+                  maxLength={6}
+                  className="flex-1 min-w-0 px-2 py-3 bg-transparent text-center text-lg font-mono focus:outline-none placeholder:text-[var(--muted-foreground)]"
                 />
               </div>
               <button

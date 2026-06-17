@@ -16,6 +16,9 @@ interface GuessReviewCardsProps {
 const CARD_BASE =
   "flex min-h-[4.25rem] min-w-0 flex-col rounded-xl border-[3px] p-1.5 text-left shadow-sm md:min-h-[4.5rem] portrait:md:min-h-[5rem]";
 
+const CARD_CORRECT = "border-[#7ab889] bg-[#dff0e3]";
+const CARD_INCORRECT = "border-[#e0a0a0] bg-[#fde8e8]";
+
 export function GuessReviewCards({
   guess,
   correctAnswer,
@@ -35,23 +38,19 @@ export function GuessReviewCards({
           return (
             <div
               key={key}
-              className={`${CARD_BASE} ${
-                isMatch
-                  ? "border-[#7ab889] bg-[#dff0e3] dark:border-[#4d8f62] dark:bg-[#1a3324]"
-                  : "border-[#e0a0a0] bg-[#fde8e8] dark:border-[#a05858] dark:bg-[#3a2224]"
-              }`}
+              className={`${CARD_BASE} ${isMatch ? CARD_CORRECT : CARD_INCORRECT}`}
             >
-              <div className="mb-1 shrink-0 border-b border-[var(--wine-quiz-active-game-card-border)] pb-1">
-                <span className="block text-[0.625rem] font-normal uppercase tracking-wide text-[var(--muted-foreground)] md:text-[0.6875rem]">
+              <div className="mb-1 shrink-0 border-b border-[#9cb0a0] pb-1">
+                <span className="block text-[0.625rem] font-normal uppercase tracking-wide text-[#5a6a5e] md:text-[0.6875rem]">
                   {label}
                 </span>
               </div>
               <div className="flex min-h-0 flex-1 flex-col justify-center gap-0.5">
-                <div className="break-words text-[0.8125rem] font-bold leading-tight text-[var(--foreground)] md:text-sm portrait:md:text-base">
+                <div className="break-words text-[0.8125rem] font-bold leading-tight text-[#1a1a1a] md:text-sm portrait:md:text-base">
                   {guessValue}
                 </div>
                 {!isMatch && (
-                  <div className="break-words text-[0.6875rem] font-medium leading-tight text-[var(--muted-foreground)] md:text-xs">
+                  <div className="break-words text-[0.6875rem] font-medium leading-tight text-[#5c4a4a] md:text-xs">
                     {correctValue}
                   </div>
                 )}

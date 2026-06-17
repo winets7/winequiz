@@ -10,7 +10,6 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WineForm, WineParams } from "@/components/game/wine-form";
 import { RoundResults } from "@/components/game/round-results";
 import { CharacteristicCards } from "@/components/game/characteristic-cards";
-import { PLAY_SELECT_PAGE_BG } from "@/components/game/play-select-screen";
 import {
   getActivePlayRoundNumber,
   isWineGuessDraftEmpty,
@@ -202,6 +201,10 @@ function areGuessesEqual(a: SubmittedGuessSnapshot, b: SubmittedGuessSnapshot): 
 
   return true;
 }
+
+/** Фон страницы ответов участника и подложка сетки карточек (как join / wine-quiz). */
+const PLAY_PAGE_FON_BG =
+  "bg-[url('/pic/fon.png')] bg-cover bg-center bg-no-repeat";
 
 /**
  * После гидрации с сервера: не затираем черновик в localStorage, если пользователь
@@ -692,8 +695,8 @@ export default function PlayPage() {
 
   return (
     <main
-      className={`relative flex min-h-screen flex-col items-center overflow-y-auto pb-8${
-        participantAnswerGarden ? ` ${PLAY_SELECT_PAGE_BG}` : ""
+      className={`flex h-dvh min-h-0 flex-col items-center overflow-y-auto pb-8${
+        participantAnswerGarden ? ` ${PLAY_PAGE_FON_BG}` : ""
       }`}
     >
       {/* === Верхняя панель === */}
@@ -897,8 +900,14 @@ export default function PlayPage() {
               </div>
             </div>
 
-            <div className="relative min-h-0 flex-1 p-1 sm:p-2">
-              <CharacteristicCards gameId={gameId} values={guessValues} className="h-full" />
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl ring-2 ring-black/15 shadow-lg dark:ring-white/20">
+              <div
+                aria-hidden
+                className={`pointer-events-none absolute inset-0 ${PLAY_PAGE_FON_BG}`}
+              />
+              <div className="relative z-[1] min-h-0 h-full p-1 sm:p-2">
+                <CharacteristicCards gameId={gameId} values={guessValues} className="h-full" />
+              </div>
             </div>
 
             {showResubmitHint && (

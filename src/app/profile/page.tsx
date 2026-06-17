@@ -10,6 +10,11 @@ import { ProfileStats } from "@/components/profile/profile-stats";
 import { ProfileGames } from "@/components/profile/profile-games";
 import { ProfileAchievements } from "@/components/profile/profile-achievements";
 import { ProfilePrivacy } from "@/components/profile/profile-privacy";
+import { PLAY_SELECT_PAGE_BG } from "@/components/game/play-select-screen";
+
+const profilePageMainClass = `relative min-h-screen pb-8 ${PLAY_SELECT_PAGE_BG}`;
+const profilePageHeaderClass =
+  "sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--background)]/85 backdrop-blur-md supports-[backdrop-filter]:bg-[var(--background)]/65";
 
 interface ProfileData {
   user: {
@@ -110,7 +115,7 @@ export default function ProfilePage() {
 
   if (status === "loading" || loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
+      <main className={`flex items-center justify-center ${profilePageMainClass}`}>
         <div className="text-center">
           <div className="text-5xl mb-4 animate-pulse">🍷</div>
           <p className="text-[var(--muted-foreground)]">Загрузка профиля...</p>
@@ -121,7 +126,7 @@ export default function ProfilePage() {
 
   if (error || !profile) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4">
+      <main className={`flex items-center justify-center p-4 ${profilePageMainClass}`}>
         <div className="text-center space-y-4">
           <div className="text-5xl">😕</div>
           <p className="text-xl text-[var(--error)]">{error || "Профиль не найден"}</p>
@@ -137,9 +142,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen pb-8">
+    <main className={profilePageMainClass}>
       {/* Верхняя панель */}
-      <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
+      <div className={profilePageHeaderClass}>
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link
             href="/"

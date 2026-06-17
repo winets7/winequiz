@@ -26,43 +26,46 @@ function hasLocalStorage(): boolean {
   return typeof window !== "undefined" && typeof localStorage !== "undefined";
 }
 
-/** Ключи до фикса (без номера раунда) — не должны подставляться во 2+ раунд. */
+/** Ключи до фикса (без userId) — общие на устройство, больше не читаем. */
 function legacyWineGuessFieldKey(gameId: string, field: string): string {
   return `wine-guess-${gameId}-${field}`;
 }
 
-function isLegacyWineGuessStorageKey(key: string, gameId: string): boolean {
-  const prefix = `wine-guess-${gameId}-`;
-  if (!key.startsWith(prefix) || key === activePlayRoundStorageKey(gameId)) {
-    return false;
-  }
-  const suffix = key.slice(prefix.length);
-  if (/^r\d+-/.test(suffix)) return false;
-  return (GUESS_FIELDS as readonly string[]).includes(suffix);
-}
-
-export function activePlayRoundStorageKey(gameId: string): string {
-  return `wine-guess-${gameId}-activeRound`;
-}
-
-export function getActivePlayRoundNumber(gameId: string): number {
-  if (!hasLocalStorage()) return 1;
-  const stored = localStorage.getItem(activePlayRoundStorageKey(gameId));
-  const n = stored ? parseInt(stored, 10) : NaN;
-  return Number.isFinite(n) && n > 0 ? n : 1;
-}
-
-export function setActivePlayRoundNumber(gameId: string, roundNumber: number): void {
-  if (!hasLocalStorage()) return;
-  localStorage.setItem(activePlayRoundStorageKey(gameId), String(roundNumber));
-}
-
-export function wineGuessFieldKey(
+function legacyRoundWineGuessFieldKey(
   gameId: string,
   roundNumber: number,
   field: string
 ): string {
   return `wine-guess-${gameId}-r${roundNumber}-${field}`;
+}
+
+export function activePlayRoundStorageKey(gameId: string, userId: string): string {
+  return `wine-guess-${gameId}-u${userId}-activeRound`;
+}
+
+export function getActivePlayRoundNumber(gameId: string, userId: string): number {
+  if (!hasLocalStorage() || !userId) return 1;
+  const stored = localStorage.getItem(activePlayRoundStorageKey(gameId, userId));
+  const n = stored ? parseInt(stored, 10) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+export function setActivePlayRoundNumber(
+  gameId: string,
+  userId: string,
+  roundNumber: number
+): void {
+  if (!hasLocalStorage() || !userId) return;
+  localStorage.setItem(activePlayRoundStorageKey(gameId, userId), String(roundNumber));
+}
+
+export function wineGuessFieldKey(
+  gameId: string,
+  userId: string,
+  roundNumber: number,
+  field: string
+): string {
+  return `wine-guess-${gameId}-u${userId}-r${roundNumber}-${field}`;
 }
 
 export function isWineGuessDraftEmpty(values: Partial<WineParams>): boolean {
@@ -79,57 +82,57 @@ export function isWineGuessDraftEmpty(values: Partial<WineParams>): boolean {
   );
 }
 
-/** Удаляет устаревшие ключи `wine-guess-{gameId}-{field}` (общие на всю игру). */
+/** Удаляет устаревшие ключи без userId (общие на устройство). */
 export function purgeLegacyWineGuessKeys(gameId: string): void {
   if (!hasLocalStorage()) return;
   for (const field of GUESS_FIELDS) {
     localStorage.removeItem(legacyWineGuessFieldKey(gameId, field));
   }
-}
-
-function readLegacyWineGuessFromLocalStorage(gameId: string): Partial<WineParams> {
-  if (!hasLocalStorage()) return { ...EMPTY_WINE_GUESS };
-  return {
-    color: localStorage.getItem(legacyWineGuessFieldKey(gameId, "color")) || "",
-    sweetness: localStorage.getItem(legacyWineGuessFieldKey(gameId, "sweetness")) || "",
-    composition: localStorage.getItem(legacyWineGuessFieldKey(gameId, "composition")) || "",
-    country: localStorage.getItem(legacyWineGuessFieldKey(gameId, "country")) || "",
-    vintageYear: localStorage.getItem(legacyWineGuessFieldKey(gameId, "vintageYear")) || "",
-    alcoholContent: localStorage.getItem(legacyWineGuessFieldKey(gameId, "alcoholContent")) || "",
-    grapeVarieties: JSON.parse(
-      localStorage.getItem(legacyWineGuessFieldKey(gameId, "grapeVarieties")) || "[]"
-    ),
-    isOakAged: (() => {
-      const saved = localStorage.getItem(legacyWineGuessFieldKey(gameId, "isOakAged"));
-      if (saved === null) return null;
-      return saved === "true";
-    })(),
-  };
+  for (let round = 1; round <= 20; round += 1) {
+    for (const field of GUESS_FIELDS) {
+      localStorage.removeItem(legacyRoundWineGuessFieldKey(gameId, round, field));
+    }
+  }
+  localStorage.removeItem(`wine-guess-${gameId}-activeRound`);
 }
 
 function readRoundWineGuessFromLocalStorage(
   gameId: string,
+  userId: string,
   roundNumber: number
 ): Partial<WineParams> {
-  if (!hasLocalStorage()) return { ...EMPTY_WINE_GUESS };
+  if (!hasLocalStorage() || !userId) return { ...EMPTY_WINE_GUESS };
   return {
-    color: localStorage.getItem(wineGuessFieldKey(gameId, roundNumber, "color")) || "",
+    color:
+      localStorage.getItem(wineGuessFieldKey(gameId, userId, roundNumber, "color")) ||
+      "",
     sweetness:
-      localStorage.getItem(wineGuessFieldKey(gameId, roundNumber, "sweetness")) || "",
+      localStorage.getItem(
+        wineGuessFieldKey(gameId, userId, roundNumber, "sweetness")
+      ) || "",
     composition:
-      localStorage.getItem(wineGuessFieldKey(gameId, roundNumber, "composition")) || "",
-    country: localStorage.getItem(wineGuessFieldKey(gameId, roundNumber, "country")) || "",
+      localStorage.getItem(
+        wineGuessFieldKey(gameId, userId, roundNumber, "composition")
+      ) || "",
+    country:
+      localStorage.getItem(wineGuessFieldKey(gameId, userId, roundNumber, "country")) ||
+      "",
     vintageYear:
-      localStorage.getItem(wineGuessFieldKey(gameId, roundNumber, "vintageYear")) || "",
+      localStorage.getItem(
+        wineGuessFieldKey(gameId, userId, roundNumber, "vintageYear")
+      ) || "",
     alcoholContent:
-      localStorage.getItem(wineGuessFieldKey(gameId, roundNumber, "alcoholContent")) || "",
+      localStorage.getItem(
+        wineGuessFieldKey(gameId, userId, roundNumber, "alcoholContent")
+      ) || "",
     grapeVarieties: JSON.parse(
-      localStorage.getItem(wineGuessFieldKey(gameId, roundNumber, "grapeVarieties")) ||
-        "[]"
+      localStorage.getItem(
+        wineGuessFieldKey(gameId, userId, roundNumber, "grapeVarieties")
+      ) || "[]"
     ),
     isOakAged: (() => {
       const saved = localStorage.getItem(
-        wineGuessFieldKey(gameId, roundNumber, "isOakAged")
+        wineGuessFieldKey(gameId, userId, roundNumber, "isOakAged")
       );
       if (saved === null) return null;
       return saved === "true";
@@ -138,72 +141,55 @@ function readRoundWineGuessFromLocalStorage(
 }
 
 /**
- * Черновик ответа для раунда. Ключи: `wine-guess-{gameId}-r{round}-{field}`.
- * Устаревшие ключи без раунда переносятся только в раунд 1; для раунда 2+ — удаляются.
+ * Черновик ответа для раунда и участника.
+ * Ключи: `wine-guess-{gameId}-u{userId}-r{round}-{field}`.
  */
 export function readWineGuessFromLocalStorage(
   gameId: string,
+  userId: string,
   roundNumber: number
 ): Partial<WineParams> {
-  if (!hasLocalStorage()) return { ...EMPTY_WINE_GUESS };
-
-  if (roundNumber > 1) {
-    purgeLegacyWineGuessKeys(gameId);
-  }
-
-  const fromRound = readRoundWineGuessFromLocalStorage(gameId, roundNumber);
-  if (!isWineGuessDraftEmpty(fromRound)) {
-    return fromRound;
-  }
-
-  if (roundNumber === 1) {
-    const legacy = readLegacyWineGuessFromLocalStorage(gameId);
-    purgeLegacyWineGuessKeys(gameId);
-    if (!isWineGuessDraftEmpty(legacy)) {
-      writeWineGuessToLocalStorage(gameId, 1, legacy);
-      return legacy;
-    }
-  }
-
-  return fromRound;
+  if (!hasLocalStorage() || !userId) return { ...EMPTY_WINE_GUESS };
+  return readRoundWineGuessFromLocalStorage(gameId, userId, roundNumber);
 }
 
 export function writeWineGuessToLocalStorage(
   gameId: string,
+  userId: string,
   roundNumber: number,
   values: Partial<WineParams>
 ): void {
-  if (!hasLocalStorage()) return;
+  if (!hasLocalStorage() || !userId) return;
   localStorage.setItem(
-    wineGuessFieldKey(gameId, roundNumber, "color"),
+    wineGuessFieldKey(gameId, userId, roundNumber, "color"),
     String(values.color ?? "")
   );
   localStorage.setItem(
-    wineGuessFieldKey(gameId, roundNumber, "sweetness"),
+    wineGuessFieldKey(gameId, userId, roundNumber, "sweetness"),
     String(values.sweetness ?? "")
   );
   localStorage.setItem(
-    wineGuessFieldKey(gameId, roundNumber, "composition"),
+    wineGuessFieldKey(gameId, userId, roundNumber, "composition"),
     String(values.composition ?? "")
   );
   localStorage.setItem(
-    wineGuessFieldKey(gameId, roundNumber, "country"),
+    wineGuessFieldKey(gameId, userId, roundNumber, "country"),
     String(values.country ?? "")
   );
   localStorage.setItem(
-    wineGuessFieldKey(gameId, roundNumber, "vintageYear"),
+    wineGuessFieldKey(gameId, userId, roundNumber, "vintageYear"),
     String(values.vintageYear ?? "")
   );
   localStorage.setItem(
-    wineGuessFieldKey(gameId, roundNumber, "alcoholContent"),
+    wineGuessFieldKey(gameId, userId, roundNumber, "alcoholContent"),
     String(values.alcoholContent ?? "")
   );
   localStorage.setItem(
-    wineGuessFieldKey(gameId, roundNumber, "grapeVarieties"),
+    wineGuessFieldKey(gameId, userId, roundNumber, "grapeVarieties"),
     JSON.stringify(Array.isArray(values.grapeVarieties) ? values.grapeVarieties : [])
   );
   const oak = values.isOakAged;
-  const oakKey = wineGuessFieldKey(gameId, roundNumber, "isOakAged");
+  const oakKey = wineGuessFieldKey(gameId, userId, roundNumber, "isOakAged");
   if (oak === null || oak === undefined) {
     localStorage.removeItem(oakKey);
   } else {
@@ -211,23 +197,25 @@ export function writeWineGuessToLocalStorage(
   }
 }
 
-export function clearWineGuessLocalStorage(gameId: string, roundNumber: number): void {
-  if (!hasLocalStorage()) return;
+export function clearWineGuessLocalStorage(
+  gameId: string,
+  userId: string,
+  roundNumber: number
+): void {
+  if (!hasLocalStorage() || !userId) return;
   for (const field of GUESS_FIELDS) {
-    localStorage.removeItem(wineGuessFieldKey(gameId, roundNumber, field));
+    localStorage.removeItem(wineGuessFieldKey(gameId, userId, roundNumber, field));
   }
 }
 
-/** Синхронизирует активный раунд в storage (все клиенты: браузер, телефон, планшет, WebView). */
+/** Синхронизирует активный раунд в storage для конкретного участника. */
 export function prepareWineGuessStorageForRound(
   gameId: string,
+  userId: string,
   roundNumber: number
 ): void {
-  if (!hasLocalStorage()) return;
-  setActivePlayRoundNumber(gameId, roundNumber);
-  if (roundNumber > 1) {
-    purgeLegacyWineGuessKeys(gameId);
-  }
+  if (!hasLocalStorage() || !userId) return;
+  setActivePlayRoundNumber(gameId, userId, roundNumber);
 }
 
 export function dispatchWineGuessStorageChange(): void {
@@ -238,11 +226,13 @@ export function dispatchWineGuessStorageChange(): void {
 export function isWineGuessStorageKey(
   key: string | null,
   gameId: string,
+  userId: string,
   roundNumber: number
 ): boolean {
-  if (!key) return false;
-  if (key === activePlayRoundStorageKey(gameId)) return true;
-  if (key.startsWith(`wine-guess-${gameId}-r${roundNumber}-`)) return true;
-  if (roundNumber === 1 && isLegacyWineGuessStorageKey(key, gameId)) return true;
+  if (!key || !userId) return false;
+  if (key === activePlayRoundStorageKey(gameId, userId)) return true;
+  if (key.startsWith(`wine-guess-${gameId}-u${userId}-r${roundNumber}-`)) {
+    return true;
+  }
   return false;
 }

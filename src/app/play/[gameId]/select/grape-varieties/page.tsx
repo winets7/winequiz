@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { GRAPE_VARIETIES } from "@/lib/wine-data";
 import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
+import { usePlayGuessStorage } from "@/hooks/usePlayGuessStorage";
 import {
   PlaySelectScreen,
   PLAY_SELECT_CHIP_CLASS,
@@ -11,28 +12,24 @@ import {
   PLAY_SELECT_SAVE_BUTTON_CLASS,
   playSelectListRowClass,
 } from "@/components/game/play-select-screen";
-import {
-  dispatchWineGuessStorageChange,
-  getActivePlayRoundNumber,
-  readWineGuessFromLocalStorage,
-  writeWineGuessToLocalStorage,
-} from "@/lib/wine-guess-storage";
+import { dispatchWineGuessStorageChange } from "@/lib/wine-guess-storage";
 
 export default function SelectGrapeVarietiesPage() {
   const params = useParams();
   const gameId = params.gameId as string;
   const goBack = useHierarchicalBack(`/play/${gameId}`);
+  const { userId, readStoredGuess, writeStoredGuess } = usePlayGuessStorage(gameId);
 
   const [selectedGrapes, setSelectedGrapes] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
-    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).grapeVarieties;
+    if (!userId) return;
+    const saved = readStoredGuess().grapeVarieties;
     if (saved && saved.length > 0) {
       setSelectedGrapes(saved);
     }
-  }, [gameId]);
+  }, [userId, readStoredGuess]);
 
   const toggleGrape = (grape: string) => {
     setSelectedGrapes((prev) =>
@@ -41,9 +38,9 @@ export default function SelectGrapeVarietiesPage() {
   };
 
   const handleSave = () => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
-    writeWineGuessToLocalStorage(gameId, roundNumber, {
-      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+    if (!userId) return;
+    writeStoredGuess({
+      ...readStoredGuess(),
       grapeVarieties: selectedGrapes,
     });
     dispatchWineGuessStorageChange();

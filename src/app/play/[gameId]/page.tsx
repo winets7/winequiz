@@ -212,11 +212,12 @@ const PLAY_PAGE_FON_BG =
  */
 function resolveGuessAfterServerHydrate(
   gameId: string,
+  userId: string,
   roundNumber: number,
   submittedSnapshot: SubmittedGuessSnapshot,
   serverWineParams: Partial<WineParams>
 ): { values: Partial<WineParams>; writeServerToLocalStorage: boolean } {
-  const fromLocal = readWineGuessFromLocalStorage(gameId, roundNumber);
+  const fromLocal = readWineGuessFromLocalStorage(gameId, userId, roundNumber);
   const localNorm = normalizeGuessValues(fromLocal);
   const hasMeaningfulLocal =
     !isWineGuessDraftEmpty(fromLocal) && !areGuessesEqual(localNorm, submittedSnapshot);
@@ -265,16 +266,16 @@ export default function PlayPage() {
   // Загрузка сохраненных значений из localStorage
   // =============================================
   const loadSavedValues = useCallback(() => {
-    if (!gameId || currentRound < 1) return;
-    setGuessValues(readWineGuessFromLocalStorage(gameId, currentRound));
-  }, [gameId, currentRound]);
+    if (!gameId || !userId || currentRound < 1) return;
+    setGuessValues(readWineGuessFromLocalStorage(gameId, userId, currentRound));
+  }, [gameId, userId, currentRound]);
 
   const saveGuessValuesToLocalStorage = useCallback(
     (values: Partial<WineParams>, roundNumber: number = currentRound) => {
-      if (!gameId || roundNumber < 1) return;
-      writeWineGuessToLocalStorage(gameId, roundNumber, values);
+      if (!gameId || !userId || roundNumber < 1) return;
+      writeWineGuessToLocalStorage(gameId, userId, roundNumber, values);
     },
-    [gameId, currentRound]
+    [gameId, userId, currentRound]
   );
 
   useEffect(() => {
@@ -284,7 +285,7 @@ export default function PlayPage() {
     
     // Слушаем изменения в localStorage (для синхронизации между вкладками и страницами)
     const handleStorageChange = (e: StorageEvent) => {
-      if (isWineGuessStorageKey(e.key, gameId, currentRound)) {
+      if (isWineGuessStorageKey(e.key, gameId, userId, currentRound)) {
         loadSavedValues();
       }
     };
@@ -324,6 +325,7 @@ export default function PlayPage() {
   // =============================================
   useEffect(() => {
     async function fetchGame() {
+      if (!userId) return;
       try {
         const res = await fetch(`/api/games/${gameId}`);
         if (!res.ok) {
@@ -378,7 +380,7 @@ export default function PlayPage() {
             // Раунд уже идёт — восстанавливаем фазу
             setCurrentRound(activeRound.roundNumber);
             setCurrentRoundId(activeRound.id);
-            prepareWineGuessStorageForRound(gameId, activeRound.roundNumber);
+            prepareWineGuessStorageForRound(gameId, userId, activeRound.roundNumber);
             const existingGuess = activeRound.guesses?.[0] ?? null;
             if (existingGuess) {
               const normalized = normalizeServerGuess(existingGuess);
@@ -386,6 +388,7 @@ export default function PlayPage() {
               setSubmittedGuess(normalized);
               const resolved = resolveGuessAfterServerHydrate(
                 gameId,
+                userId,
                 activeRound.roundNumber,
                 normalized,
                 asWineParams
@@ -397,7 +400,7 @@ export default function PlayPage() {
             } else {
               setSubmittedGuess(null);
               setGuessValues(
-                readWineGuessFromLocalStorage(gameId, activeRound.roundNumber)
+                readWineGuessFromLocalStorage(gameId, userId, activeRound.roundNumber)
               );
             }
             setPhase("ROUND_ACTIVE");
@@ -448,6 +451,7 @@ export default function PlayPage() {
 
     // Раунд начался (для участников)
     const unsubRoundStarted = on("round_started", (data: unknown) => {
+      if (!userId) return;
       const { roundNumber, roundId } = data as {
         roundNumber: number;
         roundId: string;
@@ -458,8 +462,8 @@ export default function PlayPage() {
       setGuessCount(0);
       setRoundResult(null);
       setSubmittedGuess(null);
-      prepareWineGuessStorageForRound(gameId, roundNumber);
-      setGuessValues(readWineGuessFromLocalStorage(gameId, roundNumber));
+      prepareWineGuessStorageForRound(gameId, userId, roundNumber);
+      setGuessValues(readWineGuessFromLocalStorage(gameId, userId, roundNumber));
       setPhase("ROUND_ACTIVE");
 
       // При старте/восстановлении раунда подтягиваем ответ с сервера, чтобы
@@ -479,6 +483,7 @@ export default function PlayPage() {
           setSubmittedGuess(normalized);
           const resolved = resolveGuessAfterServerHydrate(
             gameId,
+            userId,
             roundNumber,
             normalized,
             asWineParams
@@ -507,9 +512,10 @@ export default function PlayPage() {
 
     // Догадка принята (для участника)
     const unsubGuessReceived = on("guess_received", () => {
-      const round = getActivePlayRoundNumber(gameId);
+      if (!userId) return;
+      const round = getActivePlayRoundNumber(gameId, userId);
       setSubmittedGuess(
-        normalizeGuessValues(readWineGuessFromLocalStorage(gameId, round))
+        normalizeGuessValues(readWineGuessFromLocalStorage(gameId, userId, round))
       );
       setSubmitting(false);
     });
@@ -563,7 +569,7 @@ export default function PlayPage() {
       unsubHostReconnected();
       unsubError();
     };
-  }, [isConnected, on, gameId, saveGuessValuesToLocalStorage, currentRound]);
+  }, [isConnected, on, gameId, userId, saveGuessValuesToLocalStorage, currentRound]);
 
   const currentGuessSnapshot = normalizeGuessValues(guessValues);
   const isSubmittedGuessUnchanged =
@@ -580,7 +586,7 @@ export default function PlayPage() {
 
   // Хост: Запустить раунд (раунд уже заполнен в лобби)
   const handleActivateRound = useCallback(() => {
-    if (!game) return;
+    if (!game || !userId) return;
 
     // Находим раунд по номеру
     const round = rounds.find((r) => r.roundNumber === currentRound);
@@ -590,7 +596,7 @@ export default function PlayPage() {
     }
 
     setCurrentRoundId(round.id);
-    prepareWineGuessStorageForRound(game.id, currentRound);
+    prepareWineGuessStorageForRound(game.id, userId, currentRound);
 
     // Уведомляем всех через Socket.io
     emit("activate_round", {
@@ -601,14 +607,14 @@ export default function PlayPage() {
 
     setPhase("ROUND_ACTIVE");
     setGuessCount(0);
-  }, [game, currentRound, rounds, emit]);
+  }, [game, userId, currentRound, rounds, emit]);
 
   // Участник: Отправить догадку
   const handleSubmitGuess = useCallback(() => {
     if (!game || !userId || !currentRoundId) return;
     setSubmitting(true);
 
-    const stored = readWineGuessFromLocalStorage(gameId, currentRound);
+    const stored = readWineGuessFromLocalStorage(gameId, userId, currentRound);
     const guessParams: WineParams = {
       color: stored.color ?? "",
       sweetness: stored.sweetness ?? "",

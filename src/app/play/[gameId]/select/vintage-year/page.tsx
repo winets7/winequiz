@@ -4,40 +4,37 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { getVintageYears } from "@/lib/wine-data";
 import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
+import { usePlayGuessStorage } from "@/hooks/usePlayGuessStorage";
 import {
   PlaySelectScreen,
   PlaySelectGridPanel,
   PLAY_SELECT_INPUT_CLASS,
   playSelectGridOptionClass,
 } from "@/components/game/play-select-screen";
-import {
-  dispatchWineGuessStorageChange,
-  getActivePlayRoundNumber,
-  readWineGuessFromLocalStorage,
-  writeWineGuessToLocalStorage,
-} from "@/lib/wine-guess-storage";
+import { dispatchWineGuessStorageChange } from "@/lib/wine-guess-storage";
 
 export default function SelectVintageYearPage() {
   const params = useParams();
   const gameId = params.gameId as string;
   const goBack = useHierarchicalBack(`/play/${gameId}`);
+  const { userId, readStoredGuess, writeStoredGuess } = usePlayGuessStorage(gameId);
 
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
-    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).vintageYear;
+    if (!userId) return;
+    const saved = readStoredGuess().vintageYear;
     if (saved) {
       setSelectedYear(saved);
     }
-  }, [gameId]);
+  }, [userId, readStoredGuess]);
 
   const handleYearSelect = (year: string) => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
+    if (!userId) return;
     setSelectedYear(year);
-    writeWineGuessToLocalStorage(gameId, roundNumber, {
-      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+    writeStoredGuess({
+      ...readStoredGuess(),
       vintageYear: year,
     });
     dispatchWineGuessStorageChange();

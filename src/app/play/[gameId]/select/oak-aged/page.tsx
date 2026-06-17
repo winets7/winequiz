@@ -3,37 +3,34 @@
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
+import { usePlayGuessStorage } from "@/hooks/usePlayGuessStorage";
 import {
   PlaySelectScreen,
   playSelectGridOptionClass,
 } from "@/components/game/play-select-screen";
-import {
-  dispatchWineGuessStorageChange,
-  getActivePlayRoundNumber,
-  readWineGuessFromLocalStorage,
-  writeWineGuessToLocalStorage,
-} from "@/lib/wine-guess-storage";
+import { dispatchWineGuessStorageChange } from "@/lib/wine-guess-storage";
 
 export default function SelectOakAgedPage() {
   const params = useParams();
   const gameId = params.gameId as string;
   const goBack = useHierarchicalBack(`/play/${gameId}`);
+  const { userId, readStoredGuess, writeStoredGuess } = usePlayGuessStorage(gameId);
 
   const [isOakAged, setIsOakAged] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
-    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).isOakAged;
+    if (!userId) return;
+    const saved = readStoredGuess().isOakAged;
     if (saved !== null && saved !== undefined) {
       setIsOakAged(saved);
     }
-  }, [gameId]);
+  }, [userId, readStoredGuess]);
 
   const handleSelect = (value: boolean) => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
+    if (!userId) return;
     setIsOakAged(value);
-    writeWineGuessToLocalStorage(gameId, roundNumber, {
-      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+    writeStoredGuess({
+      ...readStoredGuess(),
       isOakAged: value,
     });
     dispatchWineGuessStorageChange();

@@ -4,37 +4,34 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { SWEETNESS_LABELS } from "@/lib/wine-data";
 import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
+import { usePlayGuessStorage } from "@/hooks/usePlayGuessStorage";
 import {
   PlaySelectScreen,
   playSelectGridOptionClass,
 } from "@/components/game/play-select-screen";
-import {
-  dispatchWineGuessStorageChange,
-  getActivePlayRoundNumber,
-  readWineGuessFromLocalStorage,
-  writeWineGuessToLocalStorage,
-} from "@/lib/wine-guess-storage";
+import { dispatchWineGuessStorageChange } from "@/lib/wine-guess-storage";
 
 export default function SelectSweetnessPage() {
   const params = useParams();
   const gameId = params.gameId as string;
   const goBack = useHierarchicalBack(`/play/${gameId}`);
+  const { userId, readStoredGuess, writeStoredGuess } = usePlayGuessStorage(gameId);
 
   const [selectedSweetness, setSelectedSweetness] = useState<string>("");
 
   useEffect(() => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
-    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).sweetness;
+    if (!userId) return;
+    const saved = readStoredGuess().sweetness;
     if (saved) {
       setSelectedSweetness(saved);
     }
-  }, [gameId]);
+  }, [userId, readStoredGuess]);
 
   const handleSweetnessSelect = (sweetness: string) => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
+    if (!userId) return;
     setSelectedSweetness(sweetness);
-    writeWineGuessToLocalStorage(gameId, roundNumber, {
-      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+    writeStoredGuess({
+      ...readStoredGuess(),
       sweetness,
     });
     dispatchWineGuessStorageChange();

@@ -4,39 +4,36 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { WINE_COUNTRIES } from "@/lib/wine-data";
 import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
+import { usePlayGuessStorage } from "@/hooks/usePlayGuessStorage";
 import {
   PlaySelectScreen,
   PLAY_SELECT_INPUT_CLASS,
   playSelectListRowClass,
 } from "@/components/game/play-select-screen";
-import {
-  dispatchWineGuessStorageChange,
-  getActivePlayRoundNumber,
-  readWineGuessFromLocalStorage,
-  writeWineGuessToLocalStorage,
-} from "@/lib/wine-guess-storage";
+import { dispatchWineGuessStorageChange } from "@/lib/wine-guess-storage";
 
 export default function SelectCountryPage() {
   const params = useParams();
   const gameId = params.gameId as string;
   const goBack = useHierarchicalBack(`/play/${gameId}`);
+  const { userId, readStoredGuess, writeStoredGuess } = usePlayGuessStorage(gameId);
 
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
-    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).country;
+    if (!userId) return;
+    const saved = readStoredGuess().country;
     if (saved) {
       setSelectedCountry(saved);
     }
-  }, [gameId]);
+  }, [userId, readStoredGuess]);
 
   const handleCountrySelect = (country: string) => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
+    if (!userId) return;
     setSelectedCountry(country);
-    writeWineGuessToLocalStorage(gameId, roundNumber, {
-      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+    writeStoredGuess({
+      ...readStoredGuess(),
       country,
     });
     dispatchWineGuessStorageChange();

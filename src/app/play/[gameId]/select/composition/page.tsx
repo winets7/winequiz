@@ -4,37 +4,34 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { COMPOSITION_LABELS } from "@/lib/wine-data";
 import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
+import { usePlayGuessStorage } from "@/hooks/usePlayGuessStorage";
 import {
   PlaySelectScreen,
   playSelectGridOptionClass,
 } from "@/components/game/play-select-screen";
-import {
-  dispatchWineGuessStorageChange,
-  getActivePlayRoundNumber,
-  readWineGuessFromLocalStorage,
-  writeWineGuessToLocalStorage,
-} from "@/lib/wine-guess-storage";
+import { dispatchWineGuessStorageChange } from "@/lib/wine-guess-storage";
 
 export default function SelectCompositionPage() {
   const params = useParams();
   const gameId = params.gameId as string;
   const goBack = useHierarchicalBack(`/play/${gameId}`);
+  const { userId, readStoredGuess, writeStoredGuess } = usePlayGuessStorage(gameId);
 
   const [selectedComposition, setSelectedComposition] = useState<string>("");
 
   useEffect(() => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
-    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).composition;
+    if (!userId) return;
+    const saved = readStoredGuess().composition;
     if (saved) {
       setSelectedComposition(saved);
     }
-  }, [gameId]);
+  }, [userId, readStoredGuess]);
 
   const handleCompositionSelect = (composition: string) => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
+    if (!userId) return;
     setSelectedComposition(composition);
-    writeWineGuessToLocalStorage(gameId, roundNumber, {
-      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+    writeStoredGuess({
+      ...readStoredGuess(),
       composition,
     });
     dispatchWineGuessStorageChange();

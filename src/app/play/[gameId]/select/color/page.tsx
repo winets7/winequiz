@@ -4,37 +4,34 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { COLOR_LABELS, COLOR_ICONS } from "@/lib/wine-data";
 import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
+import { usePlayGuessStorage } from "@/hooks/usePlayGuessStorage";
 import {
   PlaySelectScreen,
   playSelectGridOptionClass,
 } from "@/components/game/play-select-screen";
-import {
-  dispatchWineGuessStorageChange,
-  getActivePlayRoundNumber,
-  readWineGuessFromLocalStorage,
-  writeWineGuessToLocalStorage,
-} from "@/lib/wine-guess-storage";
+import { dispatchWineGuessStorageChange } from "@/lib/wine-guess-storage";
 
 export default function SelectColorPage() {
   const params = useParams();
   const gameId = params.gameId as string;
   const goBack = useHierarchicalBack(`/play/${gameId}`);
+  const { userId, readStoredGuess, writeStoredGuess } = usePlayGuessStorage(gameId);
 
   const [selectedColor, setSelectedColor] = useState<string>("");
 
   useEffect(() => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
-    const saved = readWineGuessFromLocalStorage(gameId, roundNumber).color;
+    if (!userId) return;
+    const saved = readStoredGuess().color;
     if (saved) {
       setSelectedColor(saved);
     }
-  }, [gameId]);
+  }, [userId, readStoredGuess]);
 
   const handleColorSelect = (color: string) => {
-    const roundNumber = getActivePlayRoundNumber(gameId);
+    if (!userId) return;
     setSelectedColor(color);
-    writeWineGuessToLocalStorage(gameId, roundNumber, {
-      ...readWineGuessFromLocalStorage(gameId, roundNumber),
+    writeStoredGuess({
+      ...readStoredGuess(),
       color,
     });
     dispatchWineGuessStorageChange();

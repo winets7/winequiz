@@ -129,3 +129,58 @@ export function isWineGuessFieldMatch(
       return false;
   }
 }
+
+/** Баллы за поле — те же правила, что в server/socket close_round. */
+export function getWineGuessFieldScore(
+  key: WineGuessFieldKey,
+  guess: WineGuessFields,
+  correct: WineGuessFields
+): number {
+  switch (key) {
+    case "color":
+      return guess.color === correct.color ? 2 : 0;
+    case "sweetness":
+      return guess.sweetness === correct.sweetness ? 2 : 0;
+    case "composition":
+      return guess.composition === correct.composition ? 1 : 0;
+    case "isOakAged":
+      return guess.isOakAged === correct.isOakAged ? 1 : 0;
+    case "country":
+      return guess.country &&
+        correct.country &&
+        guess.country.toLowerCase().trim() === correct.country.toLowerCase().trim()
+        ? 2
+        : 0;
+    case "vintageYear":
+      if (guess.vintageYear && correct.vintageYear) {
+        const diff = Math.abs(guess.vintageYear - correct.vintageYear);
+        if (diff === 0) return 3;
+        if (diff <= 2) return 1;
+      }
+      return 0;
+    case "alcoholContent":
+      if (guess.alcoholContent != null && correct.alcoholContent != null) {
+        const diff = Math.abs(guess.alcoholContent - correct.alcoholContent);
+        if (diff <= 0.5) return 3;
+        if (diff <= 1.5) return 1;
+      }
+      return 0;
+    case "grapeVarieties": {
+      const correctSet = new Set(
+        correct.grapeVarieties.map((g) => g.toLowerCase().trim()).filter(Boolean)
+      );
+      if (guess.grapeVarieties.length === 0 || correctSet.size === 0) return 0;
+      const guessedSet = new Set<string>();
+      let score = 0;
+      for (const grape of guess.grapeVarieties) {
+        const grapeKey = grape.toLowerCase().trim();
+        if (!grapeKey || guessedSet.has(grapeKey)) continue;
+        guessedSet.add(grapeKey);
+        if (correctSet.has(grapeKey)) score += 2;
+      }
+      return score;
+    }
+    default:
+      return 0;
+  }
+}

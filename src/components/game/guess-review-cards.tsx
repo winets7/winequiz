@@ -3,6 +3,7 @@
 import {
   WINE_GUESS_FIELD_ORDER,
   formatWineGuessForDisplay,
+  getWineGuessFieldScore,
   isWineGuessFieldMatch,
   type WineGuessFields,
 } from "@/lib/wine-guess-display";
@@ -14,7 +15,7 @@ interface GuessReviewCardsProps {
 }
 
 const CARD_BASE =
-  "flex min-h-[4.25rem] min-w-0 flex-col rounded-xl border-[3px] p-1.5 text-left shadow-sm md:min-h-[4.5rem] portrait:md:min-h-[5rem]";
+  "relative flex min-h-[4.25rem] min-w-0 flex-col rounded-xl border-[3px] p-1.5 pb-5 text-left shadow-sm md:min-h-[4.5rem] portrait:md:min-h-[5rem]";
 
 const CARD_CORRECT = "border-[#7ab889] bg-[#dff0e3]";
 const CARD_INCORRECT = "border-[#e0a0a0] bg-[#fde8e8]";
@@ -32,6 +33,7 @@ export function GuessReviewCards({
       <div className="grid grid-cols-2 grid-rows-4 gap-2 md:gap-2.5">
         {WINE_GUESS_FIELD_ORDER.map(({ key, label }) => {
           const isMatch = isWineGuessFieldMatch(key, guess, correctAnswer);
+          const points = getWineGuessFieldScore(key, guess, correctAnswer);
           const guessValue = guessDisplay[key];
           const correctValue = correctDisplay[key];
 
@@ -45,7 +47,7 @@ export function GuessReviewCards({
                   {label}
                 </span>
               </div>
-              <div className="flex min-h-0 flex-1 flex-col justify-center gap-0.5">
+              <div className="flex min-h-0 flex-1 flex-col justify-center gap-0.5 pr-5">
                 <div className="break-words text-[0.8125rem] font-bold leading-tight text-[#1a1a1a] md:text-sm portrait:md:text-base">
                   {guessValue}
                 </div>
@@ -55,6 +57,14 @@ export function GuessReviewCards({
                   </div>
                 )}
               </div>
+              <span
+                className={`absolute bottom-1 right-1.5 text-[0.6875rem] font-bold leading-none md:text-xs ${
+                  points > 0 ? "text-[#1b7a4e]" : "text-[#8a8a8a]"
+                }`}
+                aria-label={`Баллы: ${points}`}
+              >
+                +{points}
+              </span>
             </div>
           );
         })}

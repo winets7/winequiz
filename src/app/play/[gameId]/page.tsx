@@ -370,7 +370,9 @@ export default function PlayPage() {
         } else if (g.status === "PLAYING") {
           // Проверяем, есть ли активный раунд
           const activeRound = loadedRounds.find(
-            (r: RoundInfo) => r.status === "ACTIVE"
+            (r: RoundInfo) =>
+              r.status === "ACTIVE" &&
+              r.roundNumber === (g.currentRound || r.roundNumber)
           );
           if (activeRound) {
             // Раунд уже идёт — восстанавливаем фазу

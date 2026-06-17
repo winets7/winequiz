@@ -624,6 +624,15 @@ export function createSocketServer(httpServer?: HttpServer) {
 
       // Обновляем статус раунда и текущий раунд в БД
       try {
+        // Будущие раунды могли ошибочно получить ACTIVE при сохранении параметров через REST.
+        await prisma.round.updateMany({
+          where: {
+            gameId: room.gameId,
+            status: "ACTIVE",
+            roundNumber: { gt: roundNumber },
+          },
+          data: { status: "CREATED" },
+        });
         await prisma.round.update({
           where: { id: roundId },
           data: { status: "ACTIVE" },

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     const game = await prisma.gameSession.findUnique({
       where: { id: gameId },
-      select: { id: true, hostId: true },
+      select: { id: true, hostId: true, currentRound: true },
     });
     if (!game) {
       return NextResponse.json({ error: "Игра не найдена" }, { status: 404 });
@@ -82,22 +82,39 @@ export async function GET(request: NextRequest) {
       orderBy: { roundNumber: "asc" },
     });
 
+    /** Только текущий раунд игры может быть ACTIVE — иначе UI показывает лишние «начатые» раунды. */
+    const effectiveStatus = (round: (typeof rounds)[number]) => {
+      if (
+        round.status === "ACTIVE" &&
+        round.roundNumber !== game.currentRound
+      ) {
+        return "CREATED";
+      }
+      return round.status;
+    };
+
     if (isHost) {
-      return NextResponse.json({ rounds });
+      return NextResponse.json({
+        rounds: rounds.map((round) => ({
+          ...round,
+          status: effectiveStatus(round),
+        })),
+      });
     }
 
     // Скрываем правильные ответы и фотографии до закрытия раунда —
     // иначе любой участник через REST увидит загаданное вино.
     const filtered = rounds.map((round) => {
+      const status = effectiveStatus(round);
       const ownGuesses =
         (round as typeof round & { guesses?: unknown[] }).guesses ?? [];
 
-      if (round.status === "CLOSED") {
+      if (status === "CLOSED") {
         return {
           id: round.id,
           gameId: round.gameId,
           roundNumber: round.roundNumber,
-          status: round.status,
+          status,
           grapeVarieties: round.grapeVarieties,
           sweetness: round.sweetness,
           vintageYear: round.vintageYear,
@@ -118,7 +135,7 @@ export async function GET(request: NextRequest) {
         id: round.id,
         gameId: round.gameId,
         roundNumber: round.roundNumber,
-        status: round.status,
+        status,
         guesses: ownGuesses,
       };
     });
@@ -160,6 +177,7 @@ export async function POST(request: NextRequest) {
 
     const game = await prisma.gameSession.findUnique({
       where: { id: gameId },
+      select: { id: true, status: true, totalRounds: true, currentRound: true },
     });
 
     if (!game) {
@@ -184,38 +202,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Раунды в лобби создаются как CREATED (ещё не активированы)
-    const roundStatus = game.status === "WAITING" ? "CREATED" : "ACTIVE";
+    const normalizedRoundNumber = Math.floor(roundNumber);
+    const wineFields = {
+      grapeVarieties: Array.isArray(grapeVarieties) ? grapeVarieties : [],
+      sweetness: sweetness != null && sweetness !== "" ? sweetness : null,
+      vintageYear:
+        vintageYear != null && vintageYear !== ""
+          ? parseInt(String(vintageYear), 10)
+          : null,
+      country: country != null && country !== "" ? country : null,
+      alcoholContent:
+        alcoholContent != null && alcoholContent !== ""
+          ? parseFloat(String(alcoholContent))
+          : null,
+      isOakAged: isOakAged === undefined ? null : isOakAged,
+      color: color != null && color !== "" ? color : null,
+      composition:
+        composition != null && composition !== "" ? composition : null,
+    };
 
-    console.log("[POST /api/rounds] payload:", { gameId, roundNumber, color, sweetness, composition, grapeVarieties, country, vintageYear, alcoholContent, isOakAged });
+    console.log("[POST /api/rounds] payload:", {
+      gameId,
+      roundNumber: normalizedRoundNumber,
+      color,
+      sweetness,
+      composition,
+      grapeVarieties,
+      country,
+      vintageYear,
+      alcoholContent,
+      isOakAged,
+    });
+
+    // Статус меняется только через activate_round / close_round.
+    // При сохранении параметров будущего раунда во время игры сбрасываем ошибочный ACTIVE.
+    const resetFutureActive =
+      game.status === "PLAYING" &&
+      normalizedRoundNumber > game.currentRound
+        ? { status: "CREATED" as const }
+        : {};
 
     const round = await prisma.round.upsert({
       where: {
-        gameId_roundNumber: { gameId, roundNumber: Math.floor(roundNumber) },
+        gameId_roundNumber: { gameId, roundNumber: normalizedRoundNumber },
       },
       update: {
-        grapeVarieties: Array.isArray(grapeVarieties) ? grapeVarieties : [],
-        sweetness: sweetness != null && sweetness !== "" ? sweetness : null,
-        vintageYear: vintageYear != null && vintageYear !== "" ? parseInt(String(vintageYear), 10) : null,
-        country: country != null && country !== "" ? country : null,
-        alcoholContent: alcoholContent != null && alcoholContent !== "" ? parseFloat(String(alcoholContent)) : null,
-        isOakAged: isOakAged === undefined ? null : isOakAged,
-        color: color != null && color !== "" ? color : null,
-        composition: composition != null && composition !== "" ? composition : null,
-        status: roundStatus,
+        ...wineFields,
+        ...resetFutureActive,
       },
       create: {
         gameId,
-        roundNumber: Math.floor(roundNumber),
-        grapeVarieties: Array.isArray(grapeVarieties) ? grapeVarieties : [],
-        sweetness: sweetness != null && sweetness !== "" ? sweetness : null,
-        vintageYear: vintageYear != null && vintageYear !== "" ? parseInt(String(vintageYear), 10) : null,
-        country: country != null && country !== "" ? country : null,
-        alcoholContent: alcoholContent != null && alcoholContent !== "" ? parseFloat(String(alcoholContent)) : null,
-        isOakAged: isOakAged === undefined ? null : isOakAged,
-        color: color != null && color !== "" ? color : null,
-        composition: composition != null && composition !== "" ? composition : null,
-        status: roundStatus,
+        roundNumber: normalizedRoundNumber,
+        ...wineFields,
+        status: "CREATED",
       },
     });
 

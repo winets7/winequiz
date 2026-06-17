@@ -1,5 +1,7 @@
 "use client";
 
+import { PROFILE_PANEL_CLASS } from "@/components/profile/profile-panel-styles";
+
 import { useState } from "react";
 
 interface ProfilePrivacyProps {
@@ -40,7 +42,7 @@ export function ProfilePrivacy({ userId, initialIsPublic }: ProfilePrivacyProps)
   };
 
   return (
-    <div className="bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)]">
+    <div className={`${PROFILE_PANEL_CLASS} p-6`}>
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-[var(--foreground)] mb-1">
@@ -61,7 +63,7 @@ export function ProfilePrivacy({ userId, initialIsPublic }: ProfilePrivacyProps)
           <div className="w-11 h-6 bg-[var(--muted)] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[var(--primary)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]"></div>
         </label>
       </div>
-      <div className="mt-3 pt-3 border-t border-[var(--border)]">
+      <div className="mt-3 pt-3 border-t-2 border-[var(--wine-quiz-active-game-card-border)]">
         <p className="text-xs text-[var(--muted-foreground)]">
           {isPublic
             ? "✅ Ваш профиль виден всем пользователям"

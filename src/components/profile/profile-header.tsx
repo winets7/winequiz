@@ -1,5 +1,7 @@
 "use client";
 
+import { PROFILE_PANEL_CLASS } from "@/components/profile/profile-panel-styles";
+
 interface ProfileHeaderProps {
   user: {
     id: string;
@@ -28,7 +30,7 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
   });
 
   return (
-    <div className="bg-[var(--card)] rounded-3xl p-6 md:p-8 shadow-lg border border-[var(--border)]">
+    <div className={`${PROFILE_PANEL_CLASS} p-6 md:p-8`}>
       <div className="flex flex-col sm:flex-row items-center gap-5">
         {/* Аватар */}
         <div className="relative">

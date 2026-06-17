@@ -1,5 +1,7 @@
 "use client";
 
+import { PROFILE_PANEL_CLASS } from "@/components/profile/profile-panel-styles";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -428,9 +430,9 @@ export function ProfileGames({ hostedGames, participatedGames }: ProfileGamesPro
 
   return (
     <>
-      <div className="bg-[var(--card)] rounded-3xl shadow-lg border border-[var(--border)] overflow-hidden">
+      <div className={`${PROFILE_PANEL_CLASS} overflow-hidden`}>
         {/* Табы */}
-        <div className="flex border-b border-[var(--border)]">
+        <div className="flex border-b-2 border-[var(--wine-quiz-active-game-card-border)]">
           <button
             onClick={() => setActiveTab("hosted")}
             className={`flex-1 py-3.5 px-4 text-sm font-semibold transition-colors relative ${

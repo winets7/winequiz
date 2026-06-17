@@ -1,5 +1,6 @@
 "use client";
 
+import { PROFILE_STAT_CARD_CLASS } from "@/components/profile/profile-panel-styles";
 interface ProfileStatsProps {
   stats: {
     totalGames: number;
@@ -22,7 +23,7 @@ interface StatCardProps {
 
 function StatCard({ icon, label, value, sub }: StatCardProps) {
   return (
-    <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)] flex flex-col items-center text-center">
+    <div className={PROFILE_STAT_CARD_CLASS}>
       <div className="text-2xl mb-1">{icon}</div>
       <div className="text-2xl font-bold text-[var(--foreground)]">{value}</div>
       <div className="text-xs text-[var(--muted-foreground)] mt-0.5">{label}</div>

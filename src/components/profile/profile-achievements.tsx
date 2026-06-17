@@ -1,5 +1,6 @@
 "use client";
 
+import { PROFILE_PANEL_CLASS } from "@/components/profile/profile-panel-styles";
 interface Achievement {
   id: string;
   name: string;
@@ -16,7 +17,7 @@ interface ProfileAchievementsProps {
 export function ProfileAchievements({ achievements }: ProfileAchievementsProps) {
   if (achievements.length === 0) {
     return (
-      <div className="bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)]">
+      <div className={`${PROFILE_PANEL_CLASS} p-6`}>
         <h2 className="text-lg font-bold text-[var(--foreground)] mb-4">
           ⭐ Достижения
         </h2>
@@ -30,7 +31,7 @@ export function ProfileAchievements({ achievements }: ProfileAchievementsProps) 
   }
 
   return (
-    <div className="bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)]">
+    <div className={`${PROFILE_PANEL_CLASS} p-6`}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-[var(--foreground)]">
           ⭐ Достижения

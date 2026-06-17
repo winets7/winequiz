@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { ServiceWorkerRegister } from "@/components/providers/sw-register";
-import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { NavigationLogger } from "@/components/navigation-logger";
 import { PageNavMenu } from "@/components/navigation/page-nav-menu";
 import "./globals.css";
@@ -79,7 +78,6 @@ export default function RootLayout({
           </ThemeProvider>
         </SessionProvider>
         <ServiceWorkerRegister />
-        <InstallPrompt />
       </body>
     </html>
   );

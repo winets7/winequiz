@@ -510,8 +510,8 @@ export default function LobbyRoundEditPage() {
         </div>
       )}
 
-      <div className="w-full sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="w-full sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--background)]/85 backdrop-blur-md supports-[backdrop-filter]:bg-[var(--background)]/65">
+        <div className="max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-3 flex items-center justify-between">
           <button
             onClick={handleBackWithConfirm}
             className="text-sm text-[var(--primary)] font-medium flex items-center gap-1"
@@ -523,7 +523,7 @@ export default function LobbyRoundEditPage() {
         </div>
       </div>
 
-      <div className="w-full max-w-lg mx-auto px-4 mt-4 space-y-6">
+      <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 mt-4 space-y-6">
         {error && (
           <div className="bg-[var(--card)] border border-[var(--error)] text-[var(--error)] px-4 py-2 rounded-xl text-sm text-center">
             {error}
@@ -621,16 +621,25 @@ export default function LobbyRoundEditPage() {
           />
         </div>
 
-        {/* Карточки характеристик */}
-        <div>
-          <h2 className="text-lg font-bold mb-3">Параметры вина</h2>
-          <HostRoundCharacteristicCards
-            gameId={gameId}
-            roundNumber={roundNumber}
-            values={draft}
-            disabled={isRoundLocked}
-          />
-        </div>
+        {/* Карточки характеристик — сетка 2×4 как у участника на /play */}
+        <section className="flex min-h-[min(72dvh,900px)] flex-col gap-3">
+          <h2 className="text-lg font-bold">Параметры вина</h2>
+          <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl ring-2 ring-black/15 shadow-lg dark:ring-white/20">
+            <div
+              aria-hidden
+              className={`pointer-events-none absolute inset-0 ${PLAY_SELECT_PAGE_BG}`}
+            />
+            <div className="relative z-[1] min-h-0 h-full p-1 sm:p-2">
+              <HostRoundCharacteristicCards
+                gameId={gameId}
+                roundNumber={roundNumber}
+                values={draft}
+                disabled={isRoundLocked}
+                className="h-full"
+              />
+            </div>
+          </div>
+        </section>
 
         <div className="flex flex-col gap-3">
           <button

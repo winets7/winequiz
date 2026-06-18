@@ -622,20 +622,20 @@ export default function LobbyRoundEditPage() {
         </div>
 
         {/* Карточки характеристик — сетка 2×4 как у участника на /play */}
-        <section className="flex min-h-[min(72dvh,900px)] flex-col gap-3">
+        <section className="flex w-full flex-col gap-3">
           <h2 className="text-lg font-bold">Параметры вина</h2>
-          <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl ring-2 ring-black/15 shadow-lg dark:ring-white/20">
+          <div className="relative h-[clamp(28rem,75dvh,56rem)] w-full overflow-hidden rounded-2xl ring-2 ring-black/15 shadow-lg dark:ring-white/20">
             <div
               aria-hidden
               className={`pointer-events-none absolute inset-0 ${PLAY_SELECT_PAGE_BG}`}
             />
-            <div className="relative z-[1] min-h-0 h-full p-1 sm:p-2">
+            <div className="relative z-[1] h-full min-h-0 p-1 sm:p-2 md:p-3">
               <HostRoundCharacteristicCards
                 gameId={gameId}
                 roundNumber={roundNumber}
                 values={draft}
                 disabled={isRoundLocked}
-                className="h-full"
+                className="h-full w-full"
               />
             </div>
           </div>

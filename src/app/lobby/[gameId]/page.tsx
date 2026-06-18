@@ -479,7 +479,7 @@ export default function LobbyPage() {
     <main className={`${lobbyPageMainClass} flex flex-col items-center p-4 md:p-8`}>
       {/* Верхняя панель */}
       <div className="w-full max-w-4xl flex items-center justify-between mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-[var(--primary)]">
+        <h1 className="wine-quiz-page-title text-2xl md:text-3xl font-bold">
           🍷 Винная Викторина
         </h1>
         <div className="flex items-center gap-3">
@@ -560,7 +560,7 @@ export default function LobbyPage() {
                 type="button"
                 onClick={handleAddRound}
                 disabled={addingRound}
-                className="w-full py-2.5 text-sm font-medium text-[var(--primary)] border border-[var(--primary)] rounded-xl hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] transition-colors disabled:opacity-50"
+                className="w-full py-2.5 text-sm font-medium text-white border border-white rounded-xl hover:bg-white/15 transition-colors disabled:opacity-50"
               >
                 {addingRound ? "⏳ Добавление..." : "➕ Добавить раунд"}
               </button>
@@ -656,7 +656,7 @@ export default function LobbyPage() {
                     )}
                   </button>
                   {!allRoundsFilled && (
-                    <p className="text-center text-sm text-[var(--muted-foreground)]">
+                    <p className="text-center text-sm text-white">
                       Заполните все раунды, чтобы начать игру
                     </p>
                   )}

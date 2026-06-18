@@ -15,6 +15,10 @@ import {
 } from "@/lib/wine-data";
 import { getDraft, setDraft } from "@/lib/lobby-round-draft";
 import type { WineParams } from "@/components/game/wine-form";
+import { PLAY_SELECT_PAGE_BG } from "@/components/game/play-select-screen";
+
+const lobbySelectPageMainClass = `relative min-h-screen flex flex-col items-center pb-8 ${PLAY_SELECT_PAGE_BG}`;
+const lobbySelectPageLoadingClass = `relative min-h-screen flex items-center justify-center ${PLAY_SELECT_PAGE_BG}`;
 
 const VALID_CHARACTERISTICS = [
   "color",
@@ -84,7 +88,7 @@ export default function HostRoundSelectCharacteristicPage() {
 
   if (!draft) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
+      <main className={lobbySelectPageLoadingClass}>
         <p className="text-[var(--muted-foreground)]">Загрузка...</p>
       </main>
     );
@@ -131,7 +135,7 @@ export default function HostRoundSelectCharacteristicPage() {
   // ——— color ———
   if (characteristic === "color") {
     return (
-      <main className="min-h-screen flex flex-col items-center pb-8">
+      <main className={lobbySelectPageMainClass}>
         {header}
         <div className={contentClass}>
           <div className={titleClass}>
@@ -160,7 +164,7 @@ export default function HostRoundSelectCharacteristicPage() {
   // ——— sweetness ———
   if (characteristic === "sweetness") {
     return (
-      <main className="min-h-screen flex flex-col items-center pb-8">
+      <main className={lobbySelectPageMainClass}>
         {header}
         <div className={contentClass}>
           <div className={titleClass}>
@@ -188,7 +192,7 @@ export default function HostRoundSelectCharacteristicPage() {
   // ——— composition ———
   if (characteristic === "composition") {
     return (
-      <main className="min-h-screen flex flex-col items-center pb-8">
+      <main className={lobbySelectPageMainClass}>
         {header}
         <div className={contentClass}>
           <div className={titleClass}>
@@ -225,7 +229,7 @@ export default function HostRoundSelectCharacteristicPage() {
       g.toLowerCase().includes(searchQuery.toLowerCase())
     );
     return (
-      <main className="min-h-screen flex flex-col items-center pb-8">
+      <main className={lobbySelectPageMainClass}>
         {header}
         <div className={contentClass}>
           <div className={titleClass}>
@@ -293,7 +297,7 @@ export default function HostRoundSelectCharacteristicPage() {
       c.toLowerCase().includes(searchQuery.toLowerCase())
     );
     return (
-      <main className="min-h-screen flex flex-col items-center pb-8">
+      <main className={lobbySelectPageMainClass}>
         {header}
         <div className={contentClass}>
           <div className={titleClass}>
@@ -330,7 +334,7 @@ export default function HostRoundSelectCharacteristicPage() {
   if (characteristic === "vintage-year") {
     const filtered = VINTAGE_YEARS.filter((y) => y.includes(searchQuery));
     return (
-      <main className="min-h-screen flex flex-col items-center pb-8">
+      <main className={lobbySelectPageMainClass}>
         {header}
         <div className={contentClass}>
           <div className={titleClass}>
@@ -367,7 +371,7 @@ export default function HostRoundSelectCharacteristicPage() {
   if (characteristic === "alcohol-content") {
     const filtered = ALCOHOL_CONTENT_VALUES.filter((v) => v.includes(searchQuery));
     return (
-      <main className="min-h-screen flex flex-col items-center pb-8">
+      <main className={lobbySelectPageMainClass}>
         {header}
         <div className={contentClass}>
           <div className={titleClass}>
@@ -403,7 +407,7 @@ export default function HostRoundSelectCharacteristicPage() {
   // ——— oak-aged ———
   if (characteristic === "oak-aged") {
     return (
-      <main className="min-h-screen flex flex-col items-center pb-8">
+      <main className={lobbySelectPageMainClass}>
         {header}
         <div className={contentClass}>
           <div className={titleClass}>

@@ -16,6 +16,9 @@ import {
 } from "@/lib/lobby-round-draft";
 import { logNavigation } from "@/lib/navigation-log";
 import type { WineParams } from "@/components/game/wine-form";
+import { PLAY_SELECT_PAGE_BG } from "@/components/game/play-select-screen";
+
+const lobbyPageMainClass = `relative min-h-screen ${PLAY_SELECT_PAGE_BG}`;
 
 interface GameData {
   id: string;
@@ -428,7 +431,7 @@ export default function LobbyRoundEditPage() {
   const isPageLoading = (loading || !sessionReady) && !saving;
   if (isPageLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
+      <main className={`${lobbyPageMainClass} flex items-center justify-center`}>
         <div className="text-center">
           <div className="text-5xl mb-4 animate-pulse">🍷</div>
           <p className="text-[var(--muted-foreground)]">Загрузка...</p>
@@ -444,7 +447,7 @@ export default function LobbyRoundEditPage() {
 
   if (error && !game) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4">
+      <main className={`${lobbyPageMainClass} flex items-center justify-center p-4`}>
         <div className="text-center space-y-4">
           <div className="text-5xl">😕</div>
           <p className="text-xl text-[var(--error)]">{error}</p>
@@ -466,14 +469,14 @@ export default function LobbyRoundEditPage() {
 
   if (!draft) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
+      <main className={`${lobbyPageMainClass} flex items-center justify-center`}>
         <p className="text-[var(--muted-foreground)]">Подготовка...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center pb-8">
+    <main className={`${lobbyPageMainClass} flex flex-col items-center pb-8`}>
       {/* Диалог «Сохранить внесённые изменения?» при нажатии Назад */}
       {showSaveConfirmDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">

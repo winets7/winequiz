@@ -9,6 +9,9 @@ import { useHierarchicalBack } from "@/hooks/useHierarchicalBack";
 import { getJoinUrl } from "@/lib/game-code";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { PlayerRoundsList } from "@/components/game/player-rounds-list";
+import { PLAY_SELECT_PAGE_BG } from "@/components/game/play-select-screen";
+
+const lobbyPageMainClass = `relative min-h-screen ${PLAY_SELECT_PAGE_BG}`;
 
 interface Player {
   userId: string;
@@ -440,7 +443,7 @@ export default function LobbyPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
+      <main className={`${lobbyPageMainClass} flex items-center justify-center`}>
         <div className="text-center">
           <div className="text-5xl mb-4 animate-pulse">🍷</div>
           <p className="text-[var(--muted-foreground)]">Загрузка...</p>
@@ -451,7 +454,7 @@ export default function LobbyPage() {
 
   if (error && !game) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4">
+      <main className={`${lobbyPageMainClass} flex items-center justify-center p-4`}>
         <div className="text-center space-y-4">
           <div className="text-5xl">😕</div>
           <p className="text-xl text-[var(--error)]">{error || "Игра не найдена"}</p>
@@ -473,7 +476,7 @@ export default function LobbyPage() {
 
   // Основной экран лобби
   return (
-    <main className="min-h-screen flex flex-col items-center p-4 md:p-8">
+    <main className={`${lobbyPageMainClass} flex flex-col items-center p-4 md:p-8`}>
       {/* Верхняя панель */}
       <div className="w-full max-w-4xl flex items-center justify-between mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-[var(--primary)]">

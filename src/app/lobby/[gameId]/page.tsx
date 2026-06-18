@@ -10,6 +10,7 @@ import { getJoinUrl } from "@/lib/game-code";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { PlayerRoundsList } from "@/components/game/player-rounds-list";
 import { PLAY_SELECT_PAGE_BG } from "@/components/game/play-select-screen";
+import { PROFILE_PANEL_CLASS } from "@/components/profile/profile-panel-styles";
 
 const lobbyPageMainClass = `relative min-h-screen ${PLAY_SELECT_PAGE_BG}`;
 
@@ -508,7 +509,7 @@ export default function LobbyPage() {
         {/* ═══ Левая колонка ═══ */}
         <div className="flex-1 space-y-4">
           {/* QR-код и код комнаты */}
-          <div className="bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)] text-center">
+          <div className={`${PROFILE_PANEL_CLASS} p-6 text-center`}>
             <div className="bg-white p-3 rounded-2xl inline-block mb-4">
               <QRCodeSVG
                 value={joinUrl}
@@ -568,7 +569,7 @@ export default function LobbyPage() {
           </div>
 
           {/* Настройки игры */}
-          <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
+          <div className={`${PROFILE_PANEL_CLASS} p-4`}>
             <div className="flex justify-between text-sm">
               <span className="text-[var(--muted-foreground)]">Раундов:</span>
               <span className="font-semibold">{game.totalRounds}</span>
@@ -587,10 +588,10 @@ export default function LobbyPage() {
         {/* ═══ Правая колонка ═══ */}
         <div className="flex-1 space-y-4">
           {/* Игроки */}
-          <div className="bg-[var(--card)] rounded-3xl p-6 shadow-lg border border-[var(--border)]">
+          <div className={`${PROFILE_PANEL_CLASS} p-6`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">Игроки</h2>
-              <span className="bg-[var(--muted)] text-[var(--muted-foreground)] px-3 py-1 rounded-full text-sm font-medium">
+              <span className="rounded-full border-2 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg-hover)] px-3 py-1 text-sm font-medium text-[var(--foreground)]">
                 {players.length} / {game.maxPlayers}
               </span>
             </div>
@@ -599,7 +600,7 @@ export default function LobbyPage() {
               {players.map((player, index) => (
                 <div
                   key={player.userId}
-                  className="flex items-center gap-3 p-3 bg-[var(--muted)] rounded-xl"
+                  className="flex items-center gap-3 p-3 rounded-xl border-2 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg-hover)]"
                 >
                   <div className="w-10 h-10 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center font-bold text-sm">
                     {index + 1}

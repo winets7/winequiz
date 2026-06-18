@@ -394,14 +394,12 @@ export default function JoinPage() {
 
           {/* Раунды */}
           {game ? (
-            <div className={`${joinMainPanelFrame} p-1`}>
-              <PlayerRoundsList
+            <PlayerRoundsList
                 rounds={rounds}
                 totalRounds={game.totalRounds}
                 gameId={gameId}
                 gameStatus={game.status}
               />
-            </div>
           ) : null}
 
           {/* Игроки (сворачиваемый блок) */}

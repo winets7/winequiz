@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 
+import { PROFILE_PANEL_CLASS } from "@/components/profile/profile-panel-styles";
+
 interface RoundData {
   id: string;
   roundNumber: number;
@@ -121,7 +123,7 @@ export function PlayerRoundsList({
   const isHost = variant === "host";
 
   return (
-    <div className="bg-[var(--card)] rounded-2xl p-4 shadow border border-[var(--border)]">
+    <div className={`${PROFILE_PANEL_CLASS} p-4`}>
       <h3 className="text-lg font-bold mb-3">
         🍷 Раунды ({rounds.filter((r) => r.status === "CLOSED").length}/{totalRounds} завершено)
       </h3>
@@ -142,8 +144,8 @@ export function PlayerRoundsList({
                     : roundStatus.status === "completed"
                     ? "bg-[var(--success)] bg-opacity-10 border-[var(--success)]"
                     : filled
-                    ? "bg-[var(--muted)] border-[var(--border)]"
-                    : "bg-[var(--muted)] border-[var(--border)]"
+                    ? "border-2 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg-hover)]"
+                    : "border-2 border-[var(--wine-quiz-active-game-card-border)] bg-[var(--wine-quiz-active-game-card-bg-hover)]"
                 }`}
               >
                 <button
